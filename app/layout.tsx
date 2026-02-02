@@ -37,20 +37,13 @@ export default function RootLayout({
 	const footer = (
 		<Appbar className={"bg-black text-white"}
 			left={
-				<div className={"px-3"}>
-					🧙‍♀️Spell Book✨
+				<div>
 				</div>
 			}
 			right={
-			<span className={"px-5"}>
-			<Link
-				href="https://www.paypal.com/ncp/payment/4P85EQRES3RGU"
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				♥️Buy me a coffee!☕
-			</Link>
-			</span>
+				<div>
+				</div>
+
 		}>
 			<span className={"px-5 flex flex-row gap-1"}>
 				<span>
@@ -71,28 +64,17 @@ export default function RootLayout({
 				>
 					🤣emoji-ui
 				</Link>
-				<span>
-					by
-				</span>
-				<Link
-					href={"https://mirasworld.sociallydead.me"}
-					target={"_blank"}
-					>
-						♥️Mira♥️
-				</Link>
 			</span>
 		</Appbar>
 	)
 
 	const left = (
 		<div className={"hidden md:flex flex-col flex-1 my-4 p-2 w-40"}>
-			<SidebarLeft/>
 		</div>
 	)
 
 	const right = (
 		<div className={"hidden md:flex flex-col flex-1 my-4 p-2 w-20"}>
-			<SidebarRight/>
 		</div>
 	)
 
