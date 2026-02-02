@@ -1,0 +1,7 @@
+@font-face {
+  font-family: 'Flags';                    /* exact name – case-sensitive */
+  src: url('/fonts/flags.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;                          /* shows fallback text while loading */
+};
