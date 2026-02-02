@@ -22,48 +22,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 	const header = (
-		<div className={"flex flex-col w-full"}>
-			<div className={"desktop flex flex-col"}>
-				<div className={"w-30 min-w-30"}>
-					<Link href={"/"}>
-					<Image
-					src={"/witch.png"}
-					alt={"Witch!"}
-					width={150}
-					height={150}
-					priority
-					className={"absolute top-0 left-0 z-50 inset-1 rounded-full shadow-lg"}
-				/>
-					</Link>
-				</div>
-				<div className={"flex-1 text-lg ml-30 "}>
-					<div className={"flex flex-row gap-2"}>
-						<span>
-							<Link href={"/"}>
-							‍🧙‍♀️️<b>The White Witch™</b>✨
-							</Link>
-						</span>
-						<span>
-							<Link href={"/blog/epstein_files"}>
-								👉🏼DO NOT FORGET THE EPSTEIN FILES!💩👈🏼
-							</Link>
-						</span>
-				</div>
-				</div>
-			</div>
-		<Appbar className={"bg-red-800 text-white"}
+		<Appbar className={"bg-black text-white"}
 			left={
-			<div className={"w-35"}/>
+			<div className={"text-red-500 text-lg mt-0.5"}>
+				☠️sociallydead.me
+			</div>
 		}
 			right={<Toolbar/>}
 		>
 			<MainMenu/>
 		</Appbar>
-		</div>
 	)
 
 	const footer = (
-		<Appbar className={"bg-red-800 text-white"}
+		<Appbar className={"bg-black text-white"}
 			left={
 				<div className={"px-3"}>
 					🧙‍♀️Spell Book✨

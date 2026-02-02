@@ -1,10 +1,10 @@
 // app/lib/metadata.ts
 import type { Metadata } from 'next'
 
-const siteUrl = 'https://thewhitewitchtm.sociallydead.me'
-const siteName = "🧙‍♀️The White Witch™✨"
-const defaultTitle = "🧙‍♀️The White Witch™✨"
-const defaultDescription = "🧙‍♀️The White Witch™✨"
+const siteUrl = 'https://sociallydead.me'
+const siteName = "sociallydead.me"
+const defaultTitle = "sociallydead.me"
+const defaultDescription = "sociallydead.me, the darker social network..."
 
 export const baseMetadata: Metadata = {
 	// Core
@@ -21,8 +21,8 @@ export const baseMetadata: Metadata = {
 		'games',
 		'humor',
 	],
-	authors: [{ name: 'The White Witch', url: siteUrl }],
-	creator: 'The White Witch',
+	authors: [{ name: 'sociallydead.me', url: siteUrl }],
+	creator: 'sociallydead.me',
 
 	// Open Graph
 	openGraph: {
@@ -33,7 +33,7 @@ export const baseMetadata: Metadata = {
 		images: [
 			{
 				url: '/banner.jpg',
-				alt: "The White Witch",
+				alt: "sociallydead-me",
 			},
 		],
 		locale: 'en_US',

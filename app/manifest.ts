@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
 	return {
-		name: "🧙‍♀️The White Witch™✨ App",
-		short_name: "White Witch App",
-		description: "🧙‍♀️The White Witch™✨ presents the most magic app ever!",
+		name: "sociallydead.me",
+		short_name: "sociallydead.me",
+		description: "the darker social network...",
 		start_url: '/',
 		display: 'standalone',
 		background_color: '#000000',
