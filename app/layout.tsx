@@ -30,7 +30,6 @@ export default function RootLayout({
 		}
 			right={<Toolbar/>}
 		>
-			<MainMenu/>
 		</Appbar>
 	)
 
@@ -59,10 +58,10 @@ export default function RootLayout({
 					&
 				</span>
 				<Link
-					href={"https://mirasworld.sociallydead.me/projects/emoji-ui"}
+					href={"https://mirasworld.sociallydead.me/projects/next-blog"}
 					target={"_blank"}
 				>
-					🤣emoji-ui
+					📃NEXT-blog
 				</Link>
 			</span>
 		</Appbar>

@@ -9,14 +9,12 @@ export default function Home()  {
 				<Image
 				src={"/banner.jpg"}
 				alt="Home Image"
-				width={400}
+				width={300}
 				height={200}
 				priority
+				className="inset-3"
 			/>
 			</center>
-			<div className={"prose dark:prose-invert"}>
-				<Intro/>
-			</div>
 		</PageContent>
 	)
 }
