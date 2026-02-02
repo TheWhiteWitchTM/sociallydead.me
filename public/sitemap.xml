@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <!-- Main domain's own sitemap (landing page URLs) -->
+    <sitemap>
+        <loc>https://sociallydead.me/sitemap-main.xml</loc>
+    </sitemap>
+
+    <!-- Subdomain 1 -->
+    <sitemap>
+        <loc>https://mirasworld.sociallydead.me/sitemap.xml</loc>
+    </sitemap>
+
+    <!-- Subdomain 2 -->
+    <sitemap>
+        <loc>https://thewhitewitchtm.sociallydead.me/sitemap.xml</loc>
+    </sitemap>
+</sitemapindex>
