@@ -1,0 +1,11 @@
+{
+  "client_id": "https://sociallydead.me/client-metadata.json",
+  "application_type": "web",
+  "redirect_uris": ["https://sociallydead.me/api/auth/bluesky/callback"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "scope": "transition:generic",
+  "token_endpoint_auth_method": "private_key_jwt",
+  "jwks_uri": "https://sociallydead.me/.well-known/jwks.json",
+  "token_endpoint_auth_signing_alg": "ES256"
+}

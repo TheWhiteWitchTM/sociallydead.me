@@ -1,6 +1,8 @@
+"use client"
+
 import Image from "next/image"
 import {PageContent} from "@/next-static/legacy/PageContent";
-import Intro from "./intro.mdx"
+import BlueSkyFeed from "@/components/BlueSkyFeed";
 
 export default function Home()  {
 	return (
@@ -14,6 +16,9 @@ export default function Home()  {
 				priority
 				className="inset-3"
 			/>
+			</center>
+			<center>
+				<BlueSkyFeed/>
 			</center>
 		</PageContent>
 	)
