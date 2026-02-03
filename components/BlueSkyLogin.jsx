@@ -1,41 +1,16 @@
 // components/BlueSkyLogin.jsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-
-const SESSION_KEY = 'bluesky_oauth_session'
 
 export default function BlueSkyLogin({ className = '' }) {
   const [handle, setHandle] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [avatar, setAvatar] = useState(null)
-  const [name, setName] = useState(null)
-  const [signedIn, setSignedIn] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(SESSION_KEY)
-    if (!stored) return
-
-    (async () => {
-      try {
-        const data = JSON.parse(stored)
-        const a = new AtpAgent({ service: 'https://bsky.social' })
-        await a.resumeSession(data)
-        const { data: p } = await a.app.bsky.actor.getProfile({ actor: a.session.did })
-        setAvatar(p.avatar || null)
-        setName(p.displayName || p.handle)
-        setSignedIn(true)
-      } catch (err) {
-        localStorage.removeItem(SESSION_KEY)
-      }
-    })()
-  }, [])
 
   const signIn = async () => {
     setError('')
@@ -48,55 +23,26 @@ export default function BlueSkyLogin({ className = '' }) {
     }
 
     try {
-      // Quick public check: does this handle exist?
-      const res = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle.trim())}`)
+      const res = await fetch('/api/bluesky-signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle }),
+      })
+
+      const data = await res.json()
+
       if (!res.ok) {
-        if (res.status === 404) {
-          setError('Handle not found — check spelling or if the account exists')
-        } else {
-          setError('Could not verify handle (network issue)')
-        }
+        setError(data.error || 'Sign-in failed')
         setLoading(false)
         return
       }
 
-      const data = await res.json()
-      // Handle exists — proceed to login redirect
-      const authUrl = `https://bsky.social/oauth/authorize?` +
-        `client_id=https://sociallydead.me/client-metadata.json&` +
-        `redirect_uri=https://sociallydead.me/oauth-callback&` +
-        `response_type=code&` +
-        `scope=atproto%20transition:email%20transition:offline_access`
-
-      window.location.href = authUrl
+      // Valid → redirect to Bluesky login
+      window.location.href = data.authUrl
     } catch (err) {
-      setError('Failed to start sign-in — check internet or try again')
+      setError('Network error — try again')
       setLoading(false)
     }
-  }
-
-  const signOut = () => {
-    localStorage.removeItem(SESSION_KEY)
-    setSignedIn(false)
-    setAvatar(null)
-    setName(null)
-  }
-
-  if (signedIn && (avatar || name)) {
-    return (
-      <div className={`w-40 flex flex-col items-center gap-3 ${className}`}>
-        <Avatar className="h-10 w-10">
-          {avatar && <AvatarImage src={avatar} alt={name || 'You'} />}
-          <AvatarFallback>{name?.[0]?.toUpperCase() || '?'}</AvatarFallback>
-        </Avatar>
-        <div className="text-center text-sm font-medium truncate w-full">
-          {name || 'Signed in'}
-        </div>
-        <Button variant="outline" size="sm" className="w-full text-xs" onClick={signOut}>
-          Sign out
-        </Button>
-      </div>
-    )
   }
 
   return (
