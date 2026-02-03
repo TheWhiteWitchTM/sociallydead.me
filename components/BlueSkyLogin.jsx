@@ -8,8 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2 } from 'lucide-react'
 
 const SESSION_KEY = 'bluesky_oauth_session'
-const CLIENT_ID = 'https://sociallydead.me/client-metadata.json'
-const REDIRECT_URI = 'https://sociallydead.me/oauth-callback'
 
 export default function BlueSkyLogin({ className = '' }) {
   const [agent, setAgent] = useState(null)
@@ -31,27 +29,20 @@ export default function BlueSkyLogin({ className = '' }) {
         setName(p.displayName || p.handle)
       })
     } catch (err) {
-      console.error('Session restore failed', err)
       localStorage.removeItem(SESSION_KEY)
     }
   }, [])
 
-  const signIn = async () => {
+  const signIn = () => {
     setLoading(true)
-    try {
-      // Build Bluesky authorize URL manually (no library needed for redirect flow)
-      const authUrl = new URL('https://bsky.app/authorize')
-      authUrl.searchParams.set('client_id', CLIENT_ID)
-      authUrl.searchParams.set('redirect_uri', REDIRECT_URI)
-      authUrl.searchParams.set('response_type', 'code')
-      authUrl.searchParams.set('scope', 'atproto transition:email transition:offline_access')
+    const authUrl = `https://bsky.social/oauth/authorize?` +
+      `client_id=https://sociallydead.me/client-metadata.json&` +
+      `redirect_uri=https://sociallydead.me/oauth-callback&` +
+      `response_type=code&` +
+      `scope=atproto%20transition:email%20transition:offline_access`
 
-      console.log('Redirecting to:', authUrl.toString())
-      window.location.href = authUrl.toString()
-    } catch (err) {
-      console.error('Redirect failed', err)
-      setLoading(false)
-    }
+    console.log('Redirecting to Bluesky:', authUrl)
+    window.location.href = authUrl
   }
 
   const signOut = () => {
