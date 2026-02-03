@@ -1,101 +1,173 @@
-// components/BlueSkyFeed.tsx  (updated version)
-'use client'; // If using Next.js App Router client component
+// components/BlueSkyFeed.tsx
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { BskyAgent } from '@atproto/api';
-import BlueSkyPost from './BlueSkyPost'; // Your existing post renderer
+import BlueSkyPost from './BlueSkyPost';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface BlueSkyFeedProps {
-	feedUri?: string;
-	limit?: number;
+	authorHandle?: string; // If provided, show this user's posts instead of default news
+	limit?: number;        // Posts per page/load
+	filter?: 'posts_with_replies' | 'posts_no_replies' | 'posts_with_media'; // Only used for author mode
 }
 
 const PUBLIC_SERVICE = 'https://public.api.bsky.app';
-
-// Stable verified news feed – confirmed active and public in 2026
-const DEFAULT_NEWS_FEED_URI =
-	'at://did:plc:kkf4naxqmweop7dv4l2iqqf5/app.bsky.feed.generator/verified-news';
+const DEFAULT_NEWS_FEED_URI = 'at://did:plc:kkf4naxqmweop7dv4l2iqqf5/app.bsky.feed.generator/verified-news';
+const INITIAL_LIMIT = 20;
 
 const BlueSkyFeed: React.FC<BlueSkyFeedProps> = ({
-	                                                 feedUri = DEFAULT_NEWS_FEED_URI,
-	                                                 limit = 20,
+	                                                 authorHandle,
+	                                                 limit = INITIAL_LIMIT,
+	                                                 filter = 'posts_with_replies',
                                                  }) => {
+	const isAuthorMode = !!authorHandle;
 	const [posts, setPosts] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadingMore, setLoadingMore] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [cursor, setCursor] = useState<string | undefined>(undefined);
+	const [hasMore, setHasMore] = useState(true);
 
-	const fetchFeed = async (uri: string, attempt = 1): Promise<void> => {
-		try {
-			const agent = new BskyAgent({ service: PUBLIC_SERVICE });
+	const loadContent = useCallback(
+		async (nextCursor?: string) => {
+			try {
+				const agent = new BskyAgent({ service: PUBLIC_SERVICE });
+				let response: any;
 
-			const response = await agent.app.bsky.feed.getFeed({
-				feed: uri,
-				limit,
-			});
+				if (isAuthorMode) {
+					const params: any = {
+						actor: authorHandle,
+						limit,
+						filter,
+					};
+					if (nextCursor) params.cursor = nextCursor;
+					response = await agent.app.bsky.feed.getAuthorFeed(params);
+					const newPosts = response.data.feed.map((item: any) => item.post);
+					setPosts((prev) => (nextCursor ? [...prev, ...newPosts] : newPosts));
+					setCursor(response.data.cursor);
+					setHasMore(!!response.data.cursor);
+				} else {
+					const params: any = { feed: DEFAULT_NEWS_FEED_URI, limit };
+					if (nextCursor) params.cursor = nextCursor;
+					response = await agent.app.bsky.feed.getFeed(params);
+					const newPosts = response.data.feed.map((item: any) => item.post);
+					setPosts((prev) => (nextCursor ? [...prev, ...newPosts] : newPosts));
+					setCursor(response.data.cursor);
+					setHasMore(!!response.data.cursor);
+				}
 
-			const fetchedPosts = response.data.feed.map((item: any) => item.post);
-			setPosts(fetchedPosts);
-			setError(null);
-		} catch (err: any) {
-			console.error('Bluesky fetch error:', err);
+				setError(null);
+			} catch (err: any) {
+				console.error('Bluesky fetch error:', err);
+				let errMsg = isAuthorMode
+					? `Failed to load posts from @${authorHandle}.`
+					: 'Failed to load news feed.';
 
-			if (attempt === 1 && err?.status === 429) {
-				// Retry once on rate limit
-				setTimeout(() => fetchFeed(uri, 2), 2000);
-				return;
+				if (err?.message?.includes('resolve handle') || err?.message?.includes('not found') || err?.status === 404) {
+					errMsg = isAuthorMode
+						? `Profile @${authorHandle} not found or no longer exists (deleted/invalid handle).`
+						: 'News feed unavailable (URI may have changed or temporary issue).';
+				} else if (err?.status === 429) {
+					errMsg += ' Rate limit – try again soon.';
+				} else {
+					errMsg += ` Error: ${err?.message || 'Check console.'}`;
+				}
+
+				setError(errMsg);
 			}
+		},
+		[authorHandle, limit, filter, isAuthorMode]
+	);
 
-			let errMsg = 'Failed to load Bluesky news feed.';
-			if (err?.message?.includes('429')) errMsg += ' Rate limit hit – try again soon.';
-			if (err?.status === 404) errMsg += ' Feed may be unavailable or URI changed.';
-			setError(errMsg + ' ' + (err?.message || 'Check console for details.'));
-		} finally {
-			setLoading(false);
-		}
-	};
-
+	// Initial load
 	useEffect(() => {
 		setLoading(true);
-		fetchFeed(feedUri);
-	}, [feedUri, limit]);
+		loadContent().finally(() => setLoading(false));
+	}, [loadContent]);
+
+	// Infinite scroll
+	const observerRef = useRef<IntersectionObserver | null>(null);
+	const lastElementRef = useCallback(
+		(node: HTMLElement | null) => {
+			if (loadingMore) return;
+			if (observerRef.current) observerRef.current.disconnect();
+
+			observerRef.current = new IntersectionObserver((entries) => {
+				if (entries[0].isIntersecting && hasMore && !loadingMore) {
+					setLoadingMore(true);
+					loadContent(cursor).finally(() => setLoadingMore(false));
+				}
+			});
+
+			if (node) observerRef.current.observe(node);
+		},
+		[hasMore, loadingMore, cursor, loadContent]
+	);
+
+	useEffect(() => {
+		return () => {
+			if (observerRef.current) observerRef.current.disconnect();
+		};
+	}, []);
 
 	if (loading) {
 		return (
 			<div className="space-y-6 p-4 max-w-4xl mx-auto">
-				{Array.from({ length: Math.min(limit, 6) }).map((_, i) => (
+				{Array.from({ length: 6 }).map((_, i) => (
 					<Skeleton key={i} className="h-72 w-full rounded-xl" />
 				))}
 			</div>
 		);
 	}
 
-	if (error) {
-		return (
-			<Alert variant="destructive" className="max-w-2xl mx-auto my-8">
-				<AlertTitle>Error loading news feed</AlertTitle>
-				<AlertDescription>{error}</AlertDescription>
-				<p className="mt-2 text-sm">
-					Tip: Refresh the page, or try a different feed URI via props.
-				</p>
-			</Alert>
-		);
-	}
-
-	if (posts.length === 0) {
-		return (
-			<p className="text-center text-muted-foreground my-12">
-				No recent news posts found in this feed right now.
-			</p>
-		);
-	}
-
 	return (
 		<div className="space-y-6 p-4 max-w-4xl mx-auto">
-			{posts.map((post) => (
-				<BlueSkyPost key={post.uri} post={post} />
-			))}
+			{error ? (
+				<Alert variant="destructive" className="max-w-2xl mx-auto my-8">
+					<AlertTitle>Feed load error</AlertTitle>
+					<AlertDescription>{error}</AlertDescription>
+					<p className="mt-2 text-sm">
+						{isAuthorMode ? (
+							<>Check <a href={`https://bsky.app/profile/${authorHandle}`} target="_blank" rel="noopener noreferrer" className="underline">bsky.app/profile/{authorHandle}</a> or try without authorHandle for news.</>
+						) : (
+							'Try refreshing or check Bluesky status.'
+						)}
+					</p>
+				</Alert>
+			) : posts.length === 0 ? (
+				<p className="text-center text-muted-foreground my-12">
+					{isAuthorMode
+						? `No public posts from @${authorHandle} (private/empty/restricted).`
+						: 'No recent news posts right now.'}
+				</p>
+			) : (
+				<>
+					{posts.map((post, index) => {
+						const isLast = index === posts.length - 1;
+						return (
+							<div key={post.uri} ref={isLast ? lastElementRef : null}>
+								<BlueSkyPost post={post} />
+							</div>
+						);
+					})}
+
+					{loadingMore && (
+						<div className="space-y-6 pt-4">
+							{Array.from({ length: 3 }).map((_, i) => (
+								<Skeleton key={`more-${i}`} className="h-72 w-full rounded-xl" />
+							))}
+						</div>
+					)}
+
+					{!hasMore && posts.length > 0 && (
+						<p className="text-center text-muted-foreground py-8">
+							End of feed.
+						</p>
+					)}
+				</>
+			)}
 		</div>
 	);
 };
