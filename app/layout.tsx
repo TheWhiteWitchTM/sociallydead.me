@@ -69,6 +69,7 @@ export default function RootLayout({
 
 	const left = (
 		<div className={"hidden md:flex flex-col flex-1 my-4 p-2 w-40"}>
+			<SidebarLeft/>
 		</div>
 	)
 
