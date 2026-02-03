@@ -19,18 +19,23 @@ export default function BlueSkyLogin({ className = '' }) {
   useEffect(() => {
     const restore = async () => {
       const stored = localStorage.getItem(SESSION_KEY)
-      if (!stored) return
+      if (!stored) {
+        console.log('No stored session')
+        return
+      }
 
       try {
+        console.log('Restoring session from storage')
         const data = JSON.parse(stored)
         const a = new AtpAgent({ service: 'https://bsky.social' })
         await a.resumeSession(data)
         setAgent(a)
         const { data: p } = await a.app.bsky.actor.getProfile({ actor: a.session.did })
+        console.log('Profile loaded:', p.handle)
         setAvatar(p.avatar || null)
         setName(p.displayName || p.handle)
       } catch (err) {
-        console.error('Restore failed', err)
+        console.error('Restore failed:', err.message)
         localStorage.removeItem(SESSION_KEY)
       }
     }
@@ -41,7 +46,8 @@ export default function BlueSkyLogin({ className = '' }) {
   const signIn = async () => {
     setLoading(true)
     try {
-      // @ts-ignore Library has broken type inference - code works at runtime
+      console.log('Starting OAuth flow')
+      // @ts-ignore Library type bug - works at runtime
       const client = new BrowserOAuthClient({
         clientMetadata: {
           client_id: 'https://sociallydead.me/client-metadata.json',
@@ -53,32 +59,34 @@ export default function BlueSkyLogin({ className = '' }) {
       })
 
       const url = await client.authorize({ scope: 'atproto transition:email transition:offline_access' })
-      console.log('Opening popup:', url)
+      console.log('Auth URL:', url)
 
       const popup = window.open(url, '_blank', 'width=600,height=700')
 
       if (!popup) {
-        console.error('Popup blocked')
-        alert('Popup blocked - please allow popups for sociallydead.me')
+        console.error('Popup blocked or failed to open')
+        alert('Popup blocked or failed. Please allow popups for sociallydead.me and try again.')
         setLoading(false)
         return
       }
 
+      console.log('Popup opened successfully')
+
       const timer = setInterval(() => {
         if (popup.closed) {
           clearInterval(timer)
-          console.log('Popup closed - checking session')
+          console.log('Popup closed - checking for session')
           const stored = localStorage.getItem(SESSION_KEY)
           if (stored) {
-            console.log('Session found - restoring')
+            console.log('Session detected - restoring')
             restore()
           } else {
-            console.warn('No session saved after popup')
+            console.warn('No session saved after popup closed')
           }
         }
       }, 500)
     } catch (err) {
-      console.error('Sign in error:', err)
+      console.error('Sign in failed:', err.message || err)
     } finally {
       setLoading(false)
     }
@@ -89,22 +97,6 @@ export default function BlueSkyLogin({ className = '' }) {
     setAgent(null)
     setAvatar(null)
     setName(null)
-  }
-
-  const restore = async () => {
-    const stored = localStorage.getItem(SESSION_KEY)
-    if (!stored) return
-    try {
-      const data = JSON.parse(stored)
-      const a = new AtpAgent({ service: 'https://bsky.social' })
-      await a.resumeSession(data)
-      setAgent(a)
-      const { data: p } = await a.app.bsky.actor.getProfile({ actor: a.session.did })
-      setAvatar(p.avatar || null)
-      setName(p.displayName || p.handle)
-    } catch (err) {
-      console.error(err)
-    }
   }
 
   return (
