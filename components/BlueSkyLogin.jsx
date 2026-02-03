@@ -17,32 +17,22 @@ export default function BlueSkyLogin({ className = '' }) {
     setLoading(true)
 
     if (!handle.trim()) {
-      setError('Enter your Bluesky handle')
+      setError('Enter your Bluesky handle first')
       setLoading(false)
       return
     }
 
-    try {
-      const res = await fetch('/api/bluesky-signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Sign-in failed')
-        setLoading(false)
-        return
-      }
-
-      // Valid → redirect to Bluesky login
-      window.location.href = data.authUrl
-    } catch (err) {
-      setError('Network error — try again')
+    // Quick check if handle looks valid (basic)
+    if (handle.length < 3 || !handle.includes('.')) {
+      setError('Handle should look like username.bsky.social')
       setLoading(false)
+      return
     }
+
+    // Open Bluesky in NEW TAB (your site stays)
+    window.open('https://bsky.app', '_blank', 'noopener,noreferrer')
+
+    setLoading(false)
   }
 
   return (
@@ -74,15 +64,15 @@ export default function BlueSkyLogin({ className = '' }) {
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Checking...
+            Opening...
           </>
         ) : (
           'Sign in with Bluesky'
         )}
       </Button>
 
-      <p className="text-[10px] text-muted-foreground text-center mt-1">
-        Validates handle first — then opens Bluesky login
+      <p className="text-[10px] text-muted-foreground text-center mt-1 leading-tight">
+        Opens Bluesky login in new tab — your site stays open
       </p>
     </div>
   )
