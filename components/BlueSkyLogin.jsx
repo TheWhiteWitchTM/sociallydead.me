@@ -12,15 +12,7 @@ export default function BlueSkyLogin({ className = '' }) {
 
   const signIn = () => {
     setLoading(true)
-
-    const authUrl = `https://bsky.social/oauth/authorize?` +
-      `client_id=https://sociallydead.me/client-metadata.json&` +
-      `redirect_uri=https://sociallydead.me/oauth-callback&` +
-      `response_type=code&` +
-      `scope=atproto transition:email transition:offline_access`
-
-    console.log('Redirecting to:', authUrl)
-    window.location.href = authUrl
+    window.location.href = 'https://bsky.app'  // Official entry - shows login if not signed in
   }
 
   return (
@@ -49,8 +41,8 @@ export default function BlueSkyLogin({ className = '' }) {
         )}
       </Button>
 
-      <p className="text-[10px] text-gray-500 text-center">
-        You'll be taken to bsky.social to enter your username and password
+      <p className="text-[10px] text-gray-500 text-center mt-1">
+        Redirects to bsky.app — enter your username and password there if not signed in
       </p>
     </div>
   )
