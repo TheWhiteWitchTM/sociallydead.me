@@ -2,7 +2,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AtpAgent } from '@atproto/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -20,27 +19,25 @@ export default function BlueSkyLogin({ className = '' }) {
   const [signedIn, setSignedIn] = useState(false)
 
   useEffect(() => {
-    // Check for existing session
     const stored = localStorage.getItem(SESSION_KEY)
-    if (stored) {
-      (async () => {
-        try {
-          const data = JSON.parse(stored)
-          const a = new AtpAgent({ service: 'https://bsky.social' })
-          await a.resumeSession(data)
-          const { data: p } = await a.app.bsky.actor.getProfile({ actor: a.session.did })
-          setAvatar(p.avatar || null)
-          setName(p.displayName || p.handle)
-          setSignedIn(true)
-        } catch (err) {
-          console.error('Session restore failed', err)
-          localStorage.removeItem(SESSION_KEY)
-        }
-      })()
-    }
+    if (!stored) return
+
+    (async () => {
+      try {
+        const data = JSON.parse(stored)
+        const a = new AtpAgent({ service: 'https://bsky.social' })
+        await a.resumeSession(data)
+        const { data: p } = await a.app.bsky.actor.getProfile({ actor: a.session.did })
+        setAvatar(p.avatar || null)
+        setName(p.displayName || p.handle)
+        setSignedIn(true)
+      } catch (err) {
+        localStorage.removeItem(SESSION_KEY)
+      }
+    })()
   }, [])
 
-  const validateAndSignIn = async () => {
+  const signIn = async () => {
     setError('')
     setLoading(true)
 
@@ -51,20 +48,20 @@ export default function BlueSkyLogin({ className = '' }) {
     }
 
     try {
-      // Step 1: Quick public check if handle exists
+      // Quick public check: does this handle exist?
       const res = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle.trim())}`)
       if (!res.ok) {
         if (res.status === 404) {
           setError('Handle not found — check spelling or if the account exists')
         } else {
-          setError('Could not verify handle (network error)')
+          setError('Could not verify handle (network issue)')
         }
         setLoading(false)
         return
       }
 
       const data = await res.json()
-      // Handle exists — proceed to real OAuth login
+      // Handle exists — proceed to login redirect
       const authUrl = `https://bsky.social/oauth/authorize?` +
         `client_id=https://sociallydead.me/client-metadata.json&` +
         `redirect_uri=https://sociallydead.me/oauth-callback&` +
@@ -73,7 +70,7 @@ export default function BlueSkyLogin({ className = '' }) {
 
       window.location.href = authUrl
     } catch (err) {
-      setError('Failed to check handle — try again or check internet')
+      setError('Failed to start sign-in — check internet or try again')
       setLoading(false)
     }
   }
@@ -125,7 +122,7 @@ export default function BlueSkyLogin({ className = '' }) {
       <Button
         size="sm"
         className="w-full"
-        onClick={validateAndSignIn}
+        onClick={signIn}
         disabled={loading}
       >
         {loading ? (
@@ -139,7 +136,7 @@ export default function BlueSkyLogin({ className = '' }) {
       </Button>
 
       <p className="text-[10px] text-muted-foreground text-center mt-1">
-        Checks handle first — then takes you to Bluesky login
+        Validates handle first — then opens Bluesky login
       </p>
     </div>
   )
