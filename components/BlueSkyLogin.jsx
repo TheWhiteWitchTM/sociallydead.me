@@ -41,7 +41,7 @@ export default function BlueSkyLogin({ className = '' }) {
   const signIn = async () => {
     setLoading(true)
     try {
-      // @ts-ignore Library type inference broken - works at runtime
+      // @ts-ignore Library has broken type inference - code works at runtime
       const client = new BrowserOAuthClient({
         clientMetadata: {
           client_id: 'https://sociallydead.me/client-metadata.json',
@@ -53,13 +53,13 @@ export default function BlueSkyLogin({ className = '' }) {
       })
 
       const url = await client.authorize({ scope: 'atproto transition:email transition:offline_access' })
-      console.log('Opening Bluesky login popup:', url)
+      console.log('Opening popup:', url)
 
       const popup = window.open(url, '_blank', 'width=600,height=700')
 
       if (!popup) {
         console.error('Popup blocked')
-        alert('Popup blocked - allow popups for sociallydead.me')
+        alert('Popup blocked - please allow popups for sociallydead.me')
         setLoading(false)
         return
       }
@@ -73,7 +73,7 @@ export default function BlueSkyLogin({ className = '' }) {
             console.log('Session found - restoring')
             restore()
           } else {
-            console.warn('No session saved')
+            console.warn('No session saved after popup')
           }
         }
       }, 500)
