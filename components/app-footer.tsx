@@ -23,7 +23,18 @@ export function AppFooter() {
 			      rel="noopener noreferrer"
 			      className="font-medium text-primary hover:underline"
 		      >
-			      ♥️Mira
+			      ♥️Mira☕
+		      </Link>
+	      </p>
+	      <p className="text-sm text-muted-foreground">
+		      and{" "}
+		      <Link
+			      href="https://mirasworld.sociallydead.me/"
+			      target="_blank"
+			      rel="noopener noreferrer"
+			      className="font-medium text-primary hover:underline"
+		      >
+			      🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨
 		      </Link>
 	      </p>
       </div>
