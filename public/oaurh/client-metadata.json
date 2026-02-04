@@ -1,0 +1,15 @@
+{
+  "client_id": "https://sociallydead.me/oauth/client-metadata.json",
+  "redirect_uris": [
+    "http://127.0.0.1:3000/auth/callback",
+    "https://sociallydead.me/auth/callback"
+  ],
+  "grant_types": ["authorization_code"],
+  "response_types": ["code"],
+  "scope": "atproto transition:generic",
+  "application_type": "web",
+  "token_endpoint_auth_method": "none",
+  "dpop_bound_access_tokens": true,
+  "client_name": "SociallyDead Bluesky Login",
+  "client_uri": "https://sociallydead.me"
+}
