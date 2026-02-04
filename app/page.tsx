@@ -27,7 +27,7 @@ export default function HomePage() {
       </header>
       <main className="container max-w-2xl px-4 py-6">
         {isAuthenticated ? (
-          <Feed type="timeline" />
+          <Feed type="profile"/>
         ) : (
           <PublicFeed />
         )}
