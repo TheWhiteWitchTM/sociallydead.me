@@ -37,6 +37,17 @@ export function AppFooter() {
 			      🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨
 		      </Link>
 	      </p>
+	      <p className="text-sm text-muted-foreground">
+		      Support the project via{" "}
+		      <Link
+			      href="https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"
+			      target="_blank"
+			      rel="noopener noreferrer"
+			      className="font-medium text-primary hover:underline">
+			      💳Paypal
+		      </Link>
+	      </p>
+
       </div>
     </footer>
   )
