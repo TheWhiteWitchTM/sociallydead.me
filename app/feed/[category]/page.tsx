@@ -11,7 +11,12 @@ import { Loader2, Heart, MessageCircle, Repeat2, Vote, Gamepad2, Cpu, HeartIcon 
 import { formatDistanceToNow } from "date-fns"
 
 const categoryConfig: Record<string, { label: string; icon: React.ElementType; searchTerms: string[] }> = {
-  politics: {
+	news: {
+		label: "News",
+		icon: Vote,
+		searchTerms: ["news"],
+	},
+	politics: {
     label: "Politics",
     icon: Vote,
     searchTerms: ["politics", "election", "government", "congress", "senate", "democracy"],
