@@ -65,7 +65,7 @@ async function getOAuthClient(): Promise<BrowserOAuthClient> {
     handleResolver: "https://bsky.social",
     // Use the redirect URI for our app
     clientMetadata: {
-	    client_id: "https://www.sociallydead.me/oaurh/client-metadata.json",
+	    client_id: "https://www.sociallydead.me/oauth/client-metadata.json",
 	    client_name: "SociallyDead",
       client_uri: "https://www.sociallydead.me/",
       redirect_uris: [window.origin+"/oauth/callback"],
