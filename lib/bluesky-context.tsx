@@ -65,12 +65,10 @@ async function getOAuthClient(): Promise<BrowserOAuthClient> {
     handleResolver: "https://bsky.social",
     // Use the redirect URI for our app
     clientMetadata: {
-      client_id: typeof window !== "undefined" 
-        ? `${window.location.origin}/oauth/client-metadata.json`
-        : "http://sociallydead.me/oauth/client-metadata.json",
-      client_name: "SociallyDead",
-      client_uri: typeof window !== "undefined" ? window.location.origin : "http://sociallydead.me",
-      redirect_uris: [typeof window !== "undefined" ? `${window.location.origin}/oauth/callback` : "http://sociallydead.me/oauth/callback"],
+	    client_id: "https://www.sociallydead.me/oaurh/client-metadata.json",
+	    client_name: "SociallyDead",
+      client_uri: "https://www.sociallydead.me/",
+      redirect_uris: [window.origin+"/oauth/callback"],
       scope: "atproto transition:generic",
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
