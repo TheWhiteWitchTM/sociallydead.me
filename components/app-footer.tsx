@@ -12,7 +12,7 @@ export function AppFooter() {
             rel="noopener noreferrer"
             className="font-medium text-primary hover:underline"
           >
-            Bluesky
+	          🦋Bluesky
           </Link>
         </p>
 	      <p className="text-sm text-muted-foreground">
@@ -29,7 +29,7 @@ export function AppFooter() {
 	      <p className="text-sm text-muted-foreground">
 		      and{" "}
 		      <Link
-			      href="https://mirasworld.sociallydead.me/"
+			      href="https://thewhitewitchtm.sociallydead.me/"
 			      target="_blank"
 			      rel="noopener noreferrer"
 			      className="font-medium text-primary hover:underline"
