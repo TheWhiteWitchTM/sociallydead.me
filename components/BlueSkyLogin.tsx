@@ -4,12 +4,12 @@
 import { ReactNode, useState, useEffect, useRef } from 'react';
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
 
-const CLIENT_METADATA_URL = 'https://your-domain.com/client-metadata.json'; // ← YOUR REAL URL HERE
+const CLIENT_METADATA_URL = 'https://sociallydead.me/oauth/client-metadata.json';
 
 const getRedirectUri = () =>
 	typeof window !== 'undefined' && window.location.hostname === 'localhost'
 		? 'http://127.0.0.1:3000/auth/callback'
-		: 'https://your-domain.com/auth/callback';
+		: 'https://sociallydead.me/auth/callback';
 
 const SCOPE = 'atproto transition:generic';
 
@@ -40,7 +40,6 @@ export default function BlueSkyLogin({ children }: Props) {
 
 				clientRef.current = client;
 
-				// Restore/check last session (this is the correct method)
 				const result = await client.init();
 
 				setIsSignedIn(!!result?.session);
@@ -56,10 +55,10 @@ export default function BlueSkyLogin({ children }: Props) {
 
 	const handleLogin = async () => {
 		const client = clientRef.current;
-		if (!client) return alert('Auth not ready');
+		if (!client) return alert('Auth client not ready');
 
 		try {
-			const handle = prompt('Enter Bluesky handle (no @)', 'example.bsky.social')?.trim();
+			const handle = prompt('Enter your Bluesky handle (without @)', 'example.bsky.social')?.trim();
 			if (!handle) return;
 
 			await client.authorize(handle, {
@@ -67,21 +66,20 @@ export default function BlueSkyLogin({ children }: Props) {
 				redirect_uri: getRedirectUri(),
 				state: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
 			});
-			// authorize() redirects automatically — promise doesn't resolve
+			// authorize() triggers redirect automatically
 		} catch (err) {
 			console.error('Authorize error:', err);
-			alert('Login failed');
+			alert('Login start failed – check console');
 		}
 	};
 
 	const handleLogout = () => {
-		// No revoke method — clear flag & reload (lib detects invalid on next init)
-		localStorage.removeItem('atproto_signed_in'); // optional fallback
+		localStorage.removeItem('atproto_signed_in');
 		setIsSignedIn(false);
 		window.location.href = '/';
 	};
 
-	if (loading) return <div>Checking login...</div>;
+	if (loading) return <div>Checking login status...</div>;
 
 	if (isSignedIn) {
 		return (
@@ -89,9 +87,9 @@ export default function BlueSkyLogin({ children }: Props) {
 				{children}
 				<button
 					onClick={handleLogout}
-					style={{ margin: '1rem 0', padding: '8px 16px', background: '#ff3b30', color: 'white', border: 'none', borderRadius: '6px' }}
+					style={{ margin: '1rem 0', padding: '8px 16px', background: '#ff3b30', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
 				>
-					Logout
+					Logout from Bluesky
 				</button>
 			</>
 		);
@@ -100,9 +98,9 @@ export default function BlueSkyLogin({ children }: Props) {
 	return (
 		<button
 			onClick={handleLogin}
-			style={{ padding: '10px 20px', background: '#0066ff', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px' }}
+			style={{ padding: '10px 20px', background: '#0066ff', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}
 		>
-			Login with Bluesky
+			Sign in with Bluesky
 		</button>
 	);
 }
