@@ -18,7 +18,7 @@ export function AppFooter() {
 	      <p className="text-sm text-muted-foreground">
 		      Created by{" "}
 		      <Link
-			      href="https://bsky.app"
+			      href="https://mirasworld.sociallydead.me/"
 			      target="_blank"
 			      rel="noopener noreferrer"
 			      className="font-medium text-primary hover:underline"
