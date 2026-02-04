@@ -1,221 +1,108 @@
-"use client";
+// components/BlueSkyLogin.tsx
+'use client';
 
-import { createContext, useContext, useState, useEffect, useRef } from "react";
-import { BskyAgent } from "@atproto/api";
-import { BrowserOAuthClient } from "@atproto/oauth-client-browser";
-import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, LogIn, LogOut } from "lucide-react";
+import { ReactNode, useState, useEffect, useRef } from 'react';
+import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
 
-// ────────────────────────────────────────────────
-// CONTEXT
-// ────────────────────────────────────────────────
-const BskyContext = createContext<{
-	agent: BskyAgent | null;
-	profile: any | null;
-} | null>(null);
+const CLIENT_METADATA_URL = 'https://your-domain.com/client-metadata.json'; // ← YOUR REAL URL HERE
 
-export const useBsky = () => {
-	const ctx = useContext(BskyContext);
-	if (!ctx) throw new Error("useBsky must be used within BlueSkyLogin");
-	return ctx;
-};
+const getRedirectUri = () =>
+	typeof window !== 'undefined' && window.location.hostname === 'localhost'
+		? 'http://127.0.0.1:3000/auth/callback'
+		: 'https://your-domain.com/auth/callback';
 
-// ────────────────────────────────────────────────
-// CONFIG
-// ────────────────────────────────────────────────
-const CLIENT_METADATA_URL = "https://sociallydead.me/client-metadata.json";
-// Must be 200 OK, application/json, no redirects!
+const SCOPE = 'atproto transition:generic';
 
-const REDIRECT_URI =
-	typeof window !== "undefined"
-		? `${window.location.origin}/auth/callback`
-		: "https://sociallydead.me/auth/callback";
+interface Props {
+	children: ReactNode;
+}
 
-// ────────────────────────────────────────────────
-// COMPONENT
-// ────────────────────────────────────────────────
-export default function BlueSkyLogin({ children }: { children: React.ReactNode }) {
-	const [agent, setAgent] = useState<BskyAgent | null>(null);
-	const [profile, setProfile] = useState<any | null>(null);
-	const [handle, setHandle] = useState("");
-	const [dialogOpen, setDialogOpen] = useState(false);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState("");
+export default function BlueSkyLogin({ children }: Props) {
+	const [isSignedIn, setIsSignedIn] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const clientRef = useRef<BrowserOAuthClient | null>(null);
 
-	const oauthClientRef = useRef<BrowserOAuthClient | null>(null);
-	const agentRef = useRef<BskyAgent>(new BskyAgent({ service: "https://bsky.social" }));
-
-	// Load OAuth client once (using correct .load() method)
 	useEffect(() => {
-		let mounted = true;
-
-		(async () => {
+		const initAuth = async () => {
 			try {
-				const client = await BrowserOAuthClient.load({
-					clientId: CLIENT_METADATA_URL,
-					handleResolver: (h: string) => `https://${h.replace(/^@/, "")}`,
+				const client = new BrowserOAuthClient({
+					clientMetadata: {
+						client_id: CLIENT_METADATA_URL,
+						redirect_uris: [getRedirectUri()],
+						grant_types: ['authorization_code'],
+						response_types: ['code'],
+						scope: SCOPE,
+						application_type: 'web',
+						token_endpoint_auth_method: 'none',
+						dpop_bound_access_tokens: true,
+					},
 				});
-				if (mounted) {
-					oauthClientRef.current = client;
-				}
-			} catch (err) {
-				console.error("Failed to load Bluesky OAuth client", err);
-				setError("OAuth setup failed – check your client-metadata.json URL and console");
-			}
-		})();
 
-		return () => {
-			mounted = false;
+				clientRef.current = client;
+
+				// Restore/check last session (this is the correct method)
+				const result = await client.init();
+
+				setIsSignedIn(!!result?.session);
+			} catch (err) {
+				console.error('Auth init failed:', err);
+			} finally {
+				setLoading(false);
+			}
 		};
+
+		initAuth();
 	}, []);
 
-	// Resume session from localStorage
-	useEffect(() => {
-		const stored = localStorage.getItem("bsky_oauth_session");
-		if (stored) {
-			try {
-				const session = JSON.parse(stored);
-				agentRef.current.session = session;
-				setAgent(agentRef.current);
-			} catch (err) {
-				console.warn("Invalid stored session", err);
-				localStorage.removeItem("bsky_oauth_session");
-			}
-		}
-	}, []);
-
-	// Fetch profile
-	useEffect(() => {
-		if (!agent?.session?.handle) return;
-
-		(async () => {
-			try {
-				const { data } = await agent.getProfile({ actor: agent.session.handle });
-				setProfile(data);
-			} catch (err) {
-				console.error("Profile fetch failed", err);
-			}
-		})();
-	}, [agent]);
-
-	const startLogin = async () => {
-		if (!oauthClientRef.current) {
-			setError("OAuth client not ready – refresh and try again");
-			return;
-		}
-		if (!handle.trim()) {
-			setError("Enter your @handle");
-			return;
-		}
-
-		setLoading(true);
-		setError("");
+	const handleLogin = async () => {
+		const client = clientRef.current;
+		if (!client) return alert('Auth not ready');
 
 		try {
-			const authUrl = await oauthClientRef.current.authorize(handle.trim(), {
-				scope: "atproto transition:generic",
-				redirect_uri: REDIRECT_URI,
+			const handle = prompt('Enter Bluesky handle (no @)', 'example.bsky.social')?.trim();
+			if (!handle) return;
+
+			await client.authorize(handle, {
+				scope: SCOPE,
+				redirect_uri: getRedirectUri(),
 				state: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
 			});
-
-			window.location.href = authUrl.toString();
-		} catch (err: any) {
-			setError(err.message || "Login start failed");
-			console.error(err);
-		} finally {
-			setLoading(false);
+			// authorize() redirects automatically — promise doesn't resolve
+		} catch (err) {
+			console.error('Authorize error:', err);
+			alert('Login failed');
 		}
 	};
 
-	const logout = () => {
-		localStorage.removeItem("bsky_oauth_session");
-		agentRef.current.session = undefined;
-		setAgent(null);
-		setProfile(null);
+	const handleLogout = () => {
+		// No revoke method — clear flag & reload (lib detects invalid on next init)
+		localStorage.removeItem('atproto_signed_in'); // optional fallback
+		setIsSignedIn(false);
+		window.location.href = '/';
 	};
 
-	if (!agent) {
+	if (loading) return <div>Checking login...</div>;
+
+	if (isSignedIn) {
 		return (
-			<div className="p-3 border-b">
-				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-					<DialogTrigger asChild>
-						<Button variant="outline" className="w-full justify-start gap-2">
-							<LogIn className="h-4 w-4" />
-							Sign in to Bluesky
-						</Button>
-					</DialogTrigger>
-
-					<DialogContent className="sm:max-w-[360px]">
-						<DialogHeader>
-							<DialogTitle>Sign in to Bluesky</DialogTitle>
-						</DialogHeader>
-
-						<div className="grid gap-4 py-4">
-							<div className="grid gap-2">
-								<Label htmlFor="handle">Your handle</Label>
-								<Input
-									id="handle"
-									placeholder="@username.bsky.social"
-									value={handle}
-									onChange={(e) => setHandle(e.target.value)}
-									autoFocus
-									disabled={loading}
-								/>
-							</div>
-
-							{error && <p className="text-sm text-destructive">{error}</p>}
-
-							<Button
-								onClick={startLogin}
-								disabled={loading || !handle.trim() || !oauthClientRef.current}
-							>
-								{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								Continue
-							</Button>
-						</div>
-					</DialogContent>
-				</Dialog>
-			</div>
+			<>
+				{children}
+				<button
+					onClick={handleLogout}
+					style={{ margin: '1rem 0', padding: '8px 16px', background: '#ff3b30', color: 'white', border: 'none', borderRadius: '6px' }}
+				>
+					Logout
+				</button>
+			</>
 		);
 	}
 
 	return (
-		<BskyContext.Provider value={{ agent: agentRef.current, profile }}>
-			<div className="flex items-center justify-between p-3 border-b gap-2">
-				<div className="flex items-center gap-3 min-w-0">
-					<Avatar className="h-9 w-9 shrink-0">
-						<AvatarImage src={profile?.avatar} alt={profile?.displayName} />
-						<AvatarFallback>
-							{profile?.displayName?.[0] ?? profile?.handle?.[0] ?? "?"}
-						</AvatarFallback>
-					</Avatar>
-
-					<div className="flex flex-col min-w-0">
-            <span className="font-medium text-sm truncate">
-              {profile?.displayName || profile?.handle || "You"}
-            </span>
-						<span className="text-xs text-muted-foreground truncate">
-              @{profile?.handle}
-            </span>
-					</div>
-				</div>
-
-				<Button variant="ghost" size="icon" onClick={logout} title="Log out">
-					<LogOut className="h-4 w-4" />
-				</Button>
-			</div>
-
-			{children}
-		</BskyContext.Provider>
+		<button
+			onClick={handleLogin}
+			style={{ padding: '10px 20px', background: '#0066ff', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px' }}
+		>
+			Login with Bluesky
+		</button>
 	);
 }
