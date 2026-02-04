@@ -15,6 +15,17 @@ export function AppFooter() {
             Bluesky
           </Link>
         </p>
+	      <p className="text-sm text-muted-foreground">
+		      Created by{" "}
+		      <Link
+			      href="https://bsky.app"
+			      target="_blank"
+			      rel="noopener noreferrer"
+			      className="font-medium text-primary hover:underline"
+		      >
+			      ♥️Mira
+		      </Link>
+	      </p>
       </div>
     </footer>
   )
