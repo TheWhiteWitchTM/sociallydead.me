@@ -1,106 +1,71 @@
-import type { Metadata } from "next";
-import "./css/globals.css";
-import { Toaster } from "@/components/ui/sonner"
-import {baseMetadata} from "@/app/metadata";
-import {Appbar} from "@/next-static/legacy/Appbar";
-import {MainMenu} from "@/components/MainMenu";
-import Link from "next/link";
-import * as React from "react";
-import { ThemeProvider } from "next-themes"
-import {Toolbar} from "@/components/Toolbar";
-import Image from "next/image";
-import SidebarRight from "@/components/SidebarRight";
+import React from "react"
+import type { Metadata, Viewport } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { Layout } from "@/emoji-ui/ui/Layout"
-import SidebarLeft from "@/components/SidebarLeft";
+import { ThemeProvider } from "@/components/theme-provider"
+import { BlueskyProvider } from "@/lib/bluesky-context"
+import { AppSidebar } from "@/components/app-sidebar"
+import { AppHeader } from "@/components/app-header"
+import { AppFooter } from "@/components/app-footer"
+import "./globals.css"
 
-export const metadata: Metadata = baseMetadata
+const _geist = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "SociallyDead - Bluesky Client",
+  description: "A Bluesky client with markdown support and pseudo-edit feature",
+  generator: "v0.app",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SociallyDead",
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
-	const header = (
-		<Appbar className={"bg-black text-white"}
-			left={
-			<div className={"text-red-500 text-lg mt-0.5"}>
-				☠️sociallydead.me
-			</div>
-		}
-			right={<Toolbar/>}
-		>
-		</Appbar>
-	)
-
-	const footer = (
-		<Appbar className={"bg-black text-white"}
-			left={
-				<div>
-				</div>
-			}
-			right={
-				<div>
-				</div>
-
-		}>
-			<span className={"px-5 flex flex-row gap-1"}>
-				<span>
-				Build using
-				</span>
-				<Link
-					href={"https://mirasworld.sociallydead.me/projects/next-static"}
-					target={"_blank"}
-					>
-					⚡NEXT-static
-				</Link>
-				<span>
-					&
-				</span>
-				<Link
-					href={"https://mirasworld.sociallydead.me/projects/next-blog"}
-					target={"_blank"}
-				>
-					📃NEXT-blog
-				</Link>
-			</span>
-		</Appbar>
-	)
-
-	const left = (
-		<div className={"hidden md:flex flex-col flex-1 my-4 p-2 w-40"}>
-			<SidebarLeft>
-				<div>
-				</div>
-			</SidebarLeft>
-		</div>
-	)
-
-	const right = (
-		<div className={"hidden md:flex flex-col flex-1 my-4 p-2 w-20"}>
-		</div>
-	)
-
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={"w-full h-full m-0 p-0 min-h-screen bg-background text-foreground antialiased"}>
-      <Analytics/>
-      <ThemeProvider
-	      attribute="class"
-	      defaultTheme="system"
-	      enableSystem
-	      disableTransitionOnChange
-      >
-	        <Layout
-		        header={header}
-		        footer={footer}
-		        leftSidebar={left}
-		        rightSidebar={right}
-		        children={children}
-	        />
-          <Toaster/>
-      </ThemeProvider>
+      <body className="font-sans antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <BlueskyProvider>
+            <AppSidebar />
+            <div className="flex min-h-screen flex-col pl-0 transition-all lg:pl-64">
+              <div className="flex min-h-screen flex-col pl-20 lg:pl-0">
+                <AppHeader />
+                <main className="flex-1">{children}</main>
+                <AppFooter />
+              </div>
+            </div>
+          </BlueskyProvider>
+        </ThemeProvider>
+        <Analytics />
       </body>
     </html>
-  );
+  )
 }
