@@ -69,17 +69,17 @@ export function AppSidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-20 flex-col border-r border-border bg-sidebar lg:w-64">
       {/* Logo */}
-      <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2 lg:justify-start lg:px-4">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2 lg:justify-start lg:px-2">
+        <Link href="/" className="flex items-center gap-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
             <span className="text-lg font-bold text-primary-foreground">SD</span>
           </div>
         </Link>
       </div>
 	    {/* User Section */}
-	    <div className="border-t border-sidebar-border p-2 lg:p-4">
+	    <div className="border-t border-sidebar-border p-2 lg:p-2">
 		    {isAuthenticated && user ? (
-			    <div className="flex items-center justify-center gap-3 lg:justify-start">
+			    <div className="flex items-center justify-center gap-1 lg:justify-start">
 				    <Avatar className="h-10 w-10">
 					    <AvatarImage
 						    src={user.avatar || "/placeholder.svg"}
@@ -159,7 +159,7 @@ export function AppSidebar() {
 	    </div>
 
       {/* Main Navigation */}
-      <nav className="space-y-1 overflow-y-auto p-2 lg:p-4">
+      <nav className="space-y-1 overflow-y-auto p-2 lg:p-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           return (
