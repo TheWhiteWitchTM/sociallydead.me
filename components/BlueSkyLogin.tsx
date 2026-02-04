@@ -4,7 +4,7 @@
 import { ReactNode, useState, useEffect, useRef } from 'react';
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
 
-const CLIENT_METADATA_URL = 'https://sociallydead.me/oauth/client-metadata.json';
+const CLIENT_METADATA_URL = 'https://sociallydead.me/auth/client-metadata.json';
 
 const getRedirectUri = () =>
 	typeof window !== 'undefined' && window.location.hostname === 'localhost'
