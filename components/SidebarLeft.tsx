@@ -4,6 +4,8 @@ import Link from "next/link";
 import BlueSkyLogin from "@/components/BlueSkyLogin";
 export default () => {
 	return(
-		<BlueSkyLogin/>
+		<BlueSkyLogin>
+			teSt!
+		</BlueSkyLogin>
 	)
 }
