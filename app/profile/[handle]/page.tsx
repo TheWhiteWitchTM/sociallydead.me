@@ -18,6 +18,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle, Pin, Star, FileText, Image, X, Plus } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
@@ -115,7 +121,6 @@ export default function UserProfilePage() {
     getFollowers,
     getFollowing,
     getHighlights,
-    addHighlight,
     removeHighlight,
     getArticles,
   } = useBluesky()
@@ -129,7 +134,9 @@ export default function UserProfilePage() {
   const [activeTab, setActiveTab] = useState("posts")
   const [error, setError] = useState<string | null>(null)
   
-  // Followers/Following lists
+  // Followers/Following modal state
+  const [showFollowersModal, setShowFollowersModal] = useState(false)
+  const [showFollowingModal, setShowFollowingModal] = useState(false)
   const [followers, setFollowers] = useState<UserProfile[]>([])
   const [following, setFollowing] = useState<UserProfile[]>([])
   const [listLoading, setListLoading] = useState(false)
@@ -255,13 +262,9 @@ export default function UserProfilePage() {
     }
   }, [profile, getFollowing])
 
-  const handleTabChange = (tab: string) => {
+const handleTabChange = (tab: string) => {
     setActiveTab(tab)
-    if (tab === "followers") {
-      loadFollowers()
-    } else if (tab === "following") {
-      loadFollowing()
-    } else {
+    if (tab === "posts" || tab === "replies" || tab === "media") {
       loadPosts(tab)
     }
   }
@@ -394,10 +397,19 @@ export default function UserProfilePage() {
     )
   }
 
-  // Redirect to own profile page if viewing own profile
+  // Redirect to own profile page if viewing own profile (only client-side)
+  useEffect(() => {
+    if (isOwnProfile) {
+      window.location.href = "/profile"
+    }
+  }, [isOwnProfile])
+
   if (isOwnProfile) {
-    window.location.href = "/profile"
-    return null
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
@@ -539,17 +551,23 @@ export default function UserProfilePage() {
             </a>
           </div>
           
-          {/* Stats */}
+{/* Stats */}
           <div className="flex gap-4 mt-3 text-sm">
-            <button 
-              onClick={() => handleTabChange("following")}
+            <button
+              onClick={() => {
+                setShowFollowingModal(true)
+                loadFollowing()
+              }}
               className="hover:underline"
             >
               <span className="font-semibold">{profile.followsCount || 0}</span>
               <span className="text-muted-foreground ml-1">Following</span>
             </button>
-            <button 
-              onClick={() => handleTabChange("followers")}
+            <button
+              onClick={() => {
+                setShowFollowersModal(true)
+                loadFollowers()
+              }}
               className="hover:underline"
             >
               <span className="font-semibold">{profile.followersCount || 0}</span>
@@ -558,190 +576,192 @@ export default function UserProfilePage() {
           </div>
         </div>
 
-        {/* Highlights Section (SociallyDead Exclusive) */}
-        {highlightPosts.length > 0 && (
-          <div className="px-2 sm:px-4 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Star className="h-5 w-5 text-yellow-500" />
-                Highlights
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">SociallyDead</span>
-              </h3>
-              {isOwnProfile && highlights.length < 6 && (
-                <span className="text-xs text-muted-foreground">{highlights.length}/6</span>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {highlightPosts.slice(0, 6).map((post, index) => (
-                <div key={post.uri} className="relative">
-                  {isAuthenticated ? (
-                    <PostCard post={post} isOwnPost={false} />
-                  ) : (
-                    <PublicPostCard post={post} />
-                  )}
-                  {isOwnProfile && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 h-6 w-6 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={async () => {
-                        try {
-                          await removeHighlight(highlights[index].uri)
-                          loadHighlightsAndArticles()
-                        } catch (err) {
-                          console.error("Failed to remove highlight:", err)
-                        }
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Articles Section (SociallyDead Exclusive) */}
-        {articles.length > 0 && (
-          <div className="px-2 sm:px-4 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-500" />
-                Articles
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">SociallyDead</span>
-              </h3>
-              {isOwnProfile && (
-                <Link href="/articles/new">
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-3 w-3 mr-1" />
-                    New
-                  </Button>
-                </Link>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {articles.slice(0, 4).map((article) => (
-                <Link key={article.uri} href={`/articles/${article.rkey}`}>
-                  <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold line-clamp-1">{article.title}</h4>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {article.content.slice(0, 100)}...
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-            {articles.length > 4 && (
-              <Link href={isOwnProfile ? "/articles" : "#"} className="block mt-3">
-                <Button variant="ghost" size="sm" className="w-full">
-                  View all {articles.length} articles
-                </Button>
-              </Link>
-            )}
-          </div>
-        )}
-
-        {/* Profile Tabs */}
+        {/* Profile Tabs - X/Twitter Style */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="px-2 sm:px-4">
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="replies">Replies</TabsTrigger>
+            <TabsTrigger value="highlights" className="flex items-center gap-1">
+              <Star className="h-3 w-3" />
+              Highlights
+            </TabsTrigger>
+            <TabsTrigger value="articles" className="flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Articles
+            </TabsTrigger>
             <TabsTrigger value="media" className="flex items-center gap-1">
               <Image className="h-3 w-3" />
               Media
             </TabsTrigger>
-            <TabsTrigger value="followers">Followers</TabsTrigger>
-            <TabsTrigger value="following">Following</TabsTrigger>
           </TabsList>
           
-              <TabsContent value="posts" className="mt-4">
-                {/* Pinned Post */}
-                {pinnedPostData && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2 px-2 text-sm text-muted-foreground">
-                      <Pin className="h-4 w-4" />
-                      <span>Pinned</span>
-                    </div>
-                    {isAuthenticated ? (
-                      <PostCard 
-                        post={pinnedPostData} 
-                        isOwnPost={isOwnProfile}
-                        isPinned={true}
-                        onPostUpdated={loadProfile}
-                      />
-                    ) : (
-                      <PublicPostCard post={pinnedPostData} />
-                    )}
-                  </div>
-                )}
-                <PostsList 
-                  posts={posts.filter(p => p.uri !== pinnedPostData?.uri)} 
-                  loading={postsLoading} 
-                  isAuthenticated={isAuthenticated} 
-                  userId={user?.did}
-                  pinnedPostUri={pinnedPostData?.uri}
-                  isOwnProfile={isOwnProfile}
-                  onPostUpdated={loadProfile}
-                />
-              </TabsContent>
-          
-              <TabsContent value="replies" className="mt-4">
-                <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} isOwnProfile={isOwnProfile} onPostUpdated={loadProfile} />
-              </TabsContent>
-              
-              <TabsContent value="media" className="mt-4">
-                {postsLoading ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
+          <TabsContent value="posts" className="mt-4">
+            {/* Pinned Post */}
+            {pinnedPostData && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2 px-2 text-sm text-muted-foreground">
+                  <Pin className="h-4 w-4" />
+                  <span>Pinned</span>
+                </div>
+                {isAuthenticated ? (
+                  <PostCard 
+                    post={pinnedPostData} 
+                    isOwnPost={isOwnProfile}
+                    isPinned={true}
+                    onPostUpdated={loadProfile}
+                  />
                 ) : (
-                  <MediaGrid posts={posts} />
+                  <PublicPostCard post={pinnedPostData} />
                 )}
-              </TabsContent>
+              </div>
+            )}
+            <PostsList 
+              posts={posts.filter(p => p.uri !== pinnedPostData?.uri)} 
+              loading={postsLoading} 
+              isAuthenticated={isAuthenticated} 
+              userId={user?.did}
+              pinnedPostUri={pinnedPostData?.uri}
+              isOwnProfile={isOwnProfile}
+              onPostUpdated={loadProfile}
+            />
+          </TabsContent>
+      
+          <TabsContent value="replies" className="mt-4">
+            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} isOwnProfile={isOwnProfile} onPostUpdated={loadProfile} />
+          </TabsContent>
           
-          <TabsContent value="followers" className="mt-4">
-            {listLoading ? (
+          <TabsContent value="highlights" className="mt-4">
+            {highlightLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : followers.length === 0 ? (
+            ) : highlightPosts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground">No followers yet</p>
+                <Star className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No highlights yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {followers.map((follower) => (
-                  <UserCard key={follower.did} user={follower} />
+              <div className="space-y-4">
+                {highlightPosts.map((post, index) => (
+                  <div key={post.uri} className="relative">
+                    {isAuthenticated ? (
+                      <PostCard post={post} isOwnPost={false} />
+                    ) : (
+                      <PublicPostCard post={post} />
+                    )}
+                    {isOwnProfile && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={async () => {
+                          try {
+                            await removeHighlight(highlights[index].uri)
+                            loadHighlightsAndArticles()
+                          } catch (err) {
+                            console.error("Failed to remove highlight:", err)
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
           </TabsContent>
           
-          <TabsContent value="following" className="mt-4">
-            {listLoading ? (
+          <TabsContent value="articles" className="mt-4">
+            {highlightLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : following.length === 0 ? (
+            ) : articles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground">Not following anyone yet</p>
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No articles yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {following.map((followed) => (
-                  <UserCard key={followed.did} user={followed} />
+              <div className="space-y-4">
+                {articles.map((article) => (
+                  <Link key={article.uri} href={`/articles/${article.rkey}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold line-clamp-1">{article.title}</h4>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                          {article.content.slice(0, 150)}...
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
+            )}
+          </TabsContent>
+              
+          <TabsContent value="media" className="mt-4">
+            {postsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <MediaGrid posts={posts} />
             )}
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Followers Modal */}
+      <Dialog open={showFollowersModal} onOpenChange={setShowFollowersModal}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Followers</DialogTitle>
+          </DialogHeader>
+          {listLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : followers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No followers yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {followers.map((follower) => (
+                <UserCard key={follower.did} user={follower} onNavigate={() => setShowFollowersModal(false)} />
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Following Modal */}
+      <Dialog open={showFollowingModal} onOpenChange={setShowFollowingModal}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Following</DialogTitle>
+          </DialogHeader>
+          {listLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : following.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">Not following anyone yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {following.map((followed) => (
+                <UserCard key={followed.did} user={followed} onNavigate={() => setShowFollowingModal(false)} />
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -798,11 +818,15 @@ function PostsList({
   )
 }
 
-function UserCard({ user }: { user: UserProfile }) {
+function UserCard({ user, onNavigate }: { user: UserProfile; onNavigate?: () => void }) {
   return (
     <Card className="hover:bg-accent/50 transition-colors">
       <CardContent className="p-3 sm:p-4">
-        <Link href={`/profile/${user.handle}`} className="flex items-start gap-3">
+        <Link 
+          href={`/profile/${user.handle}`} 
+          className="flex items-start gap-3"
+          onClick={onNavigate}
+        >
           <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
             <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
             <AvatarFallback>

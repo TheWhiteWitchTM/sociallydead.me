@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
-import { Feed } from "@/components/feed"
+import { PostCard } from "@/components/post-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,8 +21,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar } from "lucide-react"
+import { Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star, FileText, Image, Plus, X, Pin } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { VerifiedBadge } from "@/components/verified-badge"
 
 interface UserProfile {
   did: string
@@ -34,6 +35,54 @@ interface UserProfile {
   followersCount?: number
   followsCount?: number
   postsCount?: number
+}
+
+interface Post {
+  uri: string
+  cid: string
+  author: {
+    did: string
+    handle: string
+    displayName?: string
+    avatar?: string
+  }
+  record: {
+    text: string
+    createdAt: string
+    reply?: {
+      root: { uri: string; cid: string }
+      parent: { uri: string; cid: string }
+    }
+  }
+  embed?: {
+    $type: string
+    record?: {
+      uri: string
+      cid: string
+      author: {
+        did: string
+        handle: string
+        displayName?: string
+        avatar?: string
+      }
+      value: {
+        text: string
+        createdAt: string
+      }
+    }
+    images?: Array<{
+      thumb: string
+      fullsize: string
+      alt: string
+    }>
+  }
+  replyCount: number
+  repostCount: number
+  likeCount: number
+  viewer?: {
+    like?: string
+    repost?: string
+  }
 }
 
 export default function ProfilePage() {
@@ -56,6 +105,13 @@ function ProfileContent() {
     updateProfile,
     getFollowers,
     getFollowing,
+    getUserPosts,
+    getUserReplies,
+    getUserMedia,
+    getPost,
+    getHighlights,
+    removeHighlight,
+    getArticles,
   } = useBluesky()
   
   const searchParams = useSearchParams()
@@ -73,7 +129,19 @@ function ProfileContent() {
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   
-  // Followers/Following lists
+  // Posts state
+  const [posts, setPosts] = useState<Post[]>([])
+  const [postsLoading, setPostsLoading] = useState(false)
+  
+  // Highlights and Articles (SociallyDead exclusive)
+  const [highlights, setHighlights] = useState<Array<{ uri: string; postUri: string; postCid: string; createdAt: string }>>([])
+  const [highlightPosts, setHighlightPosts] = useState<Post[]>([])
+  const [articles, setArticles] = useState<Array<{ uri: string; rkey: string; title: string; content: string; createdAt: string }>>([])
+  const [highlightLoading, setHighlightLoading] = useState(false)
+  
+  // Followers/Following modal state
+  const [showFollowersModal, setShowFollowersModal] = useState(false)
+  const [showFollowingModal, setShowFollowingModal] = useState(false)
   const [followers, setFollowers] = useState<UserProfile[]>([])
   const [following, setFollowing] = useState<UserProfile[]>([])
   const [listLoading, setListLoading] = useState(false)
@@ -84,6 +152,77 @@ function ProfileContent() {
       setDescription(user.description || "")
     }
   }, [user])
+
+  const loadPosts = useCallback(async (type: string) => {
+    if (!user) return
+    setPostsLoading(true)
+    
+    try {
+      let fetchedPosts: Post[]
+      
+      switch (type) {
+        case "posts":
+          fetchedPosts = await getUserPosts(user.did)
+          break
+        case "replies":
+          fetchedPosts = await getUserReplies(user.did)
+          break
+        case "media":
+          fetchedPosts = await getUserMedia(user.did)
+          break
+        default:
+          fetchedPosts = await getUserPosts(user.did)
+      }
+      
+      setPosts(fetchedPosts)
+    } catch (err) {
+      console.error("Failed to load posts:", err)
+    } finally {
+      setPostsLoading(false)
+    }
+  }, [user, getUserPosts, getUserReplies, getUserMedia])
+
+  const loadHighlightsAndArticles = useCallback(async () => {
+    if (!user) return
+    setHighlightLoading(true)
+    
+    try {
+      // Load highlights
+      const highlightData = await getHighlights(user.did)
+      setHighlights(highlightData)
+      
+      // Load the actual posts for highlights
+      if (highlightData.length > 0) {
+        const highlightPostPromises = highlightData.map(h => getPost(h.postUri))
+        const fetchedPosts = await Promise.all(highlightPostPromises)
+        setHighlightPosts(fetchedPosts.filter((p): p is Post => p !== null))
+      } else {
+        setHighlightPosts([])
+      }
+      
+      // Load articles
+      const articleData = await getArticles(user.did)
+      setArticles(articleData)
+    } catch (error) {
+      console.error("Failed to load highlights/articles:", error)
+    } finally {
+      setHighlightLoading(false)
+    }
+  }, [user, getHighlights, getArticles, getPost])
+
+  // Load posts when tab changes
+  useEffect(() => {
+    if (user && (activeTab === "posts" || activeTab === "replies" || activeTab === "media")) {
+      loadPosts(activeTab)
+    }
+  }, [user, activeTab, loadPosts])
+
+  // Load highlights and articles on mount
+  useEffect(() => {
+    if (user) {
+      loadHighlightsAndArticles()
+    }
+  }, [user, loadHighlightsAndArticles])
 
   const loadFollowers = useCallback(async () => {
     if (!user) return
@@ -110,14 +249,6 @@ function ProfileContent() {
       setListLoading(false)
     }
   }, [user, getFollowing])
-
-  useEffect(() => {
-    if (activeTab === "followers" && followers.length === 0) {
-      loadFollowers()
-    } else if (activeTab === "following" && following.length === 0) {
-      loadFollowing()
-    }
-  }, [activeTab, followers.length, following.length, loadFollowers, loadFollowing])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -198,7 +329,10 @@ function ProfileContent() {
             </Button>
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold truncate">{user.displayName || user.handle}</h1>
+            <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
+              {user.displayName || user.handle}
+              <VerifiedBadge handle={user.handle} />
+            </h1>
             <p className="text-xs text-muted-foreground">{user.postsCount || 0} posts</p>
           </div>
         </div>
@@ -240,9 +374,12 @@ function ProfileContent() {
           </div>
         </div>
         
-        {/* Profile Info */}
+{/* Profile Info */}
         <div className="px-4 pt-20 pb-4">
-          <h2 className="text-xl font-bold">{user.displayName || user.handle}</h2>
+          <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
+            {user.displayName || user.handle}
+            <VerifiedBadge handle={user.handle} className="h-5 w-5" />
+          </h2>
           <p className="text-muted-foreground">@{user.handle}</p>
           
           {user.description && (
@@ -268,14 +405,20 @@ function ProfileContent() {
           {/* Stats */}
           <div className="flex gap-4 mt-3 text-sm">
             <button 
-              onClick={() => setActiveTab("following")}
+              onClick={() => {
+                setShowFollowingModal(true)
+                loadFollowing()
+              }}
               className="hover:underline"
             >
               <span className="font-semibold">{user.followsCount || 0}</span>
               <span className="text-muted-foreground ml-1">Following</span>
             </button>
             <button 
-              onClick={() => setActiveTab("followers")}
+              onClick={() => {
+                setShowFollowersModal(true)
+                loadFollowers()
+              }}
               className="hover:underline"
             >
               <span className="font-semibold">{user.followersCount || 0}</span>
@@ -284,70 +427,220 @@ function ProfileContent() {
           </div>
         </div>
 
-        {/* Profile Tabs */}
+        {/* Profile Tabs - X/Twitter Style */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="px-2 sm:px-4">
-          <TabsList className="w-full justify-start">
+          <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="replies">Replies</TabsTrigger>
-            <TabsTrigger value="media">Media</TabsTrigger>
-            <TabsTrigger value="likes">Likes</TabsTrigger>
-            <TabsTrigger value="followers">Followers</TabsTrigger>
-            <TabsTrigger value="following">Following</TabsTrigger>
+            <TabsTrigger value="highlights" className="flex items-center gap-1">
+              <Star className="h-3 w-3" />
+              Highlights
+            </TabsTrigger>
+            <TabsTrigger value="articles" className="flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Articles
+            </TabsTrigger>
+            <TabsTrigger value="media" className="flex items-center gap-1">
+              <Image className="h-3 w-3" />
+              Media
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="posts" className="mt-4">
-            <Feed type="profile" />
-          </TabsContent>
-          
-          <TabsContent value="replies" className="mt-4">
-            <Feed type="replies" />
-          </TabsContent>
-          
-          <TabsContent value="media" className="mt-4">
-            <Feed type="media" />
-          </TabsContent>
-          
-          <TabsContent value="likes" className="mt-4">
-            <Feed type="likes" />
-          </TabsContent>
-          
-          <TabsContent value="followers" className="mt-4">
-            {listLoading ? (
+            {postsLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : followers.length === 0 ? (
+            ) : posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground">No followers yet</p>
+                <p className="text-muted-foreground">No posts yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {followers.map((follower) => (
-                  <UserCard key={follower.did} user={follower} />
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <PostCard
+                    key={post.uri}
+                    post={post}
+                    isOwnPost={true}
+                    onPostUpdated={() => loadPosts("posts")}
+                  />
                 ))}
               </div>
             )}
           </TabsContent>
           
-          <TabsContent value="following" className="mt-4">
-            {listLoading ? (
+          <TabsContent value="replies" className="mt-4">
+            {postsLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : following.length === 0 ? (
+            ) : posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground">Not following anyone yet</p>
+                <p className="text-muted-foreground">No replies yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {following.map((followed) => (
-                  <UserCard key={followed.did} user={followed} />
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <PostCard
+                    key={post.uri}
+                    post={post}
+                    isOwnPost={true}
+                    onPostUpdated={() => loadPosts("replies")}
+                  />
                 ))}
               </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="highlights" className="mt-4">
+            {highlightLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : highlightPosts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Star className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No highlights yet</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add posts to your highlights from the post menu
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">{highlights.length}/6 highlights</span>
+                </div>
+                {highlightPosts.map((post, index) => (
+                  <div key={post.uri} className="relative">
+                    <PostCard
+                      post={post}
+                      isOwnPost={false}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={async () => {
+                        try {
+                          await removeHighlight(highlights[index].uri)
+                          loadHighlightsAndArticles()
+                        } catch (err) {
+                          console.error("Failed to remove highlight:", err)
+                        }
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="articles" className="mt-4">
+            {highlightLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : articles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No articles yet</p>
+                <Link href="/articles/new" className="mt-4">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Write your first article
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-end">
+                  <Link href="/articles/new">
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-3 w-3 mr-1" />
+                      New Article
+                    </Button>
+                  </Link>
+                </div>
+                {articles.map((article) => (
+                  <Link key={article.uri} href={`/articles/${article.rkey}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold line-clamp-1">{article.title}</h4>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                          {article.content.slice(0, 150)}...
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="media" className="mt-4">
+            {postsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <MediaGrid posts={posts} userHandle={user.handle} />
             )}
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Followers Modal */}
+      <Dialog open={showFollowersModal} onOpenChange={setShowFollowersModal}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Followers</DialogTitle>
+          </DialogHeader>
+          {listLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : followers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No followers yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {followers.map((follower) => (
+                <UserCard key={follower.did} user={follower} onNavigate={() => setShowFollowersModal(false)} />
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Following Modal */}
+      <Dialog open={showFollowingModal} onOpenChange={setShowFollowingModal}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Following</DialogTitle>
+          </DialogHeader>
+          {listLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : following.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">Not following anyone yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {following.map((followed) => (
+                <UserCard key={followed.did} user={followed} onNavigate={() => setShowFollowingModal(false)} />
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Profile Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -474,11 +767,15 @@ function ProfileContent() {
   )
 }
 
-function UserCard({ user }: { user: UserProfile }) {
+function UserCard({ user, onNavigate }: { user: UserProfile; onNavigate?: () => void }) {
   return (
     <Card className="hover:bg-accent/50 transition-colors">
       <CardContent className="p-3 sm:p-4">
-        <Link href={`/profile/${user.handle}`} className="flex items-start gap-3">
+        <Link 
+          href={`/profile/${user.handle}`} 
+          className="flex items-start gap-3"
+          onClick={onNavigate}
+        >
           <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
             <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
             <AvatarFallback>
@@ -497,5 +794,47 @@ function UserCard({ user }: { user: UserProfile }) {
         </Link>
       </CardContent>
     </Card>
+  )
+}
+
+function MediaGrid({ posts, userHandle }: { posts: Post[]; userHandle: string }) {
+  // Extract all images from posts
+  const allMedia = posts.flatMap(post => {
+    if (post.embed?.images) {
+      return post.embed.images.map(img => ({
+        postUri: post.uri,
+        thumb: img.thumb,
+        fullsize: img.fullsize,
+        alt: img.alt,
+      }))
+    }
+    return []
+  })
+
+  if (allMedia.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Image className="h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">No media posts yet</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-1 sm:gap-2">
+      {allMedia.map((media, index) => (
+        <Link 
+          key={`${media.postUri}-${index}`}
+          href={`/profile/${userHandle}/post/${media.postUri.split('/').pop()}`}
+          className="aspect-square relative overflow-hidden rounded-md bg-muted hover:opacity-90 transition-opacity"
+        >
+          <img
+            src={media.thumb}
+            alt={media.alt || "Media"}
+            className="w-full h-full object-cover"
+          />
+        </Link>
+      ))}
+    </div>
   )
 }
