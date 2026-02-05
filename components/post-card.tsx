@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy } from "lucide-react"
@@ -325,10 +325,10 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
   }
 
   // Check if bookmarked on mount
-  useState(() => {
+  useEffect(() => {
     const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
     setIsBookmarked(bookmarks.includes(post.uri))
-  })
+  }, [post.uri])
 
   // Check if this is a repost
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
