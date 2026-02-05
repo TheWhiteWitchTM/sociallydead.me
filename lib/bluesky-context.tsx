@@ -285,6 +285,7 @@ interface BlueskyContextType {
   getMessages: (convoId: string, cursor?: string) => Promise<{ messages: BlueskyMessage[]; cursor?: string }>
   sendMessage: (convoId: string, text: string) => Promise<BlueskyMessage>
   startConversation: (did: string) => Promise<BlueskyConvo>
+  getUnreadMessageCount: () => Promise<number>
   // Starter Packs
   getStarterPacks: (actor?: string) => Promise<BlueskyStarterPack[]>
   getStarterPack: (uri: string) => Promise<BlueskyStarterPack>
@@ -1472,6 +1473,16 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const getUnreadMessageCount = async (): Promise<number> => {
+    if (!agent) return 0
+    try {
+      const convos = await getConversations()
+      return convos.reduce((total, convo) => total + (convo.unreadCount || 0), 0)
+    } catch {
+      return 0
+    }
+  }
+
   // Starter Packs
   const getStarterPacks = async (actor?: string): Promise<BlueskyStarterPack[]> => {
     if (!agent || !user) throw new Error("Not authenticated")
@@ -1968,6 +1979,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         getMessages,
         sendMessage,
         startConversation,
+        getUnreadMessageCount,
         getStarterPacks,
         getStarterPack,
         createStarterPack,

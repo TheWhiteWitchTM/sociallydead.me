@@ -11,7 +11,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare } from "lucide-react"
-// ScrollArea removed - using native overflow-y-auto for reliable pinned input
 import {
   Dialog,
   DialogContent,
@@ -132,6 +131,50 @@ export default function MessagesPage() {
     setSelectedConvo(null)
     setMessages([])
   }
+
+  // Poll for new messages in active conversation every 5 seconds
+  useEffect(() => {
+    if (!selectedConvo) return
+    
+    const pollMessages = async () => {
+      try {
+        const result = await getMessages(selectedConvo.id)
+        const newMsgs = result.messages.reverse()
+        setMessages(prev => {
+          // Only update if there are actually new messages
+          if (newMsgs.length !== prev.length || 
+              (newMsgs.length > 0 && prev.length > 0 && newMsgs[newMsgs.length - 1].id !== prev[prev.length - 1].id)) {
+            // Auto-scroll to bottom for new messages
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+            return newMsgs
+          }
+          return prev
+        })
+      } catch {
+        // Silently fail polling
+      }
+    }
+    
+    const interval = setInterval(pollMessages, 5000)
+    return () => clearInterval(interval)
+  }, [selectedConvo, getMessages])
+
+  // Also poll conversation list to update unread counts
+  useEffect(() => {
+    if (!isAuthenticated) return
+    
+    const pollConvos = async () => {
+      try {
+        const convos = await getConversations()
+        setConversations(convos)
+      } catch {
+        // Silently fail
+      }
+    }
+    
+    const interval = setInterval(pollConvos, 15000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated, getConversations])
 
   // Debounced search effect for autocomplete
   useEffect(() => {
@@ -404,17 +447,17 @@ export default function MessagesPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold truncate">
+                            <p className={`truncate ${convo.unreadCount > 0 ? 'font-bold' : 'font-semibold'}`}>
                               {otherMembers.map(m => m.displayName || m.handle).join(", ")}
                             </p>
                             {convo.lastMessage && (
-                              <p className="text-sm text-muted-foreground truncate">
+                              <p className={`text-sm truncate ${convo.unreadCount > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                                 {convo.lastMessage.text}
                               </p>
                             )}
                           </div>
                           {convo.lastMessage && (
-                            <span className="text-xs text-muted-foreground">
+                            <span className={`text-xs shrink-0 ${convo.unreadCount > 0 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                               {formatDistanceToNow(new Date(convo.lastMessage.sentAt), { addSuffix: false })}
                             </span>
                           )}

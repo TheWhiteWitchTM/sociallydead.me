@@ -29,11 +29,11 @@ import { SignInDialog } from "@/components/sign-in-dialog"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { ChevronDown } from "lucide-react"
 
-const authNavItems = [
+const authNavItems: Array<{ href: string; icon: typeof Home; label: string; showBadge?: boolean; showMessageBadge?: boolean }> = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/search", icon: Search, label: "Search" },
   { href: "/notifications", icon: Bell, label: "Notifications", showBadge: true },
-  { href: "/messages", icon: MessageSquare, label: "Messages" },
+  { href: "/messages", icon: MessageSquare, label: "Messages", showMessageBadge: true },
   { href: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { href: "/articles", icon: FileText, label: "Articles" },
   { href: "/feeds", icon: Rss, label: "Feeds" },
@@ -53,11 +53,12 @@ const publicNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { user, logout, isAuthenticated, isLoading, getUnreadCount } = useBluesky()
+  const { user, logout, isAuthenticated, isLoading, getUnreadCount, getUnreadMessageCount } = useBluesky()
   const { isSubscribed, showNotification } = usePushNotifications()
   const [unreadCount, setUnreadCount] = useState(0)
   const [prevUnreadCount, setPrevUnreadCount] = useState(0)
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
   const navRef = useRef<HTMLElement>(null)
@@ -83,6 +84,27 @@ export function AppSidebar() {
       window.removeEventListener("resize", checkScroll)
     }
   }, [navItems])
+
+  // Poll unread message count
+  useEffect(() => {
+    if (isAuthenticated && getUnreadMessageCount && !isLoading) {
+      let isMounted = true
+      const fetchUnreadMessages = async () => {
+        try {
+          const count = await getUnreadMessageCount()
+          if (isMounted) setUnreadMessageCount(count)
+        } catch {
+          // Silently fail
+        }
+      }
+      fetchUnreadMessages()
+      const interval = setInterval(fetchUnreadMessages, 30000) // Poll every 30s
+      return () => {
+        isMounted = false
+        clearInterval(interval)
+      }
+    }
+  }, [isAuthenticated, getUnreadMessageCount, isLoading])
 
   useEffect(() => {
     if (isAuthenticated && getUnreadCount && !isLoading) {
@@ -221,6 +243,14 @@ export function AppSidebar() {
                       )}
                     >
                       {unreadCount > 99 ? "99+" : unreadCount}
+                    </Badge>
+                  )}
+                  {item.showMessageBadge && unreadMessageCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
+                    >
+                      {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                     </Badge>
                   )}
                 </Button>
