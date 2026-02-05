@@ -185,8 +185,8 @@ export function AppSidebar() {
       </div>
 
       {/* Main Navigation */}
-      <div className="relative flex-1">
-        <nav ref={navRef} className="h-full space-y-1 overflow-y-auto p-2 lg:p-2">
+      <div className="relative flex-1 min-h-0 overflow-hidden">
+        <nav ref={navRef} className="absolute inset-0 space-y-1 overflow-y-auto overscroll-contain p-2 lg:p-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -215,7 +215,7 @@ export function AppSidebar() {
         </nav>
         {/* Scroll indicator */}
         {showNavScroll && (
-          <div className="absolute bottom-0 left-0 right-0 pointer-events-none flex justify-center py-1 bg-gradient-to-t from-sidebar to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 pointer-events-none flex justify-center py-1 bg-gradient-to-t from-sidebar to-transparent z-10">
             <ChevronDown className="h-4 w-4 text-muted-foreground animate-bounce" />
           </div>
         )}
