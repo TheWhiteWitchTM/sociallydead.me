@@ -169,9 +169,13 @@ export default function MessagesPage() {
       await loadConversations()
       handleSelectConvo(convo)
     } catch (error) {
-      console.error("[v0] Failed to start conversation:", error)
       const errMsg = error instanceof Error ? error.message : String(error)
-      alert(`Failed to start conversation: ${errMsg}`)
+      if (errMsg.includes('cope') || errMsg.includes('403')) {
+        setError("Chat permissions missing. Please use the 'Log out and re-authenticate' button below to fix this.")
+      } else {
+        setError(`Failed to start conversation: ${errMsg}`)
+      }
+      setNewConvoOpen(false)
     }
   }
 
@@ -314,11 +318,27 @@ export default function MessagesPage() {
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
-                <p className="text-muted-foreground text-sm">{error}</p>
+                <p className="text-muted-foreground text-sm text-center">{error}</p>
                 <Button onClick={loadConversations} variant="outline" size="sm">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Try Again
                 </Button>
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg max-w-sm">
+                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                    Getting permission errors?
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Log out and log back in to grant chat permissions.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 w-full"
+                    onClick={logout}
+                  >
+                    Log out and re-authenticate
+                  </Button>
+                </div>
               </div>
             ) : conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
