@@ -175,7 +175,16 @@ export default function MessagesPage() {
     const pollConvos = async () => {
       try {
         const convos = await getConversations()
-        setConversations(convos)
+        setConversations(prev => {
+          // Preserve unreadCount=0 for the currently selected convo
+          // (we just marked it read, API may be stale)
+          return convos.map(c => {
+            if (selectedConvo && c.id === selectedConvo.id) {
+              return { ...c, unreadCount: 0 }
+            }
+            return c
+          })
+        })
       } catch {
         // Silently fail
       }
@@ -183,7 +192,7 @@ export default function MessagesPage() {
     
     const interval = setInterval(pollConvos, 15000)
     return () => clearInterval(interval)
-  }, [isAuthenticated, getConversations])
+  }, [isAuthenticated, getConversations, selectedConvo])
 
   // Debounced search effect for autocomplete
   useEffect(() => {
@@ -441,9 +450,11 @@ export default function MessagesPage() {
               <div className="space-y-2">
                 {[...conversations]
                   .sort((a, b) => {
-                    // Sort: unread first, then by most recent message
-                    if (a.unreadCount > 0 && b.unreadCount === 0) return -1
-                    if (a.unreadCount === 0 && b.unreadCount > 0) return 1
+                    // Sort: truly unread first (last msg from other person), then by most recent
+                    const aUnread = a.unreadCount > 0 && a.lastMessage?.sender.did !== user?.did
+                    const bUnread = b.unreadCount > 0 && b.lastMessage?.sender.did !== user?.did
+                    if (aUnread && !bUnread) return -1
+                    if (!aUnread && bUnread) return 1
                     const aTime = a.lastMessage ? new Date(a.lastMessage.sentAt).getTime() : 0
                     const bTime = b.lastMessage ? new Date(b.lastMessage.sentAt).getTime() : 0
                     return bTime - aTime
@@ -451,6 +462,9 @@ export default function MessagesPage() {
                   .map((convo) => {
                   const otherMembers = convo.members.filter(m => m.did !== user?.did)
                   const isSelected = selectedConvo?.id === convo.id
+                  // Only show unread if the last message is from someone else
+                  const lastMsgFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user?.did
+                  const hasUnread = convo.unreadCount > 0 && lastMsgFromOther
                   
                   return (
                     <Card 
@@ -467,24 +481,24 @@ export default function MessagesPage() {
                                 {(otherMembers[0]?.displayName || otherMembers[0]?.handle || "?").slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            {convo.unreadCount > 0 && (
+                            {hasUnread && (
                               <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                                 {convo.unreadCount}
                               </span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`truncate ${convo.unreadCount > 0 ? 'font-bold' : 'font-semibold'}`}>
+                            <p className={`truncate ${hasUnread ? 'font-bold' : 'font-semibold'}`}>
                               {otherMembers.map(m => m.displayName || m.handle).join(", ")}
                             </p>
                             {convo.lastMessage && (
-                              <p className={`text-sm truncate ${convo.unreadCount > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                              <p className={`text-sm truncate ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                                 {convo.lastMessage.text}
                               </p>
                             )}
                           </div>
                           {convo.lastMessage && (
-                            <span className={`text-xs shrink-0 ${convo.unreadCount > 0 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                            <span className={`text-xs shrink-0 ${hasUnread ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                               {formatDistanceToNow(new Date(convo.lastMessage.sentAt), { addSuffix: false })}
                             </span>
                           )}
