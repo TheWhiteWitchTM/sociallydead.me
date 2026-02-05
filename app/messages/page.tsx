@@ -76,9 +76,12 @@ export default function MessagesPage() {
     setError(null)
     
     try {
+      console.log("[v0] Loading conversations...")
       const convos = await getConversations()
+      console.log("[v0] Conversations loaded:", convos)
       setConversations(convos)
     } catch (err) {
+      console.error("[v0] Failed to load conversations:", err)
       setError(err instanceof Error ? err.message : "Failed to load conversations")
     } finally {
       setIsLoading(false)

@@ -97,6 +97,19 @@ export default function ProfilePage() {
   )
 }
 
+interface FullProfile {
+  did: string
+  handle: string
+  displayName?: string
+  avatar?: string
+  banner?: string
+  description?: string
+  followersCount?: number
+  followsCount?: number
+  postsCount?: number
+  pinnedPost?: { uri: string; cid: string }
+}
+
 function ProfileContent() {
   const { 
     user, 
@@ -114,6 +127,9 @@ function ProfileContent() {
     getArticles,
     getProfile,
   } = useBluesky()
+  
+  // Store full profile data with banner
+  const [fullProfile, setFullProfile] = useState<FullProfile | null>(null)
   
   const searchParams = useSearchParams()
   const initialTab = searchParams.get("tab") || "posts"
@@ -250,6 +266,18 @@ function ProfileContent() {
     }
   }, [user, loadHighlightsAndArticles])
 
+  // Load full profile data (including banner) on mount
+  useEffect(() => {
+    if (user && !fullProfile) {
+      getProfile(user.handle).then((profile) => {
+        console.log("[v0] Full profile loaded - banner:", profile.banner)
+        setFullProfile(profile)
+      }).catch((error) => {
+        console.error("[v0] Failed to load full profile:", error)
+      })
+    }
+  }, [user, fullProfile, getProfile])
+
   const loadFollowers = useCallback(async () => {
     if (!user) return
     setListLoading(true)
@@ -314,6 +342,12 @@ function ProfileContent() {
       setAvatarPreview(null)
       setBannerFile(null)
       setBannerPreview(null)
+      
+      // Refresh full profile to get updated banner
+      if (user) {
+        const updatedProfile = await getProfile(user.handle)
+        setFullProfile(updatedProfile)
+      }
     } catch (error) {
       console.error("Failed to update profile:", error)
     } finally {
@@ -367,11 +401,11 @@ function ProfileContent() {
       <main className="mx-auto max-w-2xl">
         {/* Profile Header */}
         <div className="relative">
-          {/* Banner */}
-          {user.banner ? (
+          {/* Banner - use fullProfile for latest data including banner */}
+          {(fullProfile?.banner || user.banner) ? (
             <div 
               className="h-32 sm:h-48 w-full bg-cover bg-center" 
-              style={{ backgroundImage: `url(${user.banner})` }} 
+              style={{ backgroundImage: `url(${fullProfile?.banner || user.banner})` }} 
             />
           ) : (
             <div className="h-32 sm:h-48 w-full bg-gradient-to-r from-primary/30 to-primary/10" />
@@ -709,8 +743,8 @@ function ProfileContent() {
                   style={{ 
                     backgroundImage: bannerPreview 
                       ? `url(${bannerPreview})` 
-                      : user.banner 
-                        ? `url(${user.banner})` 
+                      : (fullProfile?.banner || user.banner)
+                        ? `url(${fullProfile?.banner || user.banner})` 
                         : undefined 
                   }}
                 />
