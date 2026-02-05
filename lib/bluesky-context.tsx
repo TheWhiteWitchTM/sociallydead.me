@@ -1480,15 +1480,19 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       const chatAgent = getChatAgent()
       await chatAgent.chat.bsky.convo.updateRead({ convoId })
     } catch {
-      // Silently fail - non-critical
+      // Non-critical
     }
   }
 
   const getUnreadMessageCount = async (): Promise<number> => {
-    if (!agent) return 0
+    if (!agent || !user) return 0
     try {
       const convos = await getConversations()
-      return convos.reduce((total, convo) => total + (convo.unreadCount || 0), 0)
+      // Only count unread if the last message was sent by someone else
+      return convos.reduce((total, convo) => {
+        const lastFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user.did
+        return total + (lastFromOther ? (convo.unreadCount || 0) : 0)
+      }, 0)
     } catch {
       return 0
     }
