@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
 import { formatDistanceToNow } from "date-fns"
+import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { SignInDialog } from "@/components/sign-in-dialog"
 import { MessageCircle, Repeat2, Heart } from "lucide-react"
 
 interface Post {
@@ -33,17 +32,10 @@ interface PublicPostCardProps {
 }
 
 export function PublicPostCard({ post }: PublicPostCardProps) {
-  const [signInOpen, setSignInOpen] = useState(false)
   const timeAgo = formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })
 
-  const handleInteraction = () => {
-    setSignInOpen(true)
-  }
-
   return (
-    <>
-      <SignInDialog defaultOpen={signInOpen} onOpenChange={setSignInOpen} />
-      <Card className="border-border hover:bg-accent/50 transition-colors">
+    <Card className="border-border hover:bg-accent/50 transition-colors">
         <CardContent className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
             <Avatar className="h-9 w-9 sm:h-10 sm:w-10 shrink-0">
@@ -72,37 +64,36 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
               </div>
               
               <div className="mt-2 sm:mt-3 flex items-center -ml-2">
-                <button
-                  onClick={handleInteraction}
+                <Link
+                  href="/"
                   className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-primary transition-colors"
                   title="Sign in to reply"
                 >
                   <MessageCircle className="h-4 w-4" />
                   <span className="text-xs sm:text-sm tabular-nums">{post.replyCount}</span>
-                </button>
+                </Link>
                 
-                <button
-                  onClick={handleInteraction}
+                <Link
+                  href="/"
                   className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-green-500 transition-colors"
                   title="Sign in to repost"
                 >
                   <Repeat2 className="h-4 w-4" />
                   <span className="text-xs sm:text-sm tabular-nums">{post.repostCount}</span>
-                </button>
+                </Link>
                 
-                <button
-                  onClick={handleInteraction}
+                <Link
+                  href="/"
                   className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-red-500 transition-colors"
                   title="Sign in to like"
                 >
                   <Heart className="h-4 w-4" />
                   <span className="text-xs sm:text-sm tabular-nums">{post.likeCount}</span>
-                </button>
+                </Link>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
-    </>
   )
 }
