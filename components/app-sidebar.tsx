@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInDialog } from "@/components/sign-in-dialog"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import { ChevronDown } from "lucide-react"
 
 const authNavItems = [
   { href: "/", icon: Home, label: "Home" },
@@ -58,12 +59,37 @@ export function AppSidebar() {
   const [prevUnreadCount, setPrevUnreadCount] = useState(0)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
+  const navRef = useRef<HTMLElement>(null)
+  const [showNavScroll, setShowNavScroll] = useState(false)
+
+  // Check if nav has scroll content
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+
+    const checkScroll = () => {
+      const hasMoreContent = nav.scrollHeight > nav.clientHeight
+      const notAtBottom = nav.scrollTop + nav.clientHeight < nav.scrollHeight - 10
+      setShowNavScroll(hasMoreContent && notAtBottom)
+    }
+
+    checkScroll()
+    nav.addEventListener("scroll", checkScroll)
+    window.addEventListener("resize", checkScroll)
+
+    return () => {
+      nav.removeEventListener("scroll", checkScroll)
+      window.removeEventListener("resize", checkScroll)
+    }
+  }, [navItems])
 
   useEffect(() => {
-    if (isAuthenticated && getUnreadCount) {
+    if (isAuthenticated && getUnreadCount && !isLoading) {
+      let isMounted = true
       const fetchUnread = async () => {
         try {
           const count = await getUnreadCount()
+          if (!isMounted) return
           
           // Show push notification if new notifications arrived
           if (isSubscribed && count > prevUnreadCount && prevUnreadCount > 0 && pathname !== "/notifications") {
@@ -78,15 +104,21 @@ export function AppSidebar() {
           setPrevUnreadCount(count)
           setUnreadCount(count)
         } catch (error) {
-          console.error("Failed to fetch unread count:", error)
+          // Silently fail - don't crash the UI for notification count
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Failed to fetch unread count:", error)
+          }
         }
       }
       // Fetch immediately and also when navigating away from notifications (after marking read)
       fetchUnread()
       const interval = setInterval(fetchUnread, 30000)
-      return () => clearInterval(interval)
+      return () => {
+        isMounted = false
+        clearInterval(interval)
+      }
     }
-  }, [isAuthenticated, getUnreadCount, pathname, isSubscribed, prevUnreadCount, showNotification])
+  }, [isAuthenticated, getUnreadCount, pathname, isSubscribed, prevUnreadCount, showNotification, isLoading])
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-20 flex-col border-r border-border bg-sidebar lg:w-64">
@@ -153,33 +185,41 @@ export function AppSidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2 lg:p-2">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link key={item.href} href={item.href}>
-              <Button
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-center lg:justify-start relative",
-                  isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span className="ml-3 hidden lg:inline">{item.label}</span>
-                {item.showBadge && unreadCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
-                  >
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-          )
-        })}
-      </nav>
+      <div className="relative flex-1">
+        <nav ref={navRef} className="h-full space-y-1 overflow-y-auto p-2 lg:p-2">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link key={item.href} href={item.href}>
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-center lg:justify-start relative",
+                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="ml-3 hidden lg:inline">{item.label}</span>
+                  {item.showBadge && unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+            )
+          })}
+        </nav>
+        {/* Scroll indicator */}
+        {showNavScroll && (
+          <div className="absolute bottom-0 left-0 right-0 pointer-events-none flex justify-center py-1 bg-gradient-to-t from-sidebar to-transparent">
+            <ChevronDown className="h-4 w-4 text-muted-foreground animate-bounce" />
+          </div>
+        )}
+      </div>
 
       {/* Compose Button (Mobile) */}
       {isAuthenticated && (

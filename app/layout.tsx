@@ -7,6 +7,7 @@ import { BlueskyProvider } from "@/lib/bluesky-context"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { AppFooter } from "@/components/app-footer"
+import { MainScrollIndicator } from "@/components/main-scroll-indicator"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -59,6 +60,7 @@ export default function RootLayout({
               <div className="flex min-h-screen flex-col pl-20 lg:pl-0">
                 <AppHeader />
                 <main className="flex-1">{children}</main>
+                <MainScrollIndicator />
                 <AppFooter />
               </div>
             </div>
