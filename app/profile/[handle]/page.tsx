@@ -372,7 +372,22 @@ const handleTabChange = (tab: string) => {
     }
   }, [profile, activeTab, loadPosts])
 
+  // Redirect to own profile page if viewing own profile (only client-side)
+  useEffect(() => {
+    if (isOwnProfile && !authLoading) {
+      window.location.href = "/profile"
+    }
+  }, [isOwnProfile, authLoading])
+
   if (authLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (isOwnProfile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -399,21 +414,6 @@ const handleTabChange = (tab: string) => {
             <Button variant="outline">Go Home</Button>
           </Link>
         </div>
-      </div>
-    )
-  }
-
-  // Redirect to own profile page if viewing own profile (only client-side)
-  useEffect(() => {
-    if (isOwnProfile) {
-      window.location.href = "/profile"
-    }
-  }, [isOwnProfile])
-
-  if (isOwnProfile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }

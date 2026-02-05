@@ -477,7 +477,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   )}
                   <span className="text-muted-foreground hidden sm:inline">·</span>
                   <Link
-                    href={`/post/${post.author.handle}/${post.uri.split('/').pop()}`}
+                    href={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`}
                     className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
                   >
                     {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}

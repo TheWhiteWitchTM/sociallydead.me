@@ -233,7 +233,7 @@ interface BlueskyContextType {
   createPost: (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[] }) => Promise<{ uri: string; cid: string }>
   deletePost: (uri: string) => Promise<void>
   editPost: (uri: string, newText: string) => Promise<{ uri: string; cid: string }>
-  getPostThread: (uri: string) => Promise<{ post: BlueskyPost; replies: BlueskyPost[] }>
+  getPostThread: (uri: string) => Promise<{ post: BlueskyPost; replies: BlueskyPost[]; parent?: { post: BlueskyPost } }>
   getPost: (uri: string) => Promise<BlueskyPost | null>
   quotePost: (text: string, quotedPost: { uri: string; cid: string }) => Promise<{ uri: string; cid: string }>
   // Timelines & Feeds
@@ -478,7 +478,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     return await createPost(newText)
   }
 
-  const getPostThread = async (uri: string): Promise<{ post: BlueskyPost; replies: BlueskyPost[] }> => {
+  const getPostThread = async (uri: string): Promise<{ post: BlueskyPost; replies: BlueskyPost[]; parent?: { post: BlueskyPost } }> => {
     const agentToUse = agent || publicAgent
     const response = await agentToUse.getPostThread({ uri, depth: 10 })
     
@@ -487,6 +487,31 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     
     const post = thread.post
     const replies: BlueskyPost[] = []
+    let parent: { post: BlueskyPost } | undefined = undefined
+    
+    // Get parent post if exists
+    if ('parent' in thread && thread.parent && 'post' in thread.parent) {
+      const parentPost = thread.parent.post
+      parent = {
+        post: {
+          uri: parentPost.uri,
+          cid: parentPost.cid,
+          author: {
+            did: parentPost.author.did,
+            handle: parentPost.author.handle,
+            displayName: parentPost.author.displayName,
+            avatar: parentPost.author.avatar,
+          },
+          record: parentPost.record as BlueskyPost["record"],
+          embed: parentPost.embed as BlueskyPost["embed"],
+          replyCount: parentPost.replyCount ?? 0,
+          repostCount: parentPost.repostCount ?? 0,
+          likeCount: parentPost.likeCount ?? 0,
+          indexedAt: parentPost.indexedAt,
+          viewer: parentPost.viewer,
+        }
+      }
+    }
     
     if ('replies' in thread && Array.isArray(thread.replies)) {
       for (const reply of thread.replies) {
@@ -530,6 +555,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         viewer: post.viewer,
       },
       replies,
+      parent,
     }
   }
 
