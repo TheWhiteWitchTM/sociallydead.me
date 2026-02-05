@@ -392,9 +392,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try {
       if (oauthClient && user) {
-        const sessions = await oauthClient.getSession(user.did)
-        if (sessions) {
+        try {
           await oauthClient.revoke(user.did)
+        } catch {
+          // Revoke may fail, continue with cleanup
         }
       }
     } catch (error) {
@@ -403,6 +404,34 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setAgent(null)
       oauthClient = null
+      
+      // Clear all IndexedDB databases used by @atproto/oauth-client-browser
+      // This ensures the old token (without chat scope) is fully removed
+      try {
+        const databases = await window.indexedDB.databases()
+        for (const db of databases) {
+          if (db.name && (db.name.includes('atproto') || db.name.includes('oauth'))) {
+            window.indexedDB.deleteDatabase(db.name)
+          }
+        }
+      } catch {
+        // IndexedDB cleanup failed, not critical
+      }
+      
+      // Also clear any localStorage keys related to atproto
+      try {
+        const keysToRemove: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.includes('atproto') || key.includes('oauth') || key.includes('bsky'))) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+      } catch {
+        // localStorage cleanup failed, not critical  
+      }
+      
       window.location.href = "/"
     }
   }, [user])
@@ -1301,19 +1330,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   // Chat/Messages - use agent.withProxy() to create a chat-specific agent
   const getChatAgent = () => {
     if (!agent) throw new Error("Not authenticated")
-    console.log("[v0] Agent type:", typeof agent)
-    console.log("[v0] Agent keys:", Object.getOwnPropertyNames(Object.getPrototypeOf(agent)))
-    console.log("[v0] Has withProxy:", typeof agent.withProxy)
-    console.log("[v0] Has chat:", typeof agent.chat)
-    console.log("[v0] Has configureProxy:", typeof agent.configureProxy)
-    
-    if (typeof agent.withProxy !== 'function') {
-      // Fallback: configure proxy directly on agent
-      console.log("[v0] withProxy not available, using configureProxy")
-      agent.configureProxy('bsky_chat', 'did:web:api.bsky.chat')
-      return agent
-    }
-    
     return agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
   }
 
@@ -1322,10 +1338,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const chatAgent = getChatAgent()
-      console.log("[v0] Chat agent created, calling listConvos...")
-      
       const response = await chatAgent.chat.bsky.convo.listConvos({ limit: 100 })
-      console.log("[v0] listConvos response:", response.data.convos?.length, "conversations")
       
       return response.data.convos.map((convo) => ({
         id: convo.id,
@@ -1345,14 +1358,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch (err) {
-      console.error("[v0] getConversations ERROR:", err)
-      console.error("[v0] Error type:", typeof err)
-      console.error("[v0] Error message:", err instanceof Error ? err.message : String(err))
-      if (err && typeof err === 'object') {
-        console.error("[v0] Error keys:", Object.keys(err))
-        console.error("[v0] Error stringified:", JSON.stringify(err, null, 2))
-      }
+    } catch {
       return []
     }
   }
@@ -1403,17 +1409,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const startConversation = async (did: string): Promise<BlueskyConvo> => {
     if (!agent) throw new Error("Not authenticated")
     
-    console.log("[v0] startConversation called with DID:", did)
-    
     const chatAgent = getChatAgent()
-    
-    console.log("[v0] Calling getConvoForMembers...")
     
     const response = await chatAgent.chat.bsky.convo.getConvoForMembers(
       { members: [did] }
     )
-    
-    console.log("[v0] getConvoForMembers success:", response.data)
     
     const convo = response.data.convo
     return {
