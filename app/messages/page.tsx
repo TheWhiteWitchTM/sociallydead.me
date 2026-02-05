@@ -73,13 +73,16 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadConversations = useCallback(async () => {
+    console.log("[v0] Messages: Loading conversations...")
     setIsLoading(true)
     setError(null)
     
     try {
       const convos = await getConversations()
+      console.log("[v0] Messages: Got conversations:", convos.length, convos)
       setConversations(convos)
     } catch (err) {
+      console.error("[v0] Messages: Error loading conversations:", err)
       setError(err instanceof Error ? err.message : "Failed to load conversations")
     } finally {
       setIsLoading(false)
@@ -161,15 +164,18 @@ export default function MessagesPage() {
   }
 
   const handleStartConvo = async (did: string) => {
+    console.log("[v0] Starting conversation with DID:", did)
     try {
       const convo = await startConversation(did)
+      console.log("[v0] Conversation started successfully:", convo)
       setNewConvoOpen(false)
       setSearchQuery("")
       setSearchResults([])
       await loadConversations()
       handleSelectConvo(convo)
     } catch (error) {
-      console.error("Failed to start conversation:", error)
+      console.error("[v0] Failed to start conversation:", error)
+      alert("Failed to start conversation. Please try logging out and back in to enable chat permissions.")
     }
   }
 
@@ -260,26 +266,30 @@ export default function MessagesPage() {
                       {searchResults.length > 0 ? (
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {searchResults.map((actor) => (
-                            <Card 
+                            <button
                               key={actor.did} 
-                              className="cursor-pointer hover:bg-accent transition-colors"
-                              onClick={() => handleStartConvo(actor.did)}
+                              type="button"
+                              className="w-full text-left cursor-pointer hover:bg-accent transition-colors rounded-lg border p-3"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log("[v0] Clicked on user:", actor.handle, actor.did)
+                                handleStartConvo(actor.did)
+                              }}
                             >
-                              <CardContent className="p-3">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-10 w-10">
-                                    <AvatarImage src={actor.avatar || "/placeholder.svg"} />
-                                    <AvatarFallback>
-                                      {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="font-semibold">{actor.displayName || actor.handle}</p>
-                                    <p className="text-sm text-muted-foreground">@{actor.handle}</p>
-                                  </div>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={actor.avatar || "/placeholder.svg"} />
+                                  <AvatarFallback>
+                                    {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-semibold">{actor.displayName || actor.handle}</p>
+                                  <p className="text-sm text-muted-foreground">@{actor.handle}</p>
                                 </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </button>
                           ))}
                         </div>
                       ) : searchQuery.length >= 2 && !isSearching ? (

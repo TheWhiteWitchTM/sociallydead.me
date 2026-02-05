@@ -1394,12 +1394,18 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const startConversation = async (did: string): Promise<BlueskyConvo> => {
     if (!agent) throw new Error("Not authenticated")
     
+    console.log("[v0] Chat: Starting conversation with:", did)
+    
     const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
+    
+    console.log("[v0] Chat: Calling getConvoForMembers API...")
     
     const response = await agent.api.chat.bsky.convo.getConvoForMembers(
       { members: [did] },
       { headers: proxyHeader }
     )
+    
+    console.log("[v0] Chat: Got response:", response.data)
     
     const convo = response.data.convo
     return {
