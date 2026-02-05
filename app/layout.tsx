@@ -2,11 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { ThemeProvider } from "@/components/theme-provider"
-import { BlueskyProvider } from "@/lib/bluesky-context"
-import { AppSidebar } from "@/components/app-sidebar"
-import { AppHeader } from "@/components/app-header"
-import { AppFooter } from "@/components/app-footer"
+import { Providers } from "@/components/providers"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -47,23 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <BlueskyProvider>
-            <AppSidebar />
-            <div className="flex min-h-screen flex-col pl-0 transition-all lg:pl-64">
-              <div className="flex min-h-screen flex-col pl-20 lg:pl-0">
-                <AppHeader />
-                <main className="flex-1">{children}</main>
-                <AppFooter />
-              </div>
-            </div>
-          </BlueskyProvider>
-        </ThemeProvider>
+        <Providers>{children}</Providers>
         <Analytics />
       </body>
     </html>

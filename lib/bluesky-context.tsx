@@ -355,6 +355,18 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<BlueskyUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const publicAgentRef = useRef<Agent | null>(null)
+  
+  // Helper to get an agent for API calls, throws if not ready
+  const getAgent = useCallback((): Agent => {
+    const agentToUse = agent || publicAgentRef.current
+    if (!agentToUse) throw new Error("API not initialized yet. Please wait for the app to load.")
+    return agentToUse
+  }, [agent])
+  
+  // Safe version that returns null instead of throwing - for use in optional operations
+  const getAgentSafe = useCallback((): Agent | null => {
+    return agent || publicAgentRef.current
+  }, [agent])
 
   useEffect(() => {
     // Ensure we're in the browser before initializing
@@ -510,7 +522,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getPostThread = async (uri: string): Promise<{ post: BlueskyPost; replies: BlueskyPost[] }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.getPostThread({ uri, depth: 10 })
     
     const thread = response.data.thread
@@ -566,7 +578,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   const getPost = async (uri: string): Promise<BlueskyPost | null> => {
     try {
-      const agentToUse = agent || publicAgentRef.current
+      const agentToUse = getAgentSafe()
+      if (!agentToUse) return null
       const response = await agentToUse.getPostThread({ uri, depth: 0 })
       
       const thread = response.data.thread
@@ -647,7 +660,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getPublicFeed = async (): Promise<BlueskyPost[]> => {
-    const response = await publicAgentRef.current!.app.bsky.feed.getFeed({
+    const response = await getAgent().app.bsky.feed.getFeed({
       feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
       limit: 50,
     })
@@ -782,7 +795,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const getCustomFeed = async (feedUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
     // Always try with publicAgent first for custom feeds to ensure they work without auth
     try {
-      const response = await publicAgentRef.current!.app.bsky.feed.getFeed({
+      const response = await getAgent().app.bsky.feed.getFeed({
         feed: feedUri,
         limit: 50,
         cursor,
@@ -880,7 +893,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getPopularFeeds = async (cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.app.bsky.feed.getSuggestedFeeds({
       limit: 50,
       cursor,
@@ -909,7 +922,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const searchFeedGenerators = async (query: string, cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.app.bsky.unspecced.getPopularFeedGenerators({
       query,
       limit: 50,
@@ -987,7 +1000,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string };
     pinnedPost?: { uri: string; cid: string };
   }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.getProfile({ actor })
     return {
       did: response.data.did,
@@ -1107,7 +1120,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getFollowers = async (actor: string, cursor?: string): Promise<{ followers: BlueskyUser[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.getFollowers({ actor, limit: 50, cursor })
     return {
       followers: response.data.followers.map((f) => ({
@@ -1122,7 +1135,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getFollowing = async (actor: string, cursor?: string): Promise<{ following: BlueskyUser[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.getFollows({ actor, limit: 50, cursor })
     return {
       following: response.data.follows.map((f) => ({
@@ -1568,7 +1581,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   // Search
   const searchPosts = async (query: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.app.bsky.feed.searchPosts({ q: query, limit: 25, cursor })
     
     return {
@@ -1594,7 +1607,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const searchActors = async (query: string, cursor?: string): Promise<{ actors: BlueskyUser[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.app.bsky.actor.searchActors({ q: query, limit: 25, cursor })
     
     return {
@@ -1612,7 +1625,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const searchByHashtag = async (hashtag: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
     // Remove # if present and search for the hashtag
     const tag = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.app.bsky.feed.searchPosts({ q: `#${tag}`, limit: 50, cursor })
     
     return {
@@ -1639,7 +1652,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   // List Feed - Get posts from users in a list
   const getListFeed = async (listUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.app.bsky.feed.getListFeed({ list: listUri, limit: 50, cursor })
     
     return {
@@ -1672,7 +1685,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const resolveHandle = async (handle: string): Promise<string> => {
-    const agentToUse = agent || publicAgentRef.current
+    const agentToUse = getAgent()
     const response = await agentToUse.resolveHandle({ handle })
     return response.data.did
   }
@@ -1683,7 +1696,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   const getHighlights = async (did: string): Promise<SociallyDeadHighlight[]> => {
     try {
-      const agentToUse = agent || publicAgentRef.current
+      const agentToUse = getAgent()
       const response = await agentToUse.com.atproto.repo.listRecords({
         repo: did,
         collection: HIGHLIGHT_COLLECTION,
@@ -1746,7 +1759,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   // SociallyDead Custom Features - Articles
   const getArticles = async (did: string): Promise<SociallyDeadArticle[]> => {
     try {
-      const agentToUse = agent || publicAgentRef.current
+      const agentToUse = getAgent()
       const response = await agentToUse.com.atproto.repo.listRecords({
         repo: did,
         collection: ARTICLE_COLLECTION,
@@ -1768,7 +1781,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   const getArticle = async (did: string, rkey: string): Promise<SociallyDeadArticle | null> => {
     try {
-      const agentToUse = agent || publicAgentRef.current
+      const agentToUse = getAgent()
       const response = await agentToUse.com.atproto.repo.getRecord({
         repo: did,
         collection: ARTICLE_COLLECTION,
