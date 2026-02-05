@@ -170,6 +170,7 @@ export default function MessagesPage() {
       handleSelectConvo(convo)
     } catch (error) {
       console.error("Failed to start conversation:", error)
+      alert("Failed to start conversation. Please try logging out and back in to enable chat permissions.")
     }
   }
 
@@ -260,26 +261,29 @@ export default function MessagesPage() {
                       {searchResults.length > 0 ? (
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {searchResults.map((actor) => (
-                            <Card 
+                            <button
                               key={actor.did} 
-                              className="cursor-pointer hover:bg-accent transition-colors"
-                              onClick={() => handleStartConvo(actor.did)}
+                              type="button"
+                              className="w-full text-left cursor-pointer hover:bg-accent transition-colors rounded-lg border p-3"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleStartConvo(actor.did)
+                              }}
                             >
-                              <CardContent className="p-3">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-10 w-10">
-                                    <AvatarImage src={actor.avatar || "/placeholder.svg"} />
-                                    <AvatarFallback>
-                                      {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="font-semibold">{actor.displayName || actor.handle}</p>
-                                    <p className="text-sm text-muted-foreground">@{actor.handle}</p>
-                                  </div>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={actor.avatar || "/placeholder.svg"} />
+                                  <AvatarFallback>
+                                    {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-semibold">{actor.displayName || actor.handle}</p>
+                                  <p className="text-sm text-muted-foreground">@{actor.handle}</p>
                                 </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </button>
                           ))}
                         </div>
                       ) : searchQuery.length >= 2 && !isSearching ? (

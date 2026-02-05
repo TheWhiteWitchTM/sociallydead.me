@@ -252,7 +252,6 @@ export default function NotificationsPage() {
             </Button>
           </div>
         </div>
-        </div>
         {/* Mobile follow all back button */}
         {unfollowedFollowers.length > 0 && (
           <div className="sm:hidden px-4 pb-2">
