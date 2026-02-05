@@ -28,7 +28,7 @@ export function AppFooter() {
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
             >
-              Bluesky
+              🦋Bluesky
             </Link>
           </span>
           <span className="hidden sm:inline">|</span>
@@ -40,7 +40,7 @@ export function AppFooter() {
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
             >
-              Mira
+              ♥️Mira☕
             </Link>
             {" & "}
             <Link
@@ -49,7 +49,7 @@ export function AppFooter() {
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
             >
-              The White Witch
+              🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨
             </Link>
           </span>
           <span className="hidden sm:inline">|</span>
@@ -59,7 +59,7 @@ export function AppFooter() {
             rel="noopener noreferrer"
             className="font-medium text-primary hover:underline"
           >
-            Support Us
+            👉🏼💳Support Us👈🏼
           </Link>
         </div>
         
