@@ -70,10 +70,10 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
           followersCount: (profile.followersCount || 1) - 1,
         })
       } else {
-        const result = await followUser(profile.did)
+        const followUri = await followUser(profile.did)
         setProfile({
           ...profile,
-          viewer: { ...profile.viewer, following: result.uri },
+          viewer: { ...profile.viewer, following: followUri },
           followersCount: (profile.followersCount || 0) + 1,
         })
       }

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { Loader2, Send } from "lucide-react"
+import { Loader2, Send, ImagePlus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function ComposePage() {
@@ -18,6 +18,9 @@ export default function ComposePage() {
   const [text, setText] = useState("")
   const [hasPlayedWarning, setHasPlayedWarning] = useState(false)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [images, setImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
 
   // Play warning sound when hitting 275 characters
   const playWarningSound = useCallback(() => {
@@ -63,6 +66,36 @@ export default function ComposePage() {
     }
   }
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const newImages = Array.from(files).slice(0, 4 - images.length) // Max 4 images
+    if (newImages.length === 0) return
+
+    setImages(prev => [...prev, ...newImages])
+    
+    // Generate previews
+    newImages.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreviews(prev => [...prev, e.target?.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
   // Load draft from AI assistant if available
   useEffect(() => {
     const draft = sessionStorage.getItem("compose_draft")
@@ -75,14 +108,16 @@ export default function ComposePage() {
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async () => {
-    if (!text.trim()) return
+    if (!text.trim() && images.length === 0) return
 
     setIsPosting(true)
     setError(null)
 
     try {
-      await createPost(text)
+      await createPost(text, { images: images.length > 0 ? images : undefined })
       setText("")
+      setImages([])
+      setImagePreviews([])
       router.push("/")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create post")
@@ -146,12 +181,53 @@ export default function ComposePage() {
               onChange={(e) => handleTextChange(e.target.value)}
               className="min-h-48 resize-none"
             />
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <p className="text-muted-foreground">
-                Supports: **bold**, *italic*, `code`, [links](url), lists
-              </p>
+            
+            {/* Image Previews */}
+            {imagePreviews.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={preview}
+                      alt={`Upload ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeImage(index)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={images.length >= 4}
+                >
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                  Add Image {images.length > 0 && `(${images.length}/4)`}
+                </Button>
+              </div>
               <span className={cn(
-                "font-medium tabular-nums transition-colors",
+                "font-medium tabular-nums transition-colors text-sm",
                 charCount < 250 && "text-muted-foreground",
                 charCount >= 250 && charCount < 275 && "text-orange-500",
                 charCount >= 275 && "text-destructive font-bold"
@@ -159,6 +235,10 @@ export default function ComposePage() {
                 {charCount}/{maxChars}
               </span>
             </div>
+            
+            <p className="mt-2 text-xs text-muted-foreground">
+              Supports: **bold**, *italic*, `code`, [links](url), lists
+            </p>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-4">
