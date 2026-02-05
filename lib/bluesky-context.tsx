@@ -217,6 +217,7 @@ interface BlueskyContextType {
   deletePost: (uri: string) => Promise<void>
   editPost: (uri: string, newText: string) => Promise<{ uri: string; cid: string }>
   getPostThread: (uri: string) => Promise<{ post: BlueskyPost; replies: BlueskyPost[] }>
+  getPost: (uri: string) => Promise<BlueskyPost | null>
   quotePost: (text: string, quotedPost: { uri: string; cid: string }) => Promise<{ uri: string; cid: string }>
   // Timelines & Feeds
   getTimeline: (cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
@@ -507,6 +508,37 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         viewer: post.viewer,
       },
       replies,
+    }
+  }
+
+  const getPost = async (uri: string): Promise<BlueskyPost | null> => {
+    try {
+      const agentToUse = agent || publicAgent
+      const response = await agentToUse.getPostThread({ uri, depth: 0 })
+      
+      const thread = response.data.thread
+      if (!('post' in thread)) return null
+      
+      const post = thread.post
+      return {
+        uri: post.uri,
+        cid: post.cid,
+        author: {
+          did: post.author.did,
+          handle: post.author.handle,
+          displayName: post.author.displayName,
+          avatar: post.author.avatar,
+        },
+        record: post.record as BlueskyPost["record"],
+        embed: post.embed as BlueskyPost["embed"],
+        replyCount: post.replyCount ?? 0,
+        repostCount: post.repostCount ?? 0,
+        likeCount: post.likeCount ?? 0,
+        indexedAt: post.indexedAt,
+        viewer: post.viewer,
+      }
+    } catch {
+      return null
     }
   }
 
@@ -1581,6 +1613,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         deletePost,
         editPost,
         getPostThread,
+        getPost,
         quotePost,
         getTimeline,
         getPublicFeed,

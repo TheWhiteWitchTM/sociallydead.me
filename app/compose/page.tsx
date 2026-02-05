@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
@@ -10,11 +10,58 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { Loader2, Send } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function ComposePage() {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading, createPost } = useBluesky()
   const [text, setText] = useState("")
+  const [hasPlayedWarning, setHasPlayedWarning] = useState(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
+
+  // Play warning sound when hitting 275 characters
+  const playWarningSound = useCallback(() => {
+    if (hasPlayedWarning) return
+    
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext()
+      }
+      const ctx = audioContextRef.current
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+      
+      oscillator.frequency.value = 440 // A4 note
+      oscillator.type = 'sine'
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+      
+      oscillator.start(ctx.currentTime)
+      oscillator.stop(ctx.currentTime + 0.2)
+      
+      setHasPlayedWarning(true)
+    } catch {
+      // Audio not supported, ignore
+    }
+  }, [hasPlayedWarning])
+
+  // Handle text change with sound
+  const handleTextChange = (newText: string) => {
+    setText(newText)
+    
+    // Reset warning flag if going back below 275
+    if (newText.length < 275) {
+      setHasPlayedWarning(false)
+    }
+    
+    // Play sound when hitting 275
+    if (newText.length >= 275 && text.length < 275) {
+      playWarningSound()
+    }
+  }
 
   // Load draft from AI assistant if available
   useEffect(() => {
@@ -96,14 +143,19 @@ export default function ComposePage() {
             <Textarea
               placeholder="What's happening? (Markdown supported)"
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => handleTextChange(e.target.value)}
               className="min-h-48 resize-none"
             />
             <div className="mt-2 flex items-center justify-between text-sm">
               <p className="text-muted-foreground">
                 Supports: **bold**, *italic*, `code`, [links](url), lists
               </p>
-              <span className={isOverLimit ? "text-destructive" : "text-muted-foreground"}>
+              <span className={cn(
+                "font-medium tabular-nums transition-colors",
+                charCount < 250 && "text-muted-foreground",
+                charCount >= 250 && charCount < 275 && "text-orange-500",
+                charCount >= 275 && "text-destructive font-bold"
+              )}>
                 {charCount}/{maxChars}
               </span>
             </div>

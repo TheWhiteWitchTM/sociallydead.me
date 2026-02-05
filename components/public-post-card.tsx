@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { UserHoverCard } from "@/components/user-hover-card"
 import { MessageCircle, Repeat2, Heart } from "lucide-react"
 
 interface Post {
@@ -38,18 +39,24 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
     <Card className="border-border hover:bg-accent/50 transition-colors">
         <CardContent className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
-            <Avatar className="h-9 w-9 sm:h-10 sm:w-10 shrink-0">
-              <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-              <AvatarFallback className="text-sm">
-                {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <UserHoverCard handle={post.author.handle}>
+              <Link href={`/profile/${post.author.handle}`} className="shrink-0">
+                <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
+                  <AvatarFallback className="text-sm">
+                    {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            </UserHoverCard>
             
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex flex-wrap items-center gap-x-1 leading-tight">
-                <span className="font-semibold break-all">
-                  {post.author.displayName || post.author.handle}
-                </span>
+                <UserHoverCard handle={post.author.handle}>
+                  <Link href={`/profile/${post.author.handle}`} className="font-semibold break-all hover:underline">
+                    {post.author.displayName || post.author.handle}
+                  </Link>
+                </UserHoverCard>
                 <span className="text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
                   @{post.author.handle}
                 </span>

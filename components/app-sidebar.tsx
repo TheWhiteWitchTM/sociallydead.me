@@ -17,6 +17,7 @@ import {
   ListIcon,
   Rss,
   UsersRound,
+  Bookmark,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ const authNavItems = [
   { href: "/search", icon: Search, label: "Search" },
   { href: "/notifications", icon: Bell, label: "Notifications", showBadge: true },
   { href: "/messages", icon: MessageSquare, label: "Messages" },
+  { href: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { href: "/feeds", icon: Rss, label: "Feeds" },
   { href: "/lists", icon: ListIcon, label: "Lists" },
   { href: "/starter-packs", icon: UsersRound, label: "Starter Packs" },

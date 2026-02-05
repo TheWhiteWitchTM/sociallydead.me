@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { UserHoverCard } from "@/components/user-hover-card"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 
@@ -128,6 +129,10 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
   const [reportReason, setReportReason] = useState("spam")
   const [reportDetails, setReportDetails] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isFactCheckOpen, setIsFactCheckOpen] = useState(false)
+  const [factCheckResult, setFactCheckResult] = useState<string | null>(null)
+  const [isFactChecking, setIsFactChecking] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(false)
 
   const handleAuthRequired = () => {
     if (!isAuthenticated) {
@@ -272,6 +277,59 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
     window.open(postUrl, '_blank')
   }
 
+  const handleFactCheck = async () => {
+    setIsFactChecking(true)
+    setIsFactCheckOpen(true)
+    setFactCheckResult(null)
+    
+    try {
+      const response = await fetch('/api/fact-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: post.record.text }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setFactCheckResult(data.result)
+      } else {
+        setFactCheckResult("Unable to fact-check this post at the moment. Please try again later.")
+      }
+    } catch {
+      setFactCheckResult("Unable to fact-check this post at the moment. Please try again later.")
+    } finally {
+      setIsFactChecking(false)
+    }
+  }
+
+  const handleBookmark = () => {
+    // Store in localStorage for bookmarks
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
+    if (isBookmarked) {
+      const filtered = bookmarks.filter((b: string) => b !== post.uri)
+      localStorage.setItem('bookmarked_posts', JSON.stringify(filtered))
+      setIsBookmarked(false)
+    } else {
+      bookmarks.push(post.uri)
+      localStorage.setItem('bookmarked_posts', JSON.stringify(bookmarks))
+      setIsBookmarked(true)
+    }
+  }
+
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(post.record.text)
+    } catch {
+      // Fallback - do nothing
+    }
+  }
+
+  // Check if bookmarked on mount
+  useState(() => {
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
+    setIsBookmarked(bookmarks.includes(post.uri))
+  })
+
   // Check if this is a repost
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
@@ -290,21 +348,25 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
           )}
 
           <div className="flex gap-2 sm:gap-3">
-            <Link href={`/profile/${post.author.handle}`} className="shrink-0">
-              <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-                <AvatarFallback className="text-sm">
-                  {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
+            <UserHoverCard handle={post.author.handle}>
+              <Link href={`/profile/${post.author.handle}`} className="shrink-0">
+                <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
+                  <AvatarFallback className="text-sm">
+                    {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            </UserHoverCard>
             
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
-                  <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
-                    {post.author.displayName || post.author.handle}
-                  </Link>
+                  <UserHoverCard handle={post.author.handle}>
+                    <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
+                      {post.author.displayName || post.author.handle}
+                    </Link>
+                  </UserHoverCard>
                   <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
                     @{post.author.handle}
                   </span>
@@ -324,6 +386,28 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleFactCheck}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      AI Fact-Check
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBookmark}>
+                      {isBookmarked ? (
+                        <>
+                          <Bookmark className="mr-2 h-4 w-4 fill-current" />
+                          Remove Bookmark
+                        </>
+                      ) : (
+                        <>
+                          <BookmarkPlus className="mr-2 h-4 w-4" />
+                          Bookmark
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleCopyText}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy Text
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleShare}>
                       <Share className="mr-2 h-4 w-4" />
                       Copy Link
@@ -698,6 +782,44 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
               {isLoading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Fact-Check Dialog */}
+      <Dialog open={isFactCheckOpen} onOpenChange={setIsFactCheckOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Fact-Check
+            </DialogTitle>
+            <DialogDescription>
+              AI-powered analysis of the claims in this post
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-3 rounded-lg bg-muted/50">
+              <p className="text-sm line-clamp-4">{post.record.text}</p>
+            </div>
+            
+            {isFactChecking ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Analyzing claims...</p>
+              </div>
+            ) : factCheckResult ? (
+              <div className="p-4 rounded-lg border bg-background">
+                <MarkdownRenderer content={factCheckResult} />
+              </div>
+            ) : null}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFactCheckOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
