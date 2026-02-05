@@ -112,6 +112,7 @@ function ProfileContent() {
     getHighlights,
     removeHighlight,
     getArticles,
+    getProfile,
   } = useBluesky()
   
   const searchParams = useSearchParams()
@@ -132,6 +133,7 @@ function ProfileContent() {
   // Posts state
   const [posts, setPosts] = useState<Post[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
+  const [pinnedPostData, setPinnedPostData] = useState<Post | null>(null)
   
   // Highlights and Articles (SociallyDead exclusive)
   const [highlights, setHighlights] = useState<Array<{ uri: string; postUri: string; postCid: string; createdAt: string }>>([])
@@ -152,6 +154,30 @@ function ProfileContent() {
       setDescription(user.description || "")
     }
   }, [user])
+
+  // Load pinned post
+  const loadPinnedPost = useCallback(async () => {
+    if (!user) return
+    try {
+      const profileData = await getProfile(user.handle)
+      if (profileData?.pinnedPost?.uri) {
+        const pinned = await getPost(profileData.pinnedPost.uri)
+        setPinnedPostData(pinned as Post | null)
+      } else {
+        setPinnedPostData(null)
+      }
+    } catch (err) {
+      console.error("Failed to load pinned post:", err)
+      setPinnedPostData(null)
+    }
+  }, [user, getProfile, getPost])
+
+  // Load pinned post on mount
+  useEffect(() => {
+    if (user) {
+      loadPinnedPost()
+    }
+  }, [user, loadPinnedPost])
 
   const loadPosts = useCallback(async (type: string) => {
     if (!user) return
@@ -446,23 +472,44 @@ function ProfileContent() {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="posts" className="mt-4">
+<TabsContent value="posts" className="mt-4">
+            {/* Pinned Post */}
+            {pinnedPostData && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2 px-2 text-sm text-muted-foreground">
+                  <Pin className="h-4 w-4" />
+                  <span>Pinned</span>
+                </div>
+                <PostCard 
+                  post={pinnedPostData} 
+                  isOwnPost={true}
+                  isPinned={true}
+                  onPostUpdated={() => {
+                    loadPosts("posts")
+                    loadPinnedPost()
+                  }}
+                />
+              </div>
+            )}
             {postsLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : posts.length === 0 ? (
+            ) : posts.filter(p => p.uri !== pinnedPostData?.uri).length === 0 && !pinnedPostData ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <p className="text-muted-foreground">No posts yet</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {posts.map((post) => (
+                {posts.filter(p => p.uri !== pinnedPostData?.uri).map((post) => (
                   <PostCard
                     key={post.uri}
                     post={post}
                     isOwnPost={true}
-                    onPostUpdated={() => loadPosts("posts")}
+                    onPostUpdated={() => {
+                      loadPosts("posts")
+                      loadPinnedPost()
+                    }}
                   />
                 ))}
               </div>
