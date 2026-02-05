@@ -55,6 +55,7 @@ export default function MessagesPage() {
     getMessages, 
     sendMessage,
     startConversation,
+    markConvoRead,
     searchActors,
     logout,
   } = useBluesky()
@@ -125,6 +126,14 @@ export default function MessagesPage() {
   const handleSelectConvo = (convo: Convo) => {
     setSelectedConvo(convo)
     loadMessages(convo.id)
+    
+    // Mark as read on the server
+    markConvoRead(convo.id)
+    
+    // Immediately clear unread count in local state
+    setConversations(prev => 
+      prev.map(c => c.id === convo.id ? { ...c, unreadCount: 0 } : c)
+    )
   }
 
   const handleBackToList = () => {
