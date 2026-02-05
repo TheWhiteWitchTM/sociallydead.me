@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -108,6 +108,8 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     pinPost,
     unpinPost,
     addHighlight,
+    followUser,
+    getProfile,
     user,
     isAuthenticated,
     login,
@@ -132,6 +134,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   const [editText, setEditText] = useState(post.record.text)
   const [replyText, setReplyText] = useState("")
   const [quoteText, setQuoteText] = useState("")
+  
+  // Follow state
+  const [isFollowing, setIsFollowing] = useState<boolean | null>(null)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
   const [reportReason, setReportReason] = useState("spam")
   const [reportDetails, setReportDetails] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -160,9 +166,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
         setLikeCount((c) => c - 1)
         setLikeUri(undefined)
       } else {
-        await likePost(post.uri, post.cid)
+        const newLikeUri = await likePost(post.uri, post.cid)
         setIsLiked(true)
         setLikeCount((c) => c + 1)
+        setLikeUri(newLikeUri)
       }
     } catch (error) {
       console.error("Failed to like/unlike:", error)
@@ -182,9 +189,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
         setRepostCount((c) => c - 1)
         setRepostUri(undefined)
       } else {
-        await repost(post.uri, post.cid)
+        const newRepostUri = await repost(post.uri, post.cid)
         setIsReposted(true)
         setRepostCount((c) => c + 1)
+        setRepostUri(newRepostUri)
       }
       setIsRepostDialogOpen(false)
     } catch (error) {
@@ -378,6 +386,33 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     setIsBookmarked(bookmarks.includes(post.uri))
   }, [post.uri])
 
+  // Check if following the author (only if authenticated and not own post)
+  useEffect(() => {
+    if (isAuthenticated && !isOwnPost && user?.did !== post.author.did) {
+      getProfile(post.author.handle).then(profile => {
+        setIsFollowing(!!profile.viewer?.following)
+      }).catch(() => {
+        setIsFollowing(null)
+      })
+    }
+  }, [isAuthenticated, isOwnPost, post.author.handle, post.author.did, user?.did, getProfile])
+
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      login()
+      return
+    }
+    setIsFollowLoading(true)
+    try {
+      await followUser(post.author.did)
+      setIsFollowing(true)
+    } catch (error) {
+      console.error("Failed to follow:", error)
+    } finally {
+      setIsFollowLoading(false)
+    }
+  }
+
   // Check if this is a repost
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
@@ -416,11 +451,30 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   </Link>
                 </UserHoverCard>
                 <VerifiedBadge handle={post.author.handle} />
-                <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
-                  @{post.author.handle}
-                </span>
+                  <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
+                    @{post.author.handle}
+                  </span>
+                  {/* Follow button - show only if not following and not own post */}
+                  {!isOwnPost && isFollowing === false && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs ml-1"
+                      onClick={handleFollow}
+                      disabled={isFollowLoading}
+                    >
+                      {isFollowLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <UserPlus className="h-3 w-3 mr-1" />
+                          Follow
+                        </>
+                      )}
+                    </Button>
+                  )}
                   <span className="text-muted-foreground hidden sm:inline">·</span>
-                  <Link 
+                  <Link
                     href={`/post/${post.author.handle}/${post.uri.split('/').pop()}`}
                     className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
                   >

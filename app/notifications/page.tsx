@@ -190,7 +190,7 @@ export default function NotificationsPage() {
                         {/* Show post content for relevant notification types */}
                         {notification.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(notification.reason) && (
                           <Link 
-                            href={`/post/${notification.reasonSubject.split('/')[2]}/${notification.reasonSubject.split('/').pop()}`}
+                            href={`/profile/${notification.reasonSubject.split('/')[2]}/post/${notification.reasonSubject.split('/').pop()}`}
                             className="block mt-2 p-2 rounded bg-muted/50 text-sm text-muted-foreground hover:bg-muted transition-colors"
                           >
                             View post

@@ -250,9 +250,9 @@ interface BlueskyContextType {
   saveFeed: (uri: string) => Promise<void>
   unsaveFeed: (uri: string) => Promise<void>
   // Interactions
-  likePost: (uri: string, cid: string) => Promise<void>
+  likePost: (uri: string, cid: string) => Promise<string>
   unlikePost: (likeUri: string) => Promise<void>
-  repost: (uri: string, cid: string) => Promise<void>
+  repost: (uri: string, cid: string) => Promise<string>
   unrepost: (repostUri: string) => Promise<void>
   reportPost: (uri: string, cid: string, reason: string) => Promise<void>
   // Profile
@@ -919,7 +919,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   // Interactions
   const likePost = async (uri: string, cid: string) => {
     if (!agent) throw new Error("Not authenticated")
-    await agent.like(uri, cid)
+    const response = await agent.like(uri, cid)
+    return response.uri
   }
 
   const unlikePost = async (likeUri: string) => {
@@ -929,7 +930,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   const repost = async (uri: string, cid: string) => {
     if (!agent) throw new Error("Not authenticated")
-    await agent.repost(uri, cid)
+    const response = await agent.repost(uri, cid)
+    return response.uri
   }
 
   const unrepost = async (repostUri: string) => {
