@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { MessageCircle, Repeat2, Heart } from "lucide-react"
 
 interface Post {
@@ -57,6 +58,7 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                     {post.author.displayName || post.author.handle}
                   </Link>
                 </UserHoverCard>
+                <VerifiedBadge handle={post.author.handle} />
                 <span className="text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
                   @{post.author.handle}
                 </span>

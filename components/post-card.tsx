@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 
@@ -409,14 +410,15 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
-                  <UserHoverCard handle={post.author.handle}>
-                    <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
-                      {post.author.displayName || post.author.handle}
-                    </Link>
-                  </UserHoverCard>
-                  <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
-                    @{post.author.handle}
-                  </span>
+                <UserHoverCard handle={post.author.handle}>
+                  <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
+                    {post.author.displayName || post.author.handle}
+                  </Link>
+                </UserHoverCard>
+                <VerifiedBadge handle={post.author.handle} />
+                <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
+                  @{post.author.handle}
+                </span>
                   <span className="text-muted-foreground hidden sm:inline">·</span>
                   <Link 
                     href={`/post/${post.author.handle}/${post.uri.split('/').pop()}`}
@@ -558,12 +560,13 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                           {(post.embed.record.author.displayName || post.embed.record.author.handle).slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium text-sm">
-                        {post.embed.record.author.displayName || post.embed.record.author.handle}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        @{post.embed.record.author.handle}
-                      </span>
+                              <span className="font-medium text-sm">
+                                {post.embed.record.author.displayName || post.embed.record.author.handle}
+                              </span>
+                              <VerifiedBadge handle={post.embed.record.author.handle} />
+                              <span className="text-muted-foreground text-sm">
+                                @{post.embed.record.author.handle}
+                              </span>
                     </div>
                     <p className="text-sm">{post.embed.record.value.text}</p>
                   </CardContent>
@@ -628,8 +631,9 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
-                <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
+                            <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                            <VerifiedBadge handle={post.author.handle} />
+                            <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
             </div>
@@ -727,6 +731,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     </AvatarFallback>
                   </Avatar>
                   <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                  <VerifiedBadge handle={post.author.handle} />
                   <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
                 </div>
                 <p className="text-sm line-clamp-3">{post.record.text}</p>

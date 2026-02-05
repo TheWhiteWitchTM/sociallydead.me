@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/hover-card"
 import { Loader2, UserPlus, UserMinus, Calendar } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { VerifiedBadge } from "@/components/verified-badge"
 
 interface UserHoverCardProps {
   handle: string
@@ -133,7 +134,10 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
 
             <div>
               <Link href={`/profile/${profile.handle}`} className="hover:underline">
-                <h4 className="font-semibold">{profile.displayName || profile.handle}</h4>
+                <h4 className="font-semibold inline-flex items-center gap-1">
+                  {profile.displayName || profile.handle}
+                  <VerifiedBadge handle={profile.handle} />
+                </h4>
               </Link>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <span>@{profile.handle}</span>

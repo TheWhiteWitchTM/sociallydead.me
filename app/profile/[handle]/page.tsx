@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -408,10 +409,13 @@ export default function UserProfilePage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold truncate">{profile.displayName || profile.handle}</h1>
-            <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
-          </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
+                {profile.displayName || profile.handle}
+                <VerifiedBadge handle={profile.handle} />
+              </h1>
+              <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
+            </div>
         </div>
       </header>
 
@@ -495,10 +499,13 @@ export default function UserProfilePage() {
         {/* Profile Info */}
         <div className="px-4 pt-20 pb-4">
           <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-bold">{profile.displayName || profile.handle}</h2>
-              <p className="text-muted-foreground">@{profile.handle}</p>
-            </div>
+              <div>
+                <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
+                  {profile.displayName || profile.handle}
+                  <VerifiedBadge handle={profile.handle} className="h-5 w-5" />
+                </h2>
+                <p className="text-muted-foreground">@{profile.handle}</p>
+              </div>
           </div>
           
           {/* Relationship badges */}
