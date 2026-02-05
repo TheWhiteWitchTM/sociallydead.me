@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
+import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Newspaper } from "lucide-react"
 
 // Official Bluesky feed URIs - All from the Bluesky team (did:plc:z72i7hdynmk6r22z27h6tvur)
 // These are guaranteed to work with the public API
@@ -83,7 +83,7 @@ interface Post {
 }
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed, getPublicFeed } = useBluesky()
+  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed, getPublicFeed, searchByHashtag } = useBluesky()
   const [posts, setPosts] = useState<Post[]>([])
   const [feedLoading, setFeedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -133,6 +133,20 @@ export default function HomePage() {
     }
   }, [getPublicFeed])
 
+  const loadHashtagFeed = useCallback(async (hashtag: string) => {
+    setFeedLoading(true)
+    setError(null)
+    
+    try {
+      const result = await searchByHashtag(hashtag)
+      setPosts(result.posts)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to load #${hashtag} feed`)
+    } finally {
+      setFeedLoading(false)
+    }
+  }, [searchByHashtag])
+
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab)
     
@@ -143,6 +157,9 @@ export default function HomePage() {
         break
       case "discover":
         loadPublicFeed()
+        break
+      case "news":
+        loadHashtagFeed("news")
         break
       case "popular":
         loadFeed(KNOWN_FEEDS.popular)
@@ -162,7 +179,7 @@ export default function HomePage() {
       default:
         loadPublicFeed()
     }
-  }, [isAuthenticated, loadTimeline, loadFeed, loadPublicFeed])
+  }, [isAuthenticated, loadTimeline, loadFeed, loadPublicFeed, loadHashtagFeed])
 
   const handleRefresh = () => {
     handleTabChange(activeTab)
@@ -231,13 +248,17 @@ export default function HomePage() {
                 <Sparkles className="h-4 w-4" />
                 <span className="hidden sm:inline">Discover</span>
               </TabsTrigger>
-              <TabsTrigger value="with_friends" className="gap-1.5">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">With Friends</span>
+              <TabsTrigger value="news" className="gap-1.5">
+                <Newspaper className="h-4 w-4" />
+                <span className="hidden sm:inline">News</span>
               </TabsTrigger>
               <TabsTrigger value="popular" className="gap-1.5">
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">Popular</span>
+              </TabsTrigger>
+              <TabsTrigger value="with_friends" className="gap-1.5">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">With Friends</span>
               </TabsTrigger>
               <TabsTrigger value="mutuals" className="gap-1.5">
                 <Heart className="h-4 w-4" />
@@ -385,13 +406,17 @@ export default function HomePage() {
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Discover</span>
             </TabsTrigger>
-            <TabsTrigger value="with_friends" className="gap-1.5">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">With Friends</span>
+            <TabsTrigger value="news" className="gap-1.5">
+              <Newspaper className="h-4 w-4" />
+              <span className="hidden sm:inline">News</span>
             </TabsTrigger>
             <TabsTrigger value="popular" className="gap-1.5">
               <Globe className="h-4 w-4" />
               <span className="hidden sm:inline">Popular</span>
+            </TabsTrigger>
+            <TabsTrigger value="with_friends" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">With Friends</span>
             </TabsTrigger>
             <TabsTrigger value="mutuals" className="gap-1.5">
               <Heart className="h-4 w-4" />

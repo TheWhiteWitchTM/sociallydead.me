@@ -1,6 +1,24 @@
-# Support SociallyDead Development
-# Your contributions help keep this Bluesky client free and open source!
+# ==============================================================================
+# SociallyDead - A Feature-Rich Bluesky Client
+# ==============================================================================
+#
+# SociallyDead is a free, open-source Bluesky client with enhanced features:
+#   - Full Bluesky API support (posts, replies, quotes, likes, reposts)
+#   - Markdown rendering in posts
+#   - Notifications, Messages, Lists, and Starter Packs
+#   - Multiple feed views and custom feed support
+#   - Profile management and editing
+#   - Dark mode and responsive design
+#
+# Your support helps maintain and improve this project:
+#   - Server costs and infrastructure
+#   - New feature development
+#   - Bug fixes and security updates
+#   - Documentation and community support
+#
+# Every contribution, no matter the size, makes a difference. Thank you!
+# ==============================================================================
 
 github: TheWhiteWitchTM
-custom: 
+custom:
   - "https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"

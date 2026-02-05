@@ -275,6 +275,9 @@ interface BlueskyContextType {
   // Search
   searchPosts: (query: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
   searchActors: (query: string, cursor?: string) => Promise<{ actors: BlueskyUser[]; cursor?: string }>
+  searchByHashtag: (hashtag: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
+  // List Feeds
+  getListFeed: (listUri: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
   // Utility
   uploadImage: (file: File) => Promise<{ blob: unknown }>
   resolveHandle: (handle: string) => Promise<string>
@@ -1466,6 +1469,61 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const searchByHashtag = async (hashtag: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+    // Remove # if present and search for the hashtag
+    const tag = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
+    const agentToUse = agent || publicAgent
+    const response = await agentToUse.app.bsky.feed.searchPosts({ q: `#${tag}`, limit: 50, cursor })
+    
+    return {
+      posts: response.data.posts.map((post) => ({
+        uri: post.uri,
+        cid: post.cid,
+        author: {
+          did: post.author.did,
+          handle: post.author.handle,
+          displayName: post.author.displayName,
+          avatar: post.author.avatar,
+        },
+        record: post.record as BlueskyPost["record"],
+        embed: post.embed as BlueskyPost["embed"],
+        replyCount: post.replyCount ?? 0,
+        repostCount: post.repostCount ?? 0,
+        likeCount: post.likeCount ?? 0,
+        indexedAt: post.indexedAt,
+        viewer: post.viewer,
+      })),
+      cursor: response.data.cursor,
+    }
+  }
+
+  // List Feed - Get posts from users in a list
+  const getListFeed = async (listUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+    const agentToUse = agent || publicAgent
+    const response = await agentToUse.app.bsky.feed.getListFeed({ list: listUri, limit: 50, cursor })
+    
+    return {
+      posts: response.data.feed.map((item) => ({
+        uri: item.post.uri,
+        cid: item.post.cid,
+        author: {
+          did: item.post.author.did,
+          handle: item.post.author.handle,
+          displayName: item.post.author.displayName,
+          avatar: item.post.author.avatar,
+        },
+        record: item.post.record as BlueskyPost["record"],
+        embed: item.post.embed as BlueskyPost["embed"],
+        replyCount: item.post.replyCount ?? 0,
+        repostCount: item.post.repostCount ?? 0,
+        likeCount: item.post.likeCount ?? 0,
+        indexedAt: item.post.indexedAt,
+        viewer: item.post.viewer,
+      })),
+      cursor: response.data.cursor,
+    }
+  }
+
   // Utility
   const uploadImage = async (file: File): Promise<{ blob: unknown }> => {
     if (!agent) throw new Error("Not authenticated")
@@ -1542,6 +1600,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         removeFromStarterPack,
         searchPosts,
         searchActors,
+        searchByHashtag,
+        getListFeed,
         uploadImage,
         resolveHandle,
       }}
