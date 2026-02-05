@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const feedCategories = [
-  { id: "discover", href: "/", icon: Compass, label: "Discover" },
+  { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
   { id: "news", href: "/feed/news", icon: Newspaper, label: "News" },
   { id: "politics", href: "/feed/politics", icon: Vote, label: "Politics" },
   { id: "games", href: "/feed/games", icon: Gamepad2, label: "Games" },
