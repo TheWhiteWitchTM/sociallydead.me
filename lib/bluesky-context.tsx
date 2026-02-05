@@ -1301,12 +1301,26 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     
     try {
       // Use atproto-proxy header to route to chat service
-      const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
+      // The header value format is: did:web:api.bsky.chat#bsky_chat
+      const headers = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
+      
+      console.log("[v0] Chat: Fetching conversations...")
+      console.log("[v0] Chat: Agent session exists:", !!agent.session)
+      console.log("[v0] Chat: Agent session DID:", agent.session?.did)
       
       const response = await agent.api.chat.bsky.convo.listConvos(
         { limit: 100 },
-        { headers: proxyHeader }
+        { headers }
       )
+      
+      console.log("[v0] Chat: Response received, convos count:", response.data.convos?.length || 0)
+      
+      if (response.data.convos?.length === 0) {
+        console.log("[v0] Chat: No conversations found - this could mean:")
+        console.log("[v0] Chat: 1. User has no DMs")
+        console.log("[v0] Chat: 2. Chat scope not granted - user needs to re-login")
+        console.log("[v0] Chat: 3. API headers not being sent correctly")
+      }
       
       return response.data.convos.map((convo) => ({
         id: convo.id,
@@ -1326,8 +1340,17 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch {
-      // Chat may not be available or user may not have access
+    } catch (error) {
+      console.error("[v0] Chat API Error:", error)
+      if (error instanceof Error) {
+        console.error("[v0] Chat Error message:", error.message)
+        console.error("[v0] Chat Error stack:", error.stack)
+      }
+      // Check if it's an auth/scope error
+      const errorStr = String(error)
+      if (errorStr.includes('401') || errorStr.includes('403') || errorStr.includes('Unauthorized')) {
+        console.error("[v0] Chat: Authentication error - user may need to re-login to grant chat scope")
+      }
       return []
     }
   }

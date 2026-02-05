@@ -55,6 +55,7 @@ export default function MessagesPage() {
     sendMessage,
     startConversation,
     searchActors,
+    logout,
   } = useBluesky()
   
   const [conversations, setConversations] = useState<Convo[]>([])
@@ -315,6 +316,22 @@ export default function MessagesPage() {
                   <PenSquare className="mr-2 h-4 w-4" />
                   New Message
                 </Button>
+                <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg max-w-sm">
+                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                    Not seeing your DMs?
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    If you logged in before chat was enabled, you may need to log out and log back in to grant chat permissions.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 w-full"
+                    onClick={logout}
+                  >
+                    Log out and re-authenticate
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
