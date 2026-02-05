@@ -605,6 +605,33 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 </div>
               )}
 
+              {/* External Link Card */}
+              {post.embed?.$type === 'app.bsky.embed.external#view' && post.embed.external && (
+                <a 
+                  href={(post.embed.external as { uri?: string }).uri} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block mt-3"
+                >
+                  <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
+                    {(post.embed.external as { thumb?: string }).thumb && (
+                      <div className="aspect-video relative">
+                        <img 
+                          src={(post.embed.external as { thumb?: string }).thumb} 
+                          alt="" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-3">
+                      <p className="font-medium line-clamp-2">{(post.embed.external as { title?: string }).title}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{(post.embed.external as { description?: string }).description}</p>
+                      <p className="text-xs text-muted-foreground mt-2 truncate">{(post.embed.external as { uri?: string }).uri}</p>
+                    </CardContent>
+                  </Card>
+                </a>
+              )}
+
               {/* Quoted Post */}
               {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                 <Card className="mt-3 border-border">

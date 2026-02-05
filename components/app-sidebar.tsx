@@ -57,6 +57,7 @@ export function AppSidebar() {
   const { isSubscribed, showNotification } = usePushNotifications()
   const [unreadCount, setUnreadCount] = useState(0)
   const [prevUnreadCount, setPrevUnreadCount] = useState(0)
+  const [hasNewNotifications, setHasNewNotifications] = useState(false)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
   const navRef = useRef<HTMLElement>(null)
@@ -101,6 +102,16 @@ export function AppSidebar() {
             })
           }
           
+          // Show visual indicator for new notifications
+          if (count > prevUnreadCount && prevUnreadCount >= 0 && pathname !== "/notifications") {
+            setHasNewNotifications(true)
+          }
+          
+          // Reset indicator when viewing notifications
+          if (pathname === "/notifications") {
+            setHasNewNotifications(false)
+          }
+          
           setPrevUnreadCount(count)
           setUnreadCount(count)
         } catch (error) {
@@ -112,7 +123,8 @@ export function AppSidebar() {
       }
       // Fetch immediately and also when navigating away from notifications (after marking read)
       fetchUnread()
-      const interval = setInterval(fetchUnread, 30000)
+      // Poll every 15 seconds for more real-time updates
+      const interval = setInterval(fetchUnread, 15000)
       return () => {
         isMounted = false
         clearInterval(interval)
@@ -203,7 +215,10 @@ export function AppSidebar() {
                   {item.showBadge && unreadCount > 0 && (
                     <Badge 
                       variant="destructive" 
-                      className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
+                      className={cn(
+                        "absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5",
+                        hasNewNotifications && "animate-pulse ring-2 ring-destructive/50"
+                      )}
                     >
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </Badge>
