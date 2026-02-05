@@ -235,8 +235,11 @@ export default function MessagesPage() {
     }
   }
 
-  // Always force fresh load when page is visited / becomes visible
+  // Always reset to conversation list and force fresh load on mount
   useEffect(() => {
+    setSelectedConvo(null)
+    setMessages([])
+    
     if (isAuthenticated) {
       loadConversations()
     }
@@ -462,9 +465,13 @@ export default function MessagesPage() {
                   .map((convo) => {
                   const otherMembers = convo.members.filter(m => m.did !== user?.did)
                   const isSelected = selectedConvo?.id === convo.id
-                  // Only show unread if the last message is from someone else
+                  // Check if other members are valid (not deleted/invalid accounts)
+                  const hasValidMembers = otherMembers.some(m => 
+                    m.handle && !m.handle.endsWith('.invalid') && m.handle !== 'handle.invalid'
+                  )
+                  // Only show unread if last message is from someone else AND members are valid
                   const lastMsgFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user?.did
-                  const hasUnread = convo.unreadCount > 0 && lastMsgFromOther
+                  const hasUnread = convo.unreadCount > 0 && !!lastMsgFromOther && hasValidMembers
                   
                   return (
                     <Card 
