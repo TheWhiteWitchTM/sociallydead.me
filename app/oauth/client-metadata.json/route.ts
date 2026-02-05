@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     tos_uri: `${origin}/terms`,
     policy_uri: `${origin}/privacy`,
     redirect_uris: [`${origin}/oauth/callback`],
-    scope: "atproto transition:generic",
+    scope: "atproto transition:generic transition:chat.bsky",
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
     application_type: "web",
