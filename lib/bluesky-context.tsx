@@ -407,12 +407,15 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       oauthClient = null
       
       // Nuke ALL IndexedDB databases used by @atproto/oauth-client-browser
-      // Known DB names used by the SDK
+      // The SDK uses '@atproto-oauth-client' as the DB name (with @ prefix!)
       const knownDBs = [
+        '@atproto-oauth-client',
         'atproto-oauth-client',
+        '@atproto-oauth-client-browser', 
         'atproto-oauth-client-browser', 
         'oauth-client',
         'oauth-session',
+        '@atproto',
         'atproto',
       ]
       knownDBs.forEach(name => {
