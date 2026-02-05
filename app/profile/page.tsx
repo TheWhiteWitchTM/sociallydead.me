@@ -266,17 +266,16 @@ function ProfileContent() {
     }
   }, [user, loadHighlightsAndArticles])
 
-  // Load full profile data (including banner) on mount
+  // Load full profile data (including banner) on mount - always fetch fresh
   useEffect(() => {
-    if (user && !fullProfile) {
+    if (user) {
       getProfile(user.handle).then((profile) => {
-        console.log("[v0] Full profile loaded - banner:", profile.banner)
         setFullProfile(profile)
-      }).catch((error) => {
-        console.error("[v0] Failed to load full profile:", error)
+      }).catch(() => {
+        // Silently fail - will use context user data
       })
     }
-  }, [user, fullProfile, getProfile])
+  }, [user, getProfile])
 
   const loadFollowers = useCallback(async () => {
     if (!user) return

@@ -76,12 +76,9 @@ export default function MessagesPage() {
     setError(null)
     
     try {
-      console.log("[v0] Loading conversations...")
       const convos = await getConversations()
-      console.log("[v0] Conversations loaded:", convos)
       setConversations(convos)
     } catch (err) {
-      console.error("[v0] Failed to load conversations:", err)
       setError(err instanceof Error ? err.message : "Failed to load conversations")
     } finally {
       setIsLoading(false)
@@ -125,6 +122,28 @@ export default function MessagesPage() {
     setSelectedConvo(null)
     setMessages([])
   }
+
+  // Debounced search effect for autocomplete
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) {
+      setSearchResults([])
+      return
+    }
+    
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const result = await searchActors(searchQuery)
+        setSearchResults(result.actors.slice(0, 8))
+      } catch (error) {
+        console.error("Search failed:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+    
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, searchActors])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
