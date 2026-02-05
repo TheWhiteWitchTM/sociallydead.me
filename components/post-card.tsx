@@ -390,9 +390,11 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   useEffect(() => {
     if (isAuthenticated && !isOwnPost && user?.did !== post.author.did) {
       getProfile(post.author.handle).then(profile => {
-        setIsFollowing(!!profile.viewer?.following)
+        if (profile) {
+          setIsFollowing(!!profile.viewer?.following)
+        }
       }).catch(() => {
-        setIsFollowing(null)
+        // Silently fail - just don't show follow button
       })
     }
   }, [isAuthenticated, isOwnPost, post.author.handle, post.author.did, user?.did, getProfile])

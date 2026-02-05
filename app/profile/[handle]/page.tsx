@@ -149,12 +149,18 @@ export default function UserProfilePage() {
 
   const isOwnProfile = user?.handle === handle || user?.did === handle
 
-  const loadProfile = useCallback(async () => {
+const loadProfile = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     
     try {
+      // Handle can be either a handle or a DID - getProfile handles both
       const profileData = await getProfile(handle)
+      if (!profileData) {
+        setError("Profile not found")
+        setIsLoading(false)
+        return
+      }
       setProfile(profileData as UserProfile)
       
       // Fetch pinned post if exists

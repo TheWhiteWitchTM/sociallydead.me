@@ -163,11 +163,19 @@ export default function HomePage() {
       <div className="min-h-screen">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-14 items-center justify-between px-4">
-            <h1 className="text-xl font-bold">SociallyDead</h1>
+            <div className="flex items-center gap-2">
+              {/* Bluesky butterfly icon */}
+              <svg viewBox="0 0 568 501" className="h-6 w-6 text-[#0085ff]" fill="currentColor">
+                <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 googled383.039C285.169 374.388 284.017 370.036 284 googled373.719C283.983 370.036 282.831 374.388 280.369 googled383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+              </svg>
+            </div>
             <SignInDialog
               trigger={
-                <Button variant="default" size="sm">
-                  Sign In
+                <Button variant="default" size="sm" className="gap-2">
+                  <svg viewBox="0 0 568 501" className="h-4 w-4" fill="currentColor">
+                    <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                  </svg>
+                  Sign in with Bluesky
                 </Button>
               }
             />
@@ -175,11 +183,14 @@ export default function HomePage() {
         </header>
 
         <main className="flex flex-col items-center justify-center px-4 py-16">
-          <Card className="w-full max-w-md border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+          <Card className="w-full max-w-md border-[#0085ff]/20 bg-gradient-to-br from-[#0085ff]/5 to-[#0085ff]/10">
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col items-center text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary mb-6">
-                  <span className="text-3xl font-bold text-primary-foreground">SD</span>
+                {/* Bluesky butterfly logo */}
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0085ff] mb-6">
+                  <svg viewBox="0 0 568 501" className="h-10 w-10 text-white" fill="currentColor">
+                    <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                  </svg>
                 </div>
                 <h2 className="text-2xl font-bold mb-3">Welcome to SociallyDead</h2>
                 <p className="text-muted-foreground mb-6">
@@ -187,7 +198,10 @@ export default function HomePage() {
                 </p>
                 <SignInDialog
                   trigger={
-                    <Button size="lg" className="w-full">
+                    <Button size="lg" className="w-full gap-2 bg-[#0085ff] hover:bg-[#0085ff]/90">
+                      <svg viewBox="0 0 568 501" className="h-5 w-5" fill="currentColor">
+                        <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                      </svg>
                       Sign in with Bluesky
                     </Button>
                   }
@@ -223,7 +237,18 @@ export default function HomePage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">Home</h1>
+          {/* User avatar and handle */}
+          {user && (
+            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
+                <AvatarFallback className="text-xs">
+                  {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm hidden sm:inline">@{user.handle}</span>
+            </Link>
+          )}
           <div className="flex items-center gap-2">
             <Button onClick={() => handleTabChange(activeTab)} variant="ghost" size="icon" disabled={feedLoading}>
               <RefreshCw className={`h-4 w-4 ${feedLoading ? 'animate-spin' : ''}`} />
