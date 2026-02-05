@@ -239,8 +239,10 @@ interface BlueskyContextType {
   unrepost: (repostUri: string) => Promise<void>
   reportPost: (uri: string, cid: string, reason: string) => Promise<void>
   // Profile
-  getProfile: (actor: string) => Promise<BlueskyUser>
+  getProfile: (actor: string) => Promise<BlueskyUser & { pinnedPost?: { uri: string; cid: string } }>
   updateProfile: (profile: { displayName?: string; description?: string; avatar?: Blob; banner?: Blob }) => Promise<void>
+  pinPost: (uri: string, cid: string) => Promise<void>
+  unpinPost: () => Promise<void>
   followUser: (did: string) => Promise<string>
   unfollowUser: (followUri: string) => Promise<void>
   blockUser: (did: string) => Promise<string>
@@ -929,7 +931,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Profile
-  const getProfile = async (actor: string): Promise<BlueskyUser & { viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string } }> => {
+  const getProfile = async (actor: string): Promise<BlueskyUser & { 
+    viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string };
+    pinnedPost?: { uri: string; cid: string };
+  }> => {
     const agentToUse = agent || publicAgent
     const response = await agentToUse.getProfile({ actor })
     return {
@@ -943,7 +948,27 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       followsCount: response.data.followsCount,
       postsCount: response.data.postsCount,
       viewer: response.data.viewer,
+      pinnedPost: response.data.pinnedPost as { uri: string; cid: string } | undefined,
     }
+  }
+  
+  const pinPost = async (uri: string, cid: string) => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    await agent.upsertProfile((existing) => ({
+      ...existing,
+      pinnedPost: { uri, cid },
+    }))
+  }
+  
+  const unpinPost = async () => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    await agent.upsertProfile((existing) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { pinnedPost, ...rest } = existing as Record<string, unknown>
+      return rest as Parameters<typeof agent.upsertProfile>[0] extends (existing: infer T) => unknown ? T : never
+    })
   }
 
   const updateProfile = async (profile: { displayName?: string; description?: string; avatar?: Blob; banner?: Blob }) => {
@@ -1634,6 +1659,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         reportPost,
         getProfile,
         updateProfile,
+        pinPost,
+        unpinPost,
         followUser,
         unfollowUser,
         blockUser,
