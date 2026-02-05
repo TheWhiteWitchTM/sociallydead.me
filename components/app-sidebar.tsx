@@ -18,6 +18,8 @@ import {
   Rss,
   UsersRound,
   Hash,
+  Newspaper,
+  Landmark,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,6 +31,9 @@ import { SignInDialog } from "@/components/sign-in-dialog"
 const authNavItems = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/search", icon: Search, label: "Search" },
+  { href: "/discover", icon: Sparkles, label: "Discover" },
+  { href: "/news", icon: Newspaper, label: "News" },
+  { href: "/politics", icon: Landmark, label: "Politics" },
   { href: "/notifications", icon: Bell, label: "Notifications", showBadge: true },
   { href: "/messages", icon: MessageSquare, label: "Messages" },
   { href: "/feeds", icon: Rss, label: "Feeds" },
@@ -43,7 +48,10 @@ const authNavItems = [
 const publicNavItems = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/search", icon: Search, label: "Search" },
-  { href: "/feeds", icon: Hash, label: "Discover Feeds" },
+  { href: "/discover", icon: Sparkles, label: "Discover" },
+  { href: "/news", icon: Newspaper, label: "News" },
+  { href: "/politics", icon: Landmark, label: "Politics" },
+  { href: "/feeds", icon: Rss, label: "Feeds" },
 ]
 
 export function AppSidebar() {
