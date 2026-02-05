@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle } from "lucide-react"
+import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle, Pin } from "lucide-react"
 
 interface UserProfile {
   did: string
@@ -29,6 +29,10 @@ interface UserProfile {
   followersCount?: number
   followsCount?: number
   postsCount?: number
+  pinnedPost?: {
+    uri: string
+    cid: string
+  }
   viewer?: {
     muted?: boolean
     blockedBy?: boolean
@@ -95,6 +99,7 @@ export default function UserProfilePage() {
     isAuthenticated, 
     isLoading: authLoading,
     getProfile,
+    getPost,
     getUserPosts,
     getUserReplies,
     getUserMedia,
@@ -111,6 +116,7 @@ export default function UserProfilePage() {
   
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
+  const [pinnedPostData, setPinnedPostData] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [postsLoading, setPostsLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -131,12 +137,25 @@ export default function UserProfilePage() {
     try {
       const profileData = await getProfile(handle)
       setProfile(profileData as UserProfile)
+      
+      // Fetch pinned post if exists
+      if (profileData.pinnedPost?.uri) {
+        try {
+          const pinnedPost = await getPost(profileData.pinnedPost.uri)
+          setPinnedPostData(pinnedPost as Post | null)
+        } catch {
+          // Pinned post might be deleted
+          setPinnedPostData(null)
+        }
+      } else {
+        setPinnedPostData(null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile")
     } finally {
       setIsLoading(false)
     }
-  }, [handle, getProfile])
+  }, [handle, getProfile, getPost])
 
   const loadPosts = useCallback(async (type: string) => {
     if (!profile) return
@@ -500,17 +519,44 @@ export default function UserProfilePage() {
             <TabsTrigger value="following">Following</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="posts" className="mt-4">
-            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
-          </TabsContent>
+              <TabsContent value="posts" className="mt-4">
+                {/* Pinned Post */}
+                {pinnedPostData && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2 px-2 text-sm text-muted-foreground">
+                      <Pin className="h-4 w-4" />
+                      <span>Pinned</span>
+                    </div>
+                    {isAuthenticated ? (
+                      <PostCard 
+                        post={pinnedPostData} 
+                        isOwnPost={isOwnProfile}
+                        isPinned={true}
+                        onPostUpdated={loadProfile}
+                      />
+                    ) : (
+                      <PublicPostCard post={pinnedPostData} />
+                    )}
+                  </div>
+                )}
+                <PostsList 
+                  posts={posts.filter(p => p.uri !== pinnedPostData?.uri)} 
+                  loading={postsLoading} 
+                  isAuthenticated={isAuthenticated} 
+                  userId={user?.did}
+                  pinnedPostUri={pinnedPostData?.uri}
+                  isOwnProfile={isOwnProfile}
+                  onPostUpdated={loadProfile}
+                />
+              </TabsContent>
           
-          <TabsContent value="replies" className="mt-4">
-            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
-          </TabsContent>
-          
-          <TabsContent value="media" className="mt-4">
-            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
-          </TabsContent>
+              <TabsContent value="replies" className="mt-4">
+                <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} isOwnProfile={isOwnProfile} onPostUpdated={loadProfile} />
+              </TabsContent>
+              
+              <TabsContent value="media" className="mt-4">
+                <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} isOwnProfile={isOwnProfile} onPostUpdated={loadProfile} />
+              </TabsContent>
           
           <TabsContent value="followers" className="mt-4">
             {listLoading ? (
@@ -557,12 +603,18 @@ function PostsList({
   posts, 
   loading, 
   isAuthenticated, 
-  userId 
+  userId,
+  pinnedPostUri,
+  isOwnProfile,
+  onPostUpdated,
 }: { 
   posts: Post[]
   loading: boolean
   isAuthenticated: boolean
   userId?: string
+  pinnedPostUri?: string
+  isOwnProfile?: boolean
+  onPostUpdated?: () => void
 }) {
   if (loading) {
     return (
@@ -588,6 +640,8 @@ function PostsList({
             key={post.uri}
             post={post}
             isOwnPost={userId === post.author.did}
+            isPinned={post.uri === pinnedPostUri}
+            onPostUpdated={isOwnProfile ? onPostUpdated : undefined}
           />
         ) : (
           <PublicPostCard key={post.uri} post={post as any} />
