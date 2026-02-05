@@ -3,12 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper } from "lucide-react"
+import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const feedCategories = [
+  { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
   { id: "news", href: "/feed/news", icon: Newspaper, label: "News" },
   { id: "politics", href: "/feed/politics", icon: Vote, label: "Politics" },
