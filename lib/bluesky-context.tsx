@@ -205,6 +205,23 @@ interface BlueskyFeedGenerator {
   }
 }
 
+// SociallyDead Custom Lexicons
+interface SociallyDeadHighlight {
+  uri: string
+  postUri: string
+  postCid: string
+  createdAt: string
+}
+
+interface SociallyDeadArticle {
+  uri: string
+  rkey: string
+  title: string
+  content: string
+  createdAt: string
+  updatedAt?: string
+}
+
 interface BlueskyContextType {
   agent: Agent | null
   user: BlueskyUser | null
@@ -239,8 +256,10 @@ interface BlueskyContextType {
   unrepost: (repostUri: string) => Promise<void>
   reportPost: (uri: string, cid: string, reason: string) => Promise<void>
   // Profile
-  getProfile: (actor: string) => Promise<BlueskyUser>
+  getProfile: (actor: string) => Promise<BlueskyUser & { pinnedPost?: { uri: string; cid: string } }>
   updateProfile: (profile: { displayName?: string; description?: string; avatar?: Blob; banner?: Blob }) => Promise<void>
+  pinPost: (uri: string, cid: string) => Promise<void>
+  unpinPost: () => Promise<void>
   followUser: (did: string) => Promise<string>
   unfollowUser: (followUri: string) => Promise<void>
   blockUser: (did: string) => Promise<string>
@@ -277,12 +296,15 @@ interface BlueskyContextType {
   // Search
   searchPosts: (query: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
   searchActors: (query: string, cursor?: string) => Promise<{ actors: BlueskyUser[]; cursor?: string }>
-  searchByHashtag: (hashtag: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
-  // List Feeds
-  getListFeed: (listUri: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
-  // Utility
-  uploadImage: (file: File) => Promise<{ blob: unknown }>
-  resolveHandle: (handle: string) => Promise<string>
+  // SociallyDead Custom Features (stored in user's PDS)
+  getHighlights: (did: string) => Promise<SociallyDeadHighlight[]>
+  addHighlight: (postUri: string, postCid: string) => Promise<void>
+  removeHighlight: (highlightUri: string) => Promise<void>
+  getArticles: (did: string) => Promise<SociallyDeadArticle[]>
+  getArticle: (did: string, rkey: string) => Promise<SociallyDeadArticle | null>
+  createArticle: (title: string, content: string) => Promise<{ uri: string; rkey: string }>
+  updateArticle: (rkey: string, title: string, content: string) => Promise<void>
+  deleteArticle: (rkey: string) => Promise<void>
 }
 
 const BlueskyContext = createContext<BlueskyContextType | undefined>(undefined)
@@ -929,7 +951,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Profile
-  const getProfile = async (actor: string): Promise<BlueskyUser & { viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string } }> => {
+  const getProfile = async (actor: string): Promise<BlueskyUser & { 
+    viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string };
+    pinnedPost?: { uri: string; cid: string };
+  }> => {
     const agentToUse = agent || publicAgent
     const response = await agentToUse.getProfile({ actor })
     return {
@@ -943,7 +968,27 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       followsCount: response.data.followsCount,
       postsCount: response.data.postsCount,
       viewer: response.data.viewer,
+      pinnedPost: response.data.pinnedPost as { uri: string; cid: string } | undefined,
     }
+  }
+  
+  const pinPost = async (uri: string, cid: string) => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    await agent.upsertProfile((existing) => ({
+      ...existing,
+      pinnedPost: { uri, cid },
+    }))
+  }
+  
+  const unpinPost = async () => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    await agent.upsertProfile((existing) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { pinnedPost, ...rest } = existing as Record<string, unknown>
+      return rest as Parameters<typeof agent.upsertProfile>[0] extends (existing: infer T) => unknown ? T : never
+    })
   }
 
   const updateProfile = async (profile: { displayName?: string; description?: string; avatar?: Blob; banner?: Blob }) => {
@@ -1227,7 +1272,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     if (!agent) throw new Error("Not authenticated")
     
     try {
-      const response = await agent.api.chat.bsky.convo.listConvos({})
+      const response = await agent.api.chat.bsky.convo.listConvos({ limit: 100 })
       return response.data.convos.map((convo) => ({
         id: convo.id,
         rev: convo.rev,
@@ -1600,6 +1645,166 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     return response.data.did
   }
 
+  // SociallyDead Custom Features - Highlights
+  const HIGHLIGHT_COLLECTION = "me.sociallydead.highlight"
+  const ARTICLE_COLLECTION = "me.sociallydead.article"
+
+  const getHighlights = async (did: string): Promise<SociallyDeadHighlight[]> => {
+    try {
+      const agentToUse = agent || publicAgent
+      const response = await agentToUse.com.atproto.repo.listRecords({
+        repo: did,
+        collection: HIGHLIGHT_COLLECTION,
+        limit: 6,
+      })
+      
+      return response.data.records.map((record) => ({
+        uri: record.uri,
+        postUri: (record.value as { postUri: string }).postUri,
+        postCid: (record.value as { postCid: string }).postCid,
+        createdAt: (record.value as { createdAt: string }).createdAt,
+      }))
+    } catch {
+      // Collection doesn't exist yet or user has no highlights
+      return []
+    }
+  }
+
+  const addHighlight = async (postUri: string, postCid: string) => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    // Check if we already have 6 highlights
+    const existing = await getHighlights(user.did)
+    if (existing.length >= 6) {
+      throw new Error("Maximum 6 highlights allowed. Remove one first.")
+    }
+    
+    // Check if this post is already highlighted
+    if (existing.some(h => h.postUri === postUri)) {
+      throw new Error("This post is already highlighted")
+    }
+    
+    const rkey = Date.now().toString()
+    await agent.com.atproto.repo.createRecord({
+      repo: user.did,
+      collection: HIGHLIGHT_COLLECTION,
+      rkey,
+      record: {
+        $type: HIGHLIGHT_COLLECTION,
+        postUri,
+        postCid,
+        createdAt: new Date().toISOString(),
+      },
+    })
+  }
+
+  const removeHighlight = async (highlightUri: string) => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    const rkey = highlightUri.split('/').pop()
+    if (!rkey) throw new Error("Invalid highlight URI")
+    
+    await agent.com.atproto.repo.deleteRecord({
+      repo: user.did,
+      collection: HIGHLIGHT_COLLECTION,
+      rkey,
+    })
+  }
+
+  // SociallyDead Custom Features - Articles
+  const getArticles = async (did: string): Promise<SociallyDeadArticle[]> => {
+    try {
+      const agentToUse = agent || publicAgent
+      const response = await agentToUse.com.atproto.repo.listRecords({
+        repo: did,
+        collection: ARTICLE_COLLECTION,
+        limit: 50,
+      })
+      
+      return response.data.records.map((record) => ({
+        uri: record.uri,
+        rkey: record.uri.split('/').pop() || '',
+        title: (record.value as { title: string }).title,
+        content: (record.value as { content: string }).content,
+        createdAt: (record.value as { createdAt: string }).createdAt,
+        updatedAt: (record.value as { updatedAt?: string }).updatedAt,
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  const getArticle = async (did: string, rkey: string): Promise<SociallyDeadArticle | null> => {
+    try {
+      const agentToUse = agent || publicAgent
+      const response = await agentToUse.com.atproto.repo.getRecord({
+        repo: did,
+        collection: ARTICLE_COLLECTION,
+        rkey,
+      })
+      
+      return {
+        uri: response.data.uri,
+        rkey,
+        title: (response.data.value as { title: string }).title,
+        content: (response.data.value as { content: string }).content,
+        createdAt: (response.data.value as { createdAt: string }).createdAt,
+        updatedAt: (response.data.value as { updatedAt?: string }).updatedAt,
+      }
+    } catch {
+      return null
+    }
+  }
+
+  const createArticle = async (title: string, content: string): Promise<{ uri: string; rkey: string }> => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    const rkey = Date.now().toString()
+    const response = await agent.com.atproto.repo.createRecord({
+      repo: user.did,
+      collection: ARTICLE_COLLECTION,
+      rkey,
+      record: {
+        $type: ARTICLE_COLLECTION,
+        title,
+        content,
+        createdAt: new Date().toISOString(),
+      },
+    })
+    
+    return { uri: response.data.uri, rkey }
+  }
+
+  const updateArticle = async (rkey: string, title: string, content: string) => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    // Get current record to preserve createdAt
+    const current = await getArticle(user.did, rkey)
+    
+    await agent.com.atproto.repo.putRecord({
+      repo: user.did,
+      collection: ARTICLE_COLLECTION,
+      rkey,
+      record: {
+        $type: ARTICLE_COLLECTION,
+        title,
+        content,
+        createdAt: current?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+  }
+
+  const deleteArticle = async (rkey: string) => {
+    if (!agent || !user) throw new Error("Not authenticated")
+    
+    await agent.com.atproto.repo.deleteRecord({
+      repo: user.did,
+      collection: ARTICLE_COLLECTION,
+      rkey,
+    })
+  }
+
   return (
     <BlueskyContext.Provider
       value={{
@@ -1634,6 +1839,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         reportPost,
         getProfile,
         updateProfile,
+        pinPost,
+        unpinPost,
         followUser,
         unfollowUser,
         blockUser,
@@ -1669,6 +1876,15 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         getListFeed,
         uploadImage,
         resolveHandle,
+        // SociallyDead Custom Features
+        getHighlights,
+        addHighlight,
+        removeHighlight,
+        getArticles,
+        getArticle,
+        createArticle,
+        updateArticle,
+        deleteArticle,
       }}
     >
       {children}

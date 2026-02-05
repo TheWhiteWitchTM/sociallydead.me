@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 
@@ -88,11 +89,12 @@ interface PostCardProps {
     }
   }
   isOwnPost?: boolean
+  isPinned?: boolean
   onPostUpdated?: () => void
   showReplyContext?: boolean
 }
 
-export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = true }: PostCardProps) {
+export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyContext = true }: PostCardProps) {
   const { 
     likePost, 
     unlikePost, 
@@ -103,6 +105,10 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
     createPost,
     quotePost,
     reportPost,
+    pinPost,
+    unpinPost,
+    addHighlight,
+    user,
     isAuthenticated,
     login,
   } = useBluesky()
@@ -133,6 +139,8 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
   const [factCheckResult, setFactCheckResult] = useState<string | null>(null)
   const [isFactChecking, setIsFactChecking] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isPinning, setIsPinning] = useState(false)
+  const [isHighlighting, setIsHighlighting] = useState(false)
 
   const handleAuthRequired = () => {
     if (!isAuthenticated) {
@@ -324,11 +332,51 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
     }
   }
 
+  const handlePinPost = async () => {
+    if (!handleAuthRequired()) return
+    setIsPinning(true)
+    try {
+      await pinPost(post.uri, post.cid)
+      onPostUpdated?.()
+    } catch (error) {
+      console.error("Failed to pin post:", error)
+    } finally {
+      setIsPinning(false)
+    }
+  }
+
+  const handleUnpinPost = async () => {
+    if (!handleAuthRequired()) return
+    setIsPinning(true)
+    try {
+      await unpinPost()
+      onPostUpdated?.()
+    } catch (error) {
+      console.error("Failed to unpin post:", error)
+    } finally {
+      setIsPinning(false)
+    }
+  }
+
+  const handleAddHighlight = async () => {
+    if (!handleAuthRequired()) return
+    setIsHighlighting(true)
+    try {
+      await addHighlight(post.uri, post.cid)
+      onPostUpdated?.()
+    } catch (error) {
+      console.error("Failed to add highlight:", error)
+      alert(error instanceof Error ? error.message : "Failed to add highlight")
+    } finally {
+      setIsHighlighting(false)
+    }
+  }
+
   // Check if bookmarked on mount
-  useState(() => {
+  useEffect(() => {
     const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
     setIsBookmarked(bookmarks.includes(post.uri))
-  })
+  }, [post.uri])
 
   // Check if this is a repost
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
@@ -362,14 +410,15 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
-                  <UserHoverCard handle={post.author.handle}>
-                    <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
-                      {post.author.displayName || post.author.handle}
-                    </Link>
-                  </UserHoverCard>
-                  <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
-                    @{post.author.handle}
-                  </span>
+                <UserHoverCard handle={post.author.handle}>
+                  <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
+                    {post.author.displayName || post.author.handle}
+                  </Link>
+                </UserHoverCard>
+                <VerifiedBadge handle={post.author.handle} />
+                <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
+                  @{post.author.handle}
+                </span>
                   <span className="text-muted-foreground hidden sm:inline">·</span>
                   <Link 
                     href={`/post/${post.author.handle}/${post.uri.split('/').pop()}`}
@@ -419,6 +468,21 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
                     {isOwnPost && (
                       <>
                         <DropdownMenuSeparator />
+                        {isPinned ? (
+                          <DropdownMenuItem onClick={handleUnpinPost} disabled={isPinning}>
+                            <PinOff className="mr-2 h-4 w-4" />
+                            {isPinning ? "Unpinning..." : "Unpin from Profile"}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={handlePinPost} disabled={isPinning}>
+                            <Pin className="mr-2 h-4 w-4" />
+                            {isPinning ? "Pinning..." : "Pin to Profile"}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={handleAddHighlight} disabled={isHighlighting}>
+                          <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                          {isHighlighting ? "Adding..." : "Add to Highlights"}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit (Pseudo)
@@ -496,12 +560,13 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
                           {(post.embed.record.author.displayName || post.embed.record.author.handle).slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium text-sm">
-                        {post.embed.record.author.displayName || post.embed.record.author.handle}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        @{post.embed.record.author.handle}
-                      </span>
+                              <span className="font-medium text-sm">
+                                {post.embed.record.author.displayName || post.embed.record.author.handle}
+                              </span>
+                              <VerifiedBadge handle={post.embed.record.author.handle} />
+                              <span className="text-muted-foreground text-sm">
+                                @{post.embed.record.author.handle}
+                              </span>
                     </div>
                     <p className="text-sm">{post.embed.record.value.text}</p>
                   </CardContent>
@@ -566,8 +631,9 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
                     {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
-                <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
+                            <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                            <VerifiedBadge handle={post.author.handle} />
+                            <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
             </div>
@@ -665,6 +731,7 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
                     </AvatarFallback>
                   </Avatar>
                   <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                  <VerifiedBadge handle={post.author.handle} />
                   <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
                 </div>
                 <p className="text-sm line-clamp-3">{post.record.text}</p>

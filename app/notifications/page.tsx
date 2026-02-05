@@ -8,6 +8,7 @@ import { SignInPrompt } from "@/components/sign-in-prompt"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck } from "lucide-react"
 
 interface Notification {
@@ -85,8 +86,10 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadNotifications()
+      // Auto-mark notifications as read when viewing the page
+      markNotificationsRead().catch(console.error)
     }
-  }, [isAuthenticated, loadNotifications])
+  }, [isAuthenticated, loadNotifications, markNotificationsRead])
 
   if (authLoading) {
     return (
@@ -169,13 +172,14 @@ export default function NotificationsPage() {
                           </Link>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm">
-                              <Link 
-                                href={`/profile/${notification.author.handle}`}
-                                className="font-semibold hover:underline"
-                              >
-                                {notification.author.displayName || notification.author.handle}
-                              </Link>
-                              <span className="text-muted-foreground ml-1">{text}</span>
+                      <Link
+                        href={`/profile/${notification.author.handle}`}
+                        className="font-semibold hover:underline"
+                      >
+                        {notification.author.displayName || notification.author.handle}
+                      </Link>
+                      <VerifiedBadge handle={notification.author.handle} className="ml-0.5" />
+                      <span className="text-muted-foreground ml-1">{text}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(notification.indexedAt), { addSuffix: true })}

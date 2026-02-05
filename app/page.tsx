@@ -15,6 +15,7 @@ import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart,
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
 const KNOWN_FEEDS = {
   popular: `at://${BLUESKY_DID}/app.bsky.feed.generator/hot-classic`,
+  whats_hot: `at://${BLUESKY_DID}/app.bsky.feed.generator/whats-hot`,
   with_friends: `at://${BLUESKY_DID}/app.bsky.feed.generator/with-friends`,
   mutuals: `at://${BLUESKY_DID}/app.bsky.feed.generator/mutuals`,
   best_of_follows: `at://${BLUESKY_DID}/app.bsky.feed.generator/best-of-follows`,
@@ -120,6 +121,9 @@ export default function HomePage() {
     switch (tab) {
       case "following":
         loadTimeline()
+        break
+      case "all":
+        loadFeed(KNOWN_FEEDS.whats_hot)
         break
       case "popular":
         loadFeed(KNOWN_FEEDS.popular)
@@ -263,9 +267,15 @@ export default function HomePage() {
                     <p className="mt-2 text-sm line-clamp-2">{user.description}</p>
                   )}
                   <div className="flex gap-4 mt-3 text-sm">
-                    <span><strong>{user.followersCount ?? 0}</strong> followers</span>
-                    <span><strong>{user.followsCount ?? 0}</strong> following</span>
-                    <span><strong>{user.postsCount ?? 0}</strong> posts</span>
+                    <Link href="/profile?tab=followers" className="hover:underline">
+                      <strong>{user.followersCount ?? 0}</strong> followers
+                    </Link>
+                    <Link href="/profile?tab=following" className="hover:underline">
+                      <strong>{user.followsCount ?? 0}</strong> following
+                    </Link>
+                    <Link href="/profile" className="hover:underline">
+                      <strong>{user.postsCount ?? 0}</strong> posts
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -279,6 +289,10 @@ export default function HomePage() {
             <TabsTrigger value="following" className="gap-1.5">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Following</span>
+            </TabsTrigger>
+            <TabsTrigger value="all" className="gap-1.5">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">All</span>
             </TabsTrigger>
             <TabsTrigger value="popular" className="gap-1.5">
               <Globe className="h-4 w-4" />

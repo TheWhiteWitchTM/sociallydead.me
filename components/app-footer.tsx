@@ -16,7 +16,7 @@ export function AppFooter() {
   const currentYear = new Date().getFullYear()
   
   return (
-    <footer className="border-t border-border bg-background py-4 pl-20 lg:pl-64">
+    <footer className="border-t border-border bg-background py-4 mt-auto">
       <div className="mx-auto max-w-4xl px-4">
         {/* Main credits row */}
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground">

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -17,7 +18,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle } from "lucide-react"
+import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle, Pin, Star, FileText, Image, X, Plus } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
 
 interface UserProfile {
   did: string
@@ -29,6 +31,10 @@ interface UserProfile {
   followersCount?: number
   followsCount?: number
   postsCount?: number
+  pinnedPost?: {
+    uri: string
+    cid: string
+  }
   viewer?: {
     muted?: boolean
     blockedBy?: boolean
@@ -95,6 +101,7 @@ export default function UserProfilePage() {
     isAuthenticated, 
     isLoading: authLoading,
     getProfile,
+    getPost,
     getUserPosts,
     getUserReplies,
     getUserMedia,
@@ -107,10 +114,15 @@ export default function UserProfilePage() {
     startConversation,
     getFollowers,
     getFollowing,
+    getHighlights,
+    addHighlight,
+    removeHighlight,
+    getArticles,
   } = useBluesky()
   
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
+  const [pinnedPostData, setPinnedPostData] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [postsLoading, setPostsLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -121,6 +133,12 @@ export default function UserProfilePage() {
   const [followers, setFollowers] = useState<UserProfile[]>([])
   const [following, setFollowing] = useState<UserProfile[]>([])
   const [listLoading, setListLoading] = useState(false)
+  
+  // Highlights and Articles (SociallyDead exclusive)
+  const [highlights, setHighlights] = useState<Array<{ uri: string; postUri: string; postCid: string; createdAt: string }>>([])
+  const [highlightPosts, setHighlightPosts] = useState<Post[]>([])
+  const [articles, setArticles] = useState<Array<{ uri: string; rkey: string; title: string; content: string; createdAt: string }>>([])
+  const [highlightLoading, setHighlightLoading] = useState(false)
 
   const isOwnProfile = user?.handle === handle || user?.did === handle
 
@@ -131,12 +149,56 @@ export default function UserProfilePage() {
     try {
       const profileData = await getProfile(handle)
       setProfile(profileData as UserProfile)
+      
+      // Fetch pinned post if exists
+      if (profileData.pinnedPost?.uri) {
+        try {
+          const pinnedPost = await getPost(profileData.pinnedPost.uri)
+          setPinnedPostData(pinnedPost as Post | null)
+        } catch {
+          // Pinned post might be deleted
+          setPinnedPostData(null)
+        }
+      } else {
+        setPinnedPostData(null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile")
     } finally {
       setIsLoading(false)
     }
-  }, [handle, getProfile])
+  }, [handle, getProfile, getPost])
+
+  const loadHighlightsAndArticles = useCallback(async () => {
+    if (!profile) return
+    setHighlightLoading(true)
+    
+    try {
+      // Load highlights
+      const highlightData = await getHighlights(profile.did)
+      setHighlights(highlightData)
+      
+      // Load the actual posts for highlights
+      const highlightPostPromises = highlightData.map(h => getPost(h.postUri))
+      const posts = await Promise.all(highlightPostPromises)
+      setHighlightPosts(posts.filter((p): p is Post => p !== null))
+      
+      // Load articles
+      const articleData = await getArticles(profile.did)
+      setArticles(articleData)
+    } catch (error) {
+      console.error("Failed to load highlights/articles:", error)
+    } finally {
+      setHighlightLoading(false)
+    }
+  }, [profile, getHighlights, getArticles, getPost])
+
+  // Load highlights and articles when profile loads
+  useEffect(() => {
+    if (profile) {
+      loadHighlightsAndArticles()
+    }
+  }, [profile, loadHighlightsAndArticles])
 
   const loadPosts = useCallback(async (type: string) => {
     if (!profile) return
@@ -347,10 +409,13 @@ export default function UserProfilePage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold truncate">{profile.displayName || profile.handle}</h1>
-            <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
-          </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
+                {profile.displayName || profile.handle}
+                <VerifiedBadge handle={profile.handle} />
+              </h1>
+              <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
+            </div>
         </div>
       </header>
 
@@ -434,10 +499,13 @@ export default function UserProfilePage() {
         {/* Profile Info */}
         <div className="px-4 pt-20 pb-4">
           <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-bold">{profile.displayName || profile.handle}</h2>
-              <p className="text-muted-foreground">@{profile.handle}</p>
-            </div>
+              <div>
+                <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
+                  {profile.displayName || profile.handle}
+                  <VerifiedBadge handle={profile.handle} className="h-5 w-5" />
+                </h2>
+                <p className="text-muted-foreground">@{profile.handle}</p>
+              </div>
           </div>
           
           {/* Relationship badges */}
@@ -490,27 +558,152 @@ export default function UserProfilePage() {
           </div>
         </div>
 
+        {/* Highlights Section (SociallyDead Exclusive) */}
+        {highlightPosts.length > 0 && (
+          <div className="px-2 sm:px-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Star className="h-5 w-5 text-yellow-500" />
+                Highlights
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">SociallyDead</span>
+              </h3>
+              {isOwnProfile && highlights.length < 6 && (
+                <span className="text-xs text-muted-foreground">{highlights.length}/6</span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {highlightPosts.slice(0, 6).map((post, index) => (
+                <div key={post.uri} className="relative">
+                  {isAuthenticated ? (
+                    <PostCard post={post} isOwnPost={false} />
+                  ) : (
+                    <PublicPostCard post={post} />
+                  )}
+                  {isOwnProfile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={async () => {
+                        try {
+                          await removeHighlight(highlights[index].uri)
+                          loadHighlightsAndArticles()
+                        } catch (err) {
+                          console.error("Failed to remove highlight:", err)
+                        }
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Articles Section (SociallyDead Exclusive) */}
+        {articles.length > 0 && (
+          <div className="px-2 sm:px-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-500" />
+                Articles
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">SociallyDead</span>
+              </h3>
+              {isOwnProfile && (
+                <Link href="/articles/new">
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-3 w-3 mr-1" />
+                    New
+                  </Button>
+                </Link>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {articles.slice(0, 4).map((article) => (
+                <Link key={article.uri} href={`/articles/${article.rkey}`}>
+                  <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold line-clamp-1">{article.title}</h4>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {article.content.slice(0, 100)}...
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+            {articles.length > 4 && (
+              <Link href={isOwnProfile ? "/articles" : "#"} className="block mt-3">
+                <Button variant="ghost" size="sm" className="w-full">
+                  View all {articles.length} articles
+                </Button>
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* Profile Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="px-2 sm:px-4">
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="replies">Replies</TabsTrigger>
-            <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="media" className="flex items-center gap-1">
+              <Image className="h-3 w-3" />
+              Media
+            </TabsTrigger>
             <TabsTrigger value="followers">Followers</TabsTrigger>
             <TabsTrigger value="following">Following</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="posts" className="mt-4">
-            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
-          </TabsContent>
+              <TabsContent value="posts" className="mt-4">
+                {/* Pinned Post */}
+                {pinnedPostData && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2 px-2 text-sm text-muted-foreground">
+                      <Pin className="h-4 w-4" />
+                      <span>Pinned</span>
+                    </div>
+                    {isAuthenticated ? (
+                      <PostCard 
+                        post={pinnedPostData} 
+                        isOwnPost={isOwnProfile}
+                        isPinned={true}
+                        onPostUpdated={loadProfile}
+                      />
+                    ) : (
+                      <PublicPostCard post={pinnedPostData} />
+                    )}
+                  </div>
+                )}
+                <PostsList 
+                  posts={posts.filter(p => p.uri !== pinnedPostData?.uri)} 
+                  loading={postsLoading} 
+                  isAuthenticated={isAuthenticated} 
+                  userId={user?.did}
+                  pinnedPostUri={pinnedPostData?.uri}
+                  isOwnProfile={isOwnProfile}
+                  onPostUpdated={loadProfile}
+                />
+              </TabsContent>
           
-          <TabsContent value="replies" className="mt-4">
-            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
-          </TabsContent>
-          
-          <TabsContent value="media" className="mt-4">
-            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
-          </TabsContent>
+              <TabsContent value="replies" className="mt-4">
+                <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} isOwnProfile={isOwnProfile} onPostUpdated={loadProfile} />
+              </TabsContent>
+              
+              <TabsContent value="media" className="mt-4">
+                {postsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <MediaGrid posts={posts} />
+                )}
+              </TabsContent>
           
           <TabsContent value="followers" className="mt-4">
             {listLoading ? (
@@ -557,12 +750,18 @@ function PostsList({
   posts, 
   loading, 
   isAuthenticated, 
-  userId 
+  userId,
+  pinnedPostUri,
+  isOwnProfile,
+  onPostUpdated,
 }: { 
   posts: Post[]
   loading: boolean
   isAuthenticated: boolean
   userId?: string
+  pinnedPostUri?: string
+  isOwnProfile?: boolean
+  onPostUpdated?: () => void
 }) {
   if (loading) {
     return (
@@ -588,6 +787,8 @@ function PostsList({
             key={post.uri}
             post={post}
             isOwnPost={userId === post.author.did}
+            isPinned={post.uri === pinnedPostUri}
+            onPostUpdated={isOwnProfile ? onPostUpdated : undefined}
           />
         ) : (
           <PublicPostCard key={post.uri} post={post as any} />
@@ -620,5 +821,48 @@ function UserCard({ user }: { user: UserProfile }) {
         </Link>
       </CardContent>
     </Card>
+  )
+}
+
+function MediaGrid({ posts }: { posts: Post[] }) {
+  // Extract all images from posts
+  const allMedia = posts.flatMap(post => {
+    if (post.embed?.images) {
+      return post.embed.images.map(img => ({
+        postUri: post.uri,
+        authorHandle: post.author.handle,
+        thumb: img.thumb,
+        fullsize: img.fullsize,
+        alt: img.alt,
+      }))
+    }
+    return []
+  })
+
+  if (allMedia.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Image className="h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">No media posts yet</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-1 sm:gap-2">
+      {allMedia.map((media, index) => (
+        <Link 
+          key={`${media.postUri}-${index}`}
+          href={`/profile/${media.authorHandle}/post/${media.postUri.split('/').pop()}`}
+          className="aspect-square relative overflow-hidden rounded-md bg-muted hover:opacity-90 transition-opacity"
+        >
+          <img
+            src={media.thumb}
+            alt={media.alt || "Media"}
+            className="w-full h-full object-cover"
+          />
+        </Link>
+      ))}
+    </div>
   )
 }
