@@ -1295,12 +1295,19 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  // Chat/Messages
+  // Chat/Messages - requires chat proxy
   const getConversations = async (): Promise<BlueskyConvo[]> => {
     if (!agent) throw new Error("Not authenticated")
     
     try {
-      const response = await agent.api.chat.bsky.convo.listConvos({ limit: 100 })
+      // Configure chat proxy
+      const chatProxy = 'did:web:api.bsky.chat#bsky_chat'
+      const headers = { 'atproto-proxy': chatProxy }
+      
+      const response = await agent.api.chat.bsky.convo.listConvos(
+        { limit: 100 },
+        { headers }
+      )
       return response.data.convos.map((convo) => ({
         id: convo.id,
         rev: convo.rev,
@@ -1319,8 +1326,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch {
-      console.error("Chat not available")
+    } catch (error) {
+      console.error("Chat not available:", error)
       return []
     }
   }
@@ -1328,11 +1335,13 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const getMessages = async (convoId: string, cursor?: string): Promise<{ messages: BlueskyMessage[]; cursor?: string }> => {
     if (!agent) throw new Error("Not authenticated")
     
-    const response = await agent.api.chat.bsky.convo.getMessages({
-      convoId,
-      limit: 50,
-      cursor,
-    })
+    const chatProxy = 'did:web:api.bsky.chat#bsky_chat'
+    const headers = { 'atproto-proxy': chatProxy }
+    
+    const response = await agent.api.chat.bsky.convo.getMessages(
+      { convoId, limit: 50, cursor },
+      { headers }
+    )
     
     return {
       messages: response.data.messages
@@ -1353,10 +1362,13 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const sendMessage = async (convoId: string, text: string): Promise<BlueskyMessage> => {
     if (!agent) throw new Error("Not authenticated")
     
-    const response = await agent.api.chat.bsky.convo.sendMessage({
-      convoId,
-      message: { text },
-    })
+    const chatProxy = 'did:web:api.bsky.chat#bsky_chat'
+    const headers = { 'atproto-proxy': chatProxy }
+    
+    const response = await agent.api.chat.bsky.convo.sendMessage(
+      { convoId, message: { text } },
+      { headers }
+    )
     
     return {
       id: response.data.id,
@@ -1370,9 +1382,13 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const startConversation = async (did: string): Promise<BlueskyConvo> => {
     if (!agent) throw new Error("Not authenticated")
     
-    const response = await agent.api.chat.bsky.convo.getConvoForMembers({
-      members: [did],
-    })
+    const chatProxy = 'did:web:api.bsky.chat#bsky_chat'
+    const headers = { 'atproto-proxy': chatProxy }
+    
+    const response = await agent.api.chat.bsky.convo.getConvoForMembers(
+      { members: [did] },
+      { headers }
+    )
     
     const convo = response.data.convo
     return {

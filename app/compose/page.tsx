@@ -9,18 +9,44 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { Loader2, Send, ImagePlus, X } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Loader2, Send, ImagePlus, X, AtSign, Hash } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Popular hashtags for suggestions
+const POPULAR_HASHTAGS = [
+  "art", "music", "photography", "gaming", "tech", "news", "politics", 
+  "sports", "science", "health", "food", "travel", "fashion", "movies",
+  "books", "anime", "bluesky", "developer", "design", "ai"
+]
+
+interface MentionSuggestion {
+  did: string
+  handle: string
+  displayName?: string
+  avatar?: string
+}
 
 export default function ComposePage() {
   const router = useRouter()
-  const { isAuthenticated, isLoading: authLoading, createPost } = useBluesky()
+  const { isAuthenticated, isLoading: authLoading, createPost, searchActors } = useBluesky()
   const [text, setText] = useState("")
   const [hasPlayedWarning, setHasPlayedWarning] = useState(false)
   const audioContextRef = useRef<AudioContext | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  
+  // Autocomplete state
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
+  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
+  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
+  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
+  const [autocompleteQuery, setAutocompleteQuery] = useState("")
+  const [autocompletePosition, setAutocompletePosition] = useState(0)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
   // Play warning sound when hitting 275 characters
   const playWarningSound = useCallback(() => {
@@ -51,7 +77,36 @@ export default function ComposePage() {
     }
   }, [hasPlayedWarning])
 
-  // Handle text change with sound
+  // Search for mention suggestions
+  const searchMentions = useCallback(async (query: string) => {
+    if (query.length < 1) {
+      setMentionSuggestions([])
+      return
+    }
+    setIsSearchingMentions(true)
+    try {
+      const result = await searchActors(query)
+      setMentionSuggestions(result.actors.slice(0, 5))
+    } catch {
+      setMentionSuggestions([])
+    } finally {
+      setIsSearchingMentions(false)
+    }
+  }, [searchActors])
+
+  // Search for hashtag suggestions
+  const searchHashtags = useCallback((query: string) => {
+    if (query.length < 1) {
+      setHashtagSuggestions([])
+      return
+    }
+    const matches = POPULAR_HASHTAGS.filter(tag => 
+      tag.toLowerCase().startsWith(query.toLowerCase())
+    ).slice(0, 5)
+    setHashtagSuggestions(matches)
+  }, [])
+
+  // Handle text change with sound and autocomplete
   const handleTextChange = (newText: string) => {
     setText(newText)
     
@@ -63,6 +118,89 @@ export default function ComposePage() {
     // Play sound when hitting 275
     if (newText.length >= 275 && text.length < 275) {
       playWarningSound()
+    }
+
+    // Check for @ or # autocomplete
+    const cursorPos = textareaRef.current?.selectionStart || newText.length
+    const textBeforeCursor = newText.slice(0, cursorPos)
+    
+    // Check for mention (@)
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/)
+    if (mentionMatch) {
+      setAutocompleteQuery(mentionMatch[1])
+      setAutocompletePosition(cursorPos - mentionMatch[1].length - 1)
+      setShowMentionSuggestions(true)
+      setShowHashtagSuggestions(false)
+      setSelectedSuggestionIndex(0)
+      searchMentions(mentionMatch[1])
+      return
+    }
+    
+    // Check for hashtag (#)
+    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
+    if (hashtagMatch) {
+      setAutocompleteQuery(hashtagMatch[1])
+      setAutocompletePosition(cursorPos - hashtagMatch[1].length - 1)
+      setShowHashtagSuggestions(true)
+      setShowMentionSuggestions(false)
+      setSelectedSuggestionIndex(0)
+      searchHashtags(hashtagMatch[1])
+      return
+    }
+    
+    // No autocomplete
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+  }
+
+  // Insert mention or hashtag
+  const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
+    const prefix = type === 'mention' ? '@' : '#'
+    const beforeTrigger = text.slice(0, autocompletePosition)
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const afterCursor = text.slice(cursorPos)
+    
+    const newText = beforeTrigger + prefix + suggestion + ' ' + afterCursor
+    setText(newText)
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+    
+    // Focus textarea and move cursor after inserted text
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = beforeTrigger.length + prefix.length + suggestion.length + 1
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }
+
+  // Handle keyboard navigation in suggestions
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showMentionSuggestions && !showHashtagSuggestions) return
+    
+    const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => 
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      )
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => 
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      )
+    } else if (e.key === 'Enter' && suggestions.length > 0) {
+      e.preventDefault()
+      if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
+      } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
+      }
+    } else if (e.key === 'Escape') {
+      setShowMentionSuggestions(false)
+      setShowHashtagSuggestions(false)
     }
   }
 
@@ -175,12 +313,72 @@ export default function ComposePage() {
           </TabsList>
 
           <TabsContent value="write" className="mt-4">
-            <Textarea
-              placeholder="What's happening? (Markdown supported)"
-              value={text}
-              onChange={(e) => handleTextChange(e.target.value)}
-              className="min-h-48 resize-none"
-            />
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                placeholder="What's happening? (Markdown supported)"
+                value={text}
+                onChange={(e) => handleTextChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="min-h-48 resize-none"
+              />
+              
+              {/* Mention Suggestions Dropdown */}
+              {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
+                <Card className="absolute z-50 w-64 mt-1 shadow-lg">
+                  <CardContent className="p-1">
+                    {isSearchingMentions ? (
+                      <div className="flex items-center justify-center p-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : (
+                      mentionSuggestions.map((user, idx) => (
+                        <button
+                          key={user.did}
+                          className={cn(
+                            "w-full flex items-center gap-2 p-2 rounded text-left hover:bg-accent",
+                            idx === selectedSuggestionIndex && "bg-accent"
+                          )}
+                          onClick={() => insertSuggestion(user.handle, 'mention')}
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                            <AvatarFallback className="text-xs">
+                              {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{user.displayName || user.handle}</p>
+                            <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Hashtag Suggestions Dropdown */}
+              {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
+                <Card className="absolute z-50 w-48 mt-1 shadow-lg">
+                  <CardContent className="p-1">
+                    {hashtagSuggestions.map((tag, idx) => (
+                      <button
+                        key={tag}
+                        className={cn(
+                          "w-full flex items-center gap-2 p-2 rounded text-left hover:bg-accent",
+                          idx === selectedSuggestionIndex && "bg-accent"
+                        )}
+                        onClick={() => insertSuggestion(tag, 'hashtag')}
+                      >
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">#{tag}</span>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
             
             {/* Image Previews */}
             {imagePreviews.length > 0 && (
