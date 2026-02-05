@@ -550,25 +550,25 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               )}
 
               {/* Quoted Post */}
-              {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && (
+              {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                 <Card className="mt-3 border-border">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <Avatar className="h-5 w-5">
-                        <AvatarImage src={post.embed.record.author.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
                         <AvatarFallback className="text-xs">
-                          {(post.embed.record.author.displayName || post.embed.record.author.handle).slice(0, 2).toUpperCase()}
+                          {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                              <span className="font-medium text-sm">
-                                {post.embed.record.author.displayName || post.embed.record.author.handle}
-                              </span>
-                              <VerifiedBadge handle={post.embed.record.author.handle} />
-                              <span className="text-muted-foreground text-sm">
-                                @{post.embed.record.author.handle}
-                              </span>
+                      <span className="font-medium text-sm">
+                        {post.embed.record.author?.displayName || post.embed.record.author?.handle}
+                      </span>
+                      <VerifiedBadge handle={post.embed.record.author?.handle || ""} />
+                      <span className="text-muted-foreground text-sm">
+                        @{post.embed.record.author?.handle}
+                      </span>
                     </div>
-                    <p className="text-sm">{post.embed.record.value.text}</p>
+                    <p className="text-sm">{post.embed.record.value?.text}</p>
                   </CardContent>
                 </Card>
               )}
