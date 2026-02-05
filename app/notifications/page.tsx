@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { VerifiedBadge } from "@/components/verified-badge"
-import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck } from "lucide-react"
+import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck } from "lucide-react"
 
 interface Notification {
   uri: string
@@ -54,11 +54,25 @@ const notificationText = {
   quote: "quoted your post",
 }
 
+// Helper to parse AT URI and get profile handle and post rkey
+function parseAtUri(uri: string): { handle: string; rkey: string } | null {
+  // Format: at://did:plc:xxx/app.bsky.feed.post/rkey
+  const match = uri.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/([^/]+)/)
+  if (match) {
+    return { handle: match[1], rkey: match[2] }
+  }
+  return null
+}
+
 export default function NotificationsPage() {
-  const { isAuthenticated, isLoading: authLoading, getNotifications, markNotificationsRead } = useBluesky()
+  const { isAuthenticated, isLoading: authLoading, getNotifications, markNotificationsRead, followUser, getProfile, user, getPost } = useBluesky()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({})
+  const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({})
+  const [postPreviews, setPostPreviews] = useState<Record<string, string>>({})
+  const [profileHandles, setProfileHandles] = useState<Record<string, string>>({})
 
   const loadNotifications = useCallback(async () => {
     setIsLoading(true)
@@ -67,12 +81,58 @@ export default function NotificationsPage() {
     try {
       const result = await getNotifications()
       setNotifications(result.notifications)
+      
+      // Load following status for follow notifications
+      const followNotifs = result.notifications.filter((n: Notification) => n.reason === 'follow')
+      const statusPromises = followNotifs.map(async (n: Notification) => {
+        try {
+          const profile = await getProfile(n.author.handle)
+          return { did: n.author.did, following: !!profile.viewer?.following }
+        } catch {
+          return { did: n.author.did, following: false }
+        }
+      })
+      const statuses = await Promise.all(statusPromises)
+      const statusMap: Record<string, boolean> = {}
+      statuses.forEach(s => { statusMap[s.did] = s.following })
+      setFollowingStatus(statusMap)
+      
+      // Load post previews for like/repost/reply/quote notifications
+      const postNotifs = result.notifications.filter((n: Notification) => 
+        n.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(n.reason)
+      )
+      const previewPromises = postNotifs.map(async (n: Notification) => {
+        try {
+          const post = await getPost(n.reasonSubject!) as { record?: { text?: string }; author?: { handle?: string } }
+          const parsed = parseAtUri(n.reasonSubject!)
+          // Use the author handle from the post data (not the DID from the URI)
+          const authorHandle = post?.author?.handle || ''
+          return { 
+            uri: n.reasonSubject!, 
+            text: post?.record?.text?.slice(0, 100) || 'View post',
+            handle: authorHandle,
+            rkey: parsed?.rkey || ''
+          }
+        } catch {
+          return { uri: n.reasonSubject!, text: 'View post', handle: '', rkey: '' }
+        }
+      })
+      const previews = await Promise.all(previewPromises)
+      const previewMap: Record<string, string> = {}
+      const handleMap: Record<string, string> = {}
+      previews.forEach(p => { 
+        previewMap[p.uri] = p.text
+        if (p.handle) handleMap[p.uri] = p.handle
+      })
+      setPostPreviews(previewMap)
+      setProfileHandles(handleMap)
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notifications")
     } finally {
       setIsLoading(false)
     }
-  }, [getNotifications])
+  }, [getNotifications, getProfile, getPost])
 
   const handleMarkAllRead = async () => {
     try {
@@ -80,6 +140,18 @@ export default function NotificationsPage() {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
     } catch (error) {
       console.error("Failed to mark notifications as read:", error)
+    }
+  }
+
+  const handleFollowBack = async (did: string) => {
+    setFollowLoading(prev => ({ ...prev, [did]: true }))
+    try {
+      await followUser(did)
+      setFollowingStatus(prev => ({ ...prev, [did]: true }))
+    } catch (error) {
+      console.error("Failed to follow:", error)
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [did]: false }))
     }
   }
 
@@ -188,13 +260,48 @@ export default function NotificationsPage() {
                         </div>
                         
                         {/* Show post content for relevant notification types */}
-                        {notification.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(notification.reason) && (
-                          <Link 
-                            href={`/profile/${notification.reasonSubject.split('/')[2]}/post/${notification.reasonSubject.split('/').pop()}`}
-                            className="block mt-2 p-2 rounded bg-muted/50 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                          >
-                            View post
-                          </Link>
+                        {notification.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(notification.reason) && (() => {
+                          const parsed = parseAtUri(notification.reasonSubject)
+                          // Use the handle from profileHandles if available, otherwise use the DID
+                          const handle = profileHandles[notification.reasonSubject] || parsed?.handle || ''
+                          const rkey = parsed?.rkey || ''
+                          const previewText = postPreviews[notification.reasonSubject] || 'View post'
+                          
+                          return (
+                            <Link 
+                              href={`/profile/${handle}/post/${rkey}`}
+                              className="block mt-2 p-2 rounded bg-muted/50 text-sm hover:bg-muted transition-colors"
+                            >
+                              <p className="text-foreground line-clamp-2">{previewText}{previewText.length >= 100 ? '...' : ''}</p>
+                            </Link>
+                          )
+                        })()}
+                        
+                        {/* Follow back button for follow notifications */}
+                        {notification.reason === 'follow' && user?.did !== notification.author.did && (
+                          <div className="mt-2">
+                            {followingStatus[notification.author.did] ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                <UserCheck className="h-3 w-3" />
+                                Following
+                              </span>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => handleFollowBack(notification.author.did)}
+                                disabled={followLoading[notification.author.did]}
+                              >
+                                {followLoading[notification.author.did] ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <UserPlus className="h-3 w-3 mr-1" />
+                                )}
+                                Follow back
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

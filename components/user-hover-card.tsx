@@ -49,10 +49,13 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
     setIsLoading(true)
     try {
       const data = await getProfile(handle)
-      setProfile(data as ProfileData)
+      if (data) {
+        setProfile(data as ProfileData)
+      }
       setHasLoaded(true)
     } catch (error) {
-      console.error("Failed to load profile:", error)
+      // Silently handle - profile card will show fallback
+      setHasLoaded(true)
     } finally {
       setIsLoading(false)
     }
