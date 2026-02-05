@@ -25,7 +25,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
             {children}
           </a>
         ),
-        p: ({ children }) => <p className="mb-2 last:mb-0">{children}<br/></p>,
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
         ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
         ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
         li: ({ children }) => <li className="mb-1">{children}</li>,
