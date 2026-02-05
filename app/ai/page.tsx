@@ -99,13 +99,13 @@ export default function AIPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center px-4">
+        <div className="flex h-14 items-center px-4">
           <Sparkles className="mr-2 h-5 w-5" />
           <h1 className="text-xl font-bold">AI Assistant</h1>
         </div>
       </header>
 
-      <main className="container max-w-2xl px-4 py-6 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>AI-Powered Post Assistant</CardTitle>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const categorySearchTerms: Record<string, string[]> = {
+  news: ["news", "breaking news", "headlines", "journalism", "world news"],
   politics: ["politics", "election", "government", "congress", "democracy", "vote"],
   games: ["gaming", "videogames", "playstation", "xbox", "nintendo", "gaming news"],
   tech: ["technology", "programming", "coding", "software", "ai", "tech news"],

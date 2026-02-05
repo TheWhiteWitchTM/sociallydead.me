@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
-import { SignInPrompt } from "@/components/sign-in-prompt"
 import { PostCard } from "@/components/post-card"
+import { PublicPostCard } from "@/components/public-post-card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -43,44 +44,27 @@ interface SearchResult {
 }
 
 export default function SearchPage() {
-  const { agent, user, isAuthenticated, isLoading: authLoading } = useBluesky()
+  const { user, isAuthenticated, searchPosts, searchActors } = useBluesky()
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult>({ posts: [], actors: [] })
   const [isSearching, setIsSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   const handleSearch = async () => {
-    if (!agent || !query.trim()) return
+    if (!query.trim()) return
 
     setIsSearching(true)
+    setHasSearched(true)
+    
     try {
       const [postsRes, actorsRes] = await Promise.all([
-        agent.app.bsky.feed.searchPosts({ q: query, limit: 25 }),
-        agent.app.bsky.actor.searchActors({ q: query, limit: 10 }),
+        searchPosts(query),
+        searchActors(query),
       ])
 
       setResults({
-        posts: postsRes.data.posts.map((post) => ({
-          uri: post.uri,
-          cid: post.cid,
-          author: {
-            did: post.author.did,
-            handle: post.author.handle,
-            displayName: post.author.displayName,
-            avatar: post.author.avatar,
-          },
-          record: post.record as SearchResult["posts"][0]["record"],
-          replyCount: post.replyCount ?? 0,
-          repostCount: post.repostCount ?? 0,
-          likeCount: post.likeCount ?? 0,
-          viewer: post.viewer,
-        })),
-        actors: actorsRes.data.actors.map((actor) => ({
-          did: actor.did,
-          handle: actor.handle,
-          displayName: actor.displayName,
-          avatar: actor.avatar,
-          description: actor.description,
-        })),
+        posts: postsRes.posts,
+        actors: actorsRes.actors,
       })
     } catch (error) {
       console.error("Search failed:", error)
@@ -89,27 +73,15 @@ export default function SearchPage() {
     }
   }
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <SignInPrompt title="Search" description="Sign in to search posts and users" />
-  }
-
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center px-4">
+        <div className="flex h-14 items-center px-4">
           <h1 className="text-xl font-bold">Search</h1>
         </div>
       </header>
 
-      <main className="container max-w-2xl px-4 py-6">
+      <main className="max-w-2xl mx-auto px-2 sm:px-4 py-6">
         <div className="flex gap-2 mb-6">
           <Input
             placeholder="Search posts and users..."
@@ -117,7 +89,7 @@ export default function SearchPage() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <Button onClick={handleSearch} disabled={isSearching}>
+          <Button onClick={handleSearch} disabled={isSearching || !query.trim()}>
             {isSearching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -126,7 +98,11 @@ export default function SearchPage() {
           </Button>
         </div>
 
-        {(results.posts.length > 0 || results.actors.length > 0) && (
+        {isSearching ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (results.posts.length > 0 || results.actors.length > 0) ? (
           <Tabs defaultValue="posts">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="posts">Posts ({results.posts.length})</TabsTrigger>
@@ -135,43 +111,53 @@ export default function SearchPage() {
 
             <TabsContent value="posts" className="mt-4 space-y-4">
               {results.posts.map((post) => (
-                <PostCard
-                  key={post.uri}
-                  post={post}
-                  isOwnPost={user?.did === post.author.did}
-                  onPostUpdated={handleSearch}
-                />
+                isAuthenticated ? (
+                  <PostCard
+                    key={post.uri}
+                    post={post}
+                    isOwnPost={user?.did === post.author.did}
+                    onPostUpdated={handleSearch}
+                  />
+                ) : (
+                  <PublicPostCard key={post.uri} post={post} />
+                )
               ))}
             </TabsContent>
 
             <TabsContent value="users" className="mt-4 space-y-4">
               {results.actors.map((actor) => (
-                <Card key={actor.did}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={actor.avatar || "/placeholder.svg"} alt={actor.displayName || actor.handle} />
-                        <AvatarFallback>
-                          {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{actor.displayName || actor.handle}</p>
-                        <p className="text-sm text-muted-foreground">@{actor.handle}</p>
-                        {actor.description && (
-                          <p className="mt-1 text-sm line-clamp-2">{actor.description}</p>
-                        )}
+                <Link key={actor.did} href={`/profile/${actor.handle}`}>
+                  <Card className="hover:bg-accent/50 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={actor.avatar || "/placeholder.svg"} alt={actor.displayName || actor.handle} />
+                          <AvatarFallback>
+                            {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{actor.displayName || actor.handle}</p>
+                          <p className="text-sm text-muted-foreground">@{actor.handle}</p>
+                          {actor.description && (
+                            <p className="mt-1 text-sm line-clamp-2 text-muted-foreground">{actor.description}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </TabsContent>
           </Tabs>
-        )}
-
-        {query && !isSearching && results.posts.length === 0 && results.actors.length === 0 && (
-          <p className="text-center text-muted-foreground py-12">No results found</p>
+        ) : hasSearched ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No results found for "{query}"</p>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Search for posts and users on Bluesky</p>
+          </div>
         )}
       </main>
     </div>
