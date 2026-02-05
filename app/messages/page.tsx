@@ -198,20 +198,6 @@ export default function MessagesPage() {
     return () => clearTimeout(timeoutId)
   }, [searchQuery, searchActors])
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
-    
-    setIsSearching(true)
-    try {
-      const result = await searchActors(searchQuery)
-      setSearchResults(result.actors)
-    } catch (error) {
-      console.error("Search failed:", error)
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
   const handleStartConvo = async (did: string) => {
     try {
       const convo = await startConversation(did)
@@ -231,11 +217,22 @@ export default function MessagesPage() {
     }
   }
 
+  // Always force fresh load when page is visited / becomes visible
   useEffect(() => {
     if (isAuthenticated) {
       loadConversations()
     }
-  }, [isAuthenticated, loadConversations])
+    
+    // Also reload when the tab becomes visible again
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && isAuthenticated) {
+        loadConversations()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -368,6 +365,18 @@ export default function MessagesPage() {
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
+            ) : needsReauth ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <p className="text-muted-foreground text-sm text-center">
+                  Chat permissions are missing from your current session.
+                </p>
+                <Button 
+                  variant="default" 
+                  onClick={logout}
+                >
+                  Log out and re-authenticate
+                </Button>
+              </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <p className="text-muted-foreground text-sm text-center">{error}</p>
@@ -421,7 +430,16 @@ export default function MessagesPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {conversations.map((convo) => {
+                {[...conversations]
+                  .sort((a, b) => {
+                    // Sort: unread first, then by most recent message
+                    if (a.unreadCount > 0 && b.unreadCount === 0) return -1
+                    if (a.unreadCount === 0 && b.unreadCount > 0) return 1
+                    const aTime = a.lastMessage ? new Date(a.lastMessage.sentAt).getTime() : 0
+                    const bTime = b.lastMessage ? new Date(b.lastMessage.sentAt).getTime() : 0
+                    return bTime - aTime
+                  })
+                  .map((convo) => {
                   const otherMembers = convo.members.filter(m => m.did !== user?.did)
                   const isSelected = selectedConvo?.id === convo.id
                   
