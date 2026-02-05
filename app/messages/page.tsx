@@ -169,8 +169,9 @@ export default function MessagesPage() {
       await loadConversations()
       handleSelectConvo(convo)
     } catch (error) {
-      console.error("Failed to start conversation:", error)
-      alert("Failed to start conversation. Please try logging out and back in to enable chat permissions.")
+      console.error("[v0] Failed to start conversation:", error)
+      const errMsg = error instanceof Error ? error.message : String(error)
+      alert(`Failed to start conversation: ${errMsg}`)
     }
   }
 
