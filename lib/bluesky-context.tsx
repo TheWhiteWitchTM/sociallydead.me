@@ -690,32 +690,66 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getCustomFeed = async (feedUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
-    const agentToUse = agent || publicAgent
-    const response = await agentToUse.app.bsky.feed.getFeed({
-      feed: feedUri,
-      limit: 50,
-      cursor,
-    })
-    
-    return {
-      posts: response.data.feed.map((item) => ({
-        uri: item.post.uri,
-        cid: item.post.cid,
-        author: {
-          did: item.post.author.did,
-          handle: item.post.author.handle,
-          displayName: item.post.author.displayName,
-          avatar: item.post.author.avatar,
-        },
-        record: item.post.record as BlueskyPost["record"],
-        embed: item.post.embed as BlueskyPost["embed"],
-        replyCount: item.post.replyCount ?? 0,
-        repostCount: item.post.repostCount ?? 0,
-        likeCount: item.post.likeCount ?? 0,
-        indexedAt: item.post.indexedAt,
-        viewer: item.post.viewer,
-      })),
-      cursor: response.data.cursor,
+    // Always try with publicAgent first for custom feeds to ensure they work without auth
+    // The public API has better support for accessing third-party feed generators
+    try {
+      const response = await publicAgent.app.bsky.feed.getFeed({
+        feed: feedUri,
+        limit: 50,
+        cursor,
+      })
+      
+      return {
+        posts: response.data.feed.map((item) => ({
+          uri: item.post.uri,
+          cid: item.post.cid,
+          author: {
+            did: item.post.author.did,
+            handle: item.post.author.handle,
+            displayName: item.post.author.displayName,
+            avatar: item.post.author.avatar,
+          },
+          record: item.post.record as BlueskyPost["record"],
+          embed: item.post.embed as BlueskyPost["embed"],
+          replyCount: item.post.replyCount ?? 0,
+          repostCount: item.post.repostCount ?? 0,
+          likeCount: item.post.likeCount ?? 0,
+          indexedAt: item.post.indexedAt,
+          viewer: item.post.viewer,
+        })),
+        cursor: response.data.cursor,
+      }
+    } catch (publicError) {
+      // If public API fails and we have an authenticated agent, try that
+      if (agent) {
+        const response = await agent.app.bsky.feed.getFeed({
+          feed: feedUri,
+          limit: 50,
+          cursor,
+        })
+        
+        return {
+          posts: response.data.feed.map((item) => ({
+            uri: item.post.uri,
+            cid: item.post.cid,
+            author: {
+              did: item.post.author.did,
+              handle: item.post.author.handle,
+              displayName: item.post.author.displayName,
+              avatar: item.post.author.avatar,
+            },
+            record: item.post.record as BlueskyPost["record"],
+            embed: item.post.embed as BlueskyPost["embed"],
+            replyCount: item.post.replyCount ?? 0,
+            repostCount: item.post.repostCount ?? 0,
+            likeCount: item.post.likeCount ?? 0,
+            indexedAt: item.post.indexedAt,
+            viewer: item.post.viewer,
+          })),
+          cursor: response.data.cursor,
+        }
+      }
+      throw publicError
     }
   }
 
