@@ -310,7 +310,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [user, setUser] = useState<BlueskyUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [publicAgent] = useState(() => new Agent("https://public.api.bsky.app"))
+  const [publicAgent] = useState(() => new Agent("https://api.bsky.app"))
 
   useEffect(() => {
     const init = async () => {
@@ -691,7 +691,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   const getCustomFeed = async (feedUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
     // Always try with publicAgent first for custom feeds to ensure they work without auth
-    // The public API has better support for accessing third-party feed generators
     try {
       const response = await publicAgent.app.bsky.feed.getFeed({
         feed: feedUri,

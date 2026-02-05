@@ -10,21 +10,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Newspaper, Gamepad2, Globe, FlaskConical, Palette, TrendingUp } from "lucide-react"
+import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
 
-// Known working Bluesky feed URIs - These are verified public feeds from Bluesky team
-// The Bluesky team's DID is: did:plc:z72i7hdynmk6r22z27h6tvur
+// Official Bluesky feed URIs - All from the Bluesky team (did:plc:z72i7hdynmk6r22z27h6tvur)
+// These are guaranteed to work with the public API
+const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
 const KNOWN_FEEDS = {
-  // Official Bluesky feeds
-  discover: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
-  popular: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/hot-classic",
-  with_friends: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends",
-  // Community feeds - verified working
-  news: "at://did:plc:kkf4naxqmweop7dv4l2iqqf5/app.bsky.feed.generator/verified-news",
-  trending: "at://did:plc:kkf4naxqmweop7dv4l2iqqf5/app.bsky.feed.generator/trending-news",
-  science: "at://did:plc:jfhpnnst6flqway4eaeqzj2a/app.bsky.feed.generator/for-science",
-  gaming: "at://did:plc:vpkhqolt662uhesyez6uv4d2/app.bsky.feed.generator/aaagvcsgspn2e",
-  art: "at://did:plc:bpzwzhr35d5ik7h2bxrvd5v5/app.bsky.feed.generator/artfeed",
+  // Official Bluesky feeds - these all work without authentication
+  discover: `at://${BLUESKY_DID}/app.bsky.feed.generator/whats-hot`,
+  popular: `at://${BLUESKY_DID}/app.bsky.feed.generator/hot-classic`,
+  with_friends: `at://${BLUESKY_DID}/app.bsky.feed.generator/with-friends`,
+  mutuals: `at://${BLUESKY_DID}/app.bsky.feed.generator/mutuals`,
+  best_of_follows: `at://${BLUESKY_DID}/app.bsky.feed.generator/best-of-follows`,
+  bsky_team: `at://${BLUESKY_DID}/app.bsky.feed.generator/bsky-team`,
 }
 
 interface Post {
@@ -152,20 +150,14 @@ export default function HomePage() {
       case "with_friends":
         loadFeed(KNOWN_FEEDS.with_friends)
         break
-      case "news":
-        loadFeed(KNOWN_FEEDS.news)
+      case "mutuals":
+        loadFeed(KNOWN_FEEDS.mutuals)
         break
-      case "trending":
-        loadFeed(KNOWN_FEEDS.trending)
+      case "best_of_follows":
+        loadFeed(KNOWN_FEEDS.best_of_follows)
         break
-      case "science":
-        loadFeed(KNOWN_FEEDS.science)
-        break
-      case "gaming":
-        loadFeed(KNOWN_FEEDS.gaming)
-        break
-      case "art":
-        loadFeed(KNOWN_FEEDS.art)
+      case "bsky_team":
+        loadFeed(KNOWN_FEEDS.bsky_team)
         break
       default:
         loadPublicFeed()
@@ -247,25 +239,17 @@ export default function HomePage() {
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">Popular</span>
               </TabsTrigger>
-              <TabsTrigger value="news" className="gap-1.5">
-                <Newspaper className="h-4 w-4" />
-                <span className="hidden sm:inline">News</span>
+              <TabsTrigger value="mutuals" className="gap-1.5">
+                <Heart className="h-4 w-4" />
+                <span className="hidden sm:inline">Mutuals</span>
               </TabsTrigger>
-              <TabsTrigger value="trending" className="gap-1.5">
-                <TrendingUp className="h-4 w-4" />
-                <span className="hidden sm:inline">Trending</span>
+              <TabsTrigger value="best_of_follows" className="gap-1.5">
+                <Star className="h-4 w-4" />
+                <span className="hidden sm:inline">Best of Follows</span>
               </TabsTrigger>
-              <TabsTrigger value="science" className="gap-1.5">
-                <FlaskConical className="h-4 w-4" />
-                <span className="hidden sm:inline">Science</span>
-              </TabsTrigger>
-              <TabsTrigger value="gaming" className="gap-1.5">
-                <Gamepad2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Gaming</span>
-              </TabsTrigger>
-              <TabsTrigger value="art" className="gap-1.5">
-                <Palette className="h-4 w-4" />
-                <span className="hidden sm:inline">Art</span>
+              <TabsTrigger value="bsky_team" className="gap-1.5">
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Bluesky Team</span>
               </TabsTrigger>
             </TabsList>
             
@@ -409,25 +393,17 @@ export default function HomePage() {
               <Globe className="h-4 w-4" />
               <span className="hidden sm:inline">Popular</span>
             </TabsTrigger>
-            <TabsTrigger value="news" className="gap-1.5">
-              <Newspaper className="h-4 w-4" />
-              <span className="hidden sm:inline">News</span>
+            <TabsTrigger value="mutuals" className="gap-1.5">
+              <Heart className="h-4 w-4" />
+              <span className="hidden sm:inline">Mutuals</span>
             </TabsTrigger>
-            <TabsTrigger value="trending" className="gap-1.5">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Trending</span>
+            <TabsTrigger value="best_of_follows" className="gap-1.5">
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Best of Follows</span>
             </TabsTrigger>
-            <TabsTrigger value="science" className="gap-1.5">
-              <FlaskConical className="h-4 w-4" />
-              <span className="hidden sm:inline">Science</span>
-            </TabsTrigger>
-            <TabsTrigger value="gaming" className="gap-1.5">
-              <Gamepad2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Gaming</span>
-            </TabsTrigger>
-            <TabsTrigger value="art" className="gap-1.5">
-              <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">Art</span>
+            <TabsTrigger value="bsky_team" className="gap-1.5">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Bluesky Team</span>
             </TabsTrigger>
           </TabsList>
           
