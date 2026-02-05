@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users } from "lucide-react"
 
 interface Notification {
@@ -74,6 +75,7 @@ export default function NotificationsPage() {
   const [postPreviews, setPostPreviews] = useState<Record<string, string>>({})
   const [profileHandles, setProfileHandles] = useState<Record<string, string>>({})
   const [followAllLoading, setFollowAllLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'mentions'>('all')
 
   const loadNotifications = useCallback(async () => {
     setIsLoading(true)
@@ -156,6 +158,11 @@ export default function NotificationsPage() {
     }
   }
 
+  // Filter notifications based on active tab
+  const filteredNotifications = activeTab === 'mentions' 
+    ? notifications.filter(n => n.reason === 'mention' || n.reason === 'reply')
+    : notifications
+
   // Get list of users who followed but we don't follow back
   const unfollowedFollowers = notifications
     .filter(n => n.reason === 'follow' && user?.did !== n.author.did && !followingStatus[n.author.did])
@@ -207,7 +214,15 @@ export default function NotificationsPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">Notifications</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold">Notifications</h1>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'mentions')}>
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
+                <TabsTrigger value="mentions" className="text-xs px-3">Mentions</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <div className="flex items-center gap-2">
             {unfollowedFollowers.length > 0 && (
               <Button 
@@ -236,6 +251,7 @@ export default function NotificationsPage() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+        </div>
         </div>
         {/* Mobile follow all back button */}
         {unfollowedFollowers.length > 0 && (
@@ -271,16 +287,20 @@ export default function NotificationsPage() {
               Try Again
             </Button>
           </div>
-        ) : notifications.length === 0 ? (
+        ) : filteredNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">No notifications yet</p>
+            <p className="text-muted-foreground">
+              {activeTab === 'mentions' ? 'No mentions yet' : 'No notifications yet'}
+            </p>
             <p className="text-sm text-muted-foreground mt-2">
-              When someone interacts with your posts, you&apos;ll see it here.
+              {activeTab === 'mentions' 
+                ? 'When someone mentions or replies to you, you\'ll see it here.'
+                : 'When someone interacts with your posts, you\'ll see it here.'}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
-            {notifications.map((notification) => {
+            {filteredNotifications.map((notification) => {
               const Icon = notificationIcons[notification.reason]
               const colorClass = notificationColors[notification.reason]
               const text = notificationText[notification.reason]

@@ -314,13 +314,16 @@ let oauthClient: BrowserOAuthClient | null = null
 async function getOAuthClient(): Promise<BrowserOAuthClient> {
   if (oauthClient) return oauthClient
   
+  // Use dynamic origin to support both production and preview deployments
+  const origin = typeof window !== 'undefined' ? window.origin : 'https://www.sociallydead.me'
+  
   oauthClient = new BrowserOAuthClient({
     handleResolver: "https://bsky.social",
     clientMetadata: {
-      client_id: "https://www.sociallydead.me/oauth/client-metadata.json",
+      client_id: `${origin}/oauth/client-metadata.json`,
       client_name: "SociallyDead",
-      client_uri: "https://www.sociallydead.me/",
-      redirect_uris: [window.origin + "/oauth/callback"],
+      client_uri: origin,
+      redirect_uris: [`${origin}/oauth/callback`],
       scope: "atproto transition:generic transition:chat.bsky",
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
@@ -1303,10 +1306,15 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       // Use atproto-proxy header to route to chat service
       const headers = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
       
+      console.log("[v0] Chat: Attempting to load conversations")
+      console.log("[v0] Chat: Agent session DID:", agent.session?.did)
+      
       const response = await agent.api.chat.bsky.convo.listConvos(
         { limit: 100 },
         { headers }
       )
+      
+      console.log("[v0] Chat: Success! Found", response.data.convos?.length || 0, "conversations")
       
       return response.data.convos.map((convo) => ({
         id: convo.id,
@@ -1326,7 +1334,14 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch {
+    } catch (error) {
+      console.error("[v0] Chat: ERROR loading conversations:", error)
+      if (error && typeof error === 'object' && 'status' in error) {
+        console.error("[v0] Chat: HTTP Status:", (error as { status: number }).status)
+      }
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error("[v0] Chat: Error message:", (error as { message: string }).message)
+      }
       return []
     }
   }

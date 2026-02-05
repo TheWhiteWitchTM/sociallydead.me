@@ -241,18 +241,23 @@ export default function MessagesPage() {
                       <DialogTitle>New Message</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
-                      <div className="flex gap-2">
+                      <div className="relative">
                         <Input
-                          placeholder="Search for a user..."
+                          placeholder="Search by handle (e.g. @username)"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                          autoFocus
                         />
-                        <Button onClick={handleSearch} disabled={isSearching}>
-                          {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                        </Button>
+                        {isSearching && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
                       </div>
-                      {searchResults.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Start typing to search for users...
+                      </p>
+                      {searchResults.length > 0 ? (
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {searchResults.map((actor) => (
                             <Card 
@@ -277,7 +282,11 @@ export default function MessagesPage() {
                             </Card>
                           ))}
                         </div>
-                      )}
+                      ) : searchQuery.length >= 2 && !isSearching ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No users found for &quot;{searchQuery}&quot;
+                        </p>
+                      ) : null}
                     </div>
                   </DialogContent>
                 </Dialog>
