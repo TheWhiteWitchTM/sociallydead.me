@@ -1489,9 +1489,14 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     try {
       const convos = await getConversations()
       // Only count unread if the last message was sent by someone else
+      // AND the other members are valid (not deleted accounts)
       return convos.reduce((total, convo) => {
+        const otherMembers = convo.members.filter(m => m.did !== user.did)
+        const hasValidMembers = otherMembers.some(m => 
+          m.handle && !m.handle.endsWith('.invalid') && m.handle !== 'handle.invalid'
+        )
         const lastFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user.did
-        return total + (lastFromOther ? (convo.unreadCount || 0) : 0)
+        return total + (lastFromOther && hasValidMembers ? (convo.unreadCount || 0) : 0)
       }, 0)
     } catch {
       return 0
