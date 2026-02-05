@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -106,6 +106,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     reportPost,
     pinPost,
     unpinPost,
+    addHighlight,
     user,
     isAuthenticated,
     login,
@@ -138,6 +139,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   const [isFactChecking, setIsFactChecking] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isPinning, setIsPinning] = useState(false)
+  const [isHighlighting, setIsHighlighting] = useState(false)
 
   const handleAuthRequired = () => {
     if (!isAuthenticated) {
@@ -355,6 +357,20 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     }
   }
 
+  const handleAddHighlight = async () => {
+    if (!handleAuthRequired()) return
+    setIsHighlighting(true)
+    try {
+      await addHighlight(post.uri, post.cid)
+      onPostUpdated?.()
+    } catch (error) {
+      console.error("Failed to add highlight:", error)
+      alert(error instanceof Error ? error.message : "Failed to add highlight")
+    } finally {
+      setIsHighlighting(false)
+    }
+  }
+
   // Check if bookmarked on mount
   useEffect(() => {
     const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
@@ -461,6 +477,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                             {isPinning ? "Pinning..." : "Pin to Profile"}
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={handleAddHighlight} disabled={isHighlighting}>
+                          <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                          {isHighlighting ? "Adding..." : "Add to Highlights"}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit (Pseudo)

@@ -18,6 +18,7 @@ import {
   Rss,
   UsersRound,
   Bookmark,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInDialog } from "@/components/sign-in-dialog"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
 
 const authNavItems = [
   { href: "/", icon: Home, label: "Home" },
@@ -32,6 +34,7 @@ const authNavItems = [
   { href: "/notifications", icon: Bell, label: "Notifications", showBadge: true },
   { href: "/messages", icon: MessageSquare, label: "Messages" },
   { href: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
+  { href: "/articles", icon: FileText, label: "Articles" },
   { href: "/feeds", icon: Rss, label: "Feeds" },
   { href: "/lists", icon: ListIcon, label: "Lists" },
   { href: "/starter-packs", icon: UsersRound, label: "Starter Packs" },
@@ -50,7 +53,9 @@ const publicNavItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { user, logout, isAuthenticated, isLoading, getUnreadCount } = useBluesky()
+  const { isSubscribed, showNotification } = usePushNotifications()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [prevUnreadCount, setPrevUnreadCount] = useState(0)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
 
@@ -59,6 +64,18 @@ export function AppSidebar() {
       const fetchUnread = async () => {
         try {
           const count = await getUnreadCount()
+          
+          // Show push notification if new notifications arrived
+          if (isSubscribed && count > prevUnreadCount && prevUnreadCount > 0 && pathname !== "/notifications") {
+            const newCount = count - prevUnreadCount
+            showNotification("New Notifications", {
+              body: `You have ${newCount} new notification${newCount > 1 ? "s" : ""}`,
+              url: "/notifications",
+              tag: "new-notifications",
+            })
+          }
+          
+          setPrevUnreadCount(count)
           setUnreadCount(count)
         } catch (error) {
           console.error("Failed to fetch unread count:", error)
@@ -69,7 +86,7 @@ export function AppSidebar() {
       const interval = setInterval(fetchUnread, 30000)
       return () => clearInterval(interval)
     }
-  }, [isAuthenticated, getUnreadCount, pathname])
+  }, [isAuthenticated, getUnreadCount, pathname, isSubscribed, prevUnreadCount, showNotification])
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-20 flex-col border-r border-border bg-sidebar lg:w-64">
