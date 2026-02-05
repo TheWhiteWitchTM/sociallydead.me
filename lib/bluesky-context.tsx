@@ -1299,10 +1299,21 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Chat/Messages - use agent.withProxy() to create a chat-specific agent
-  // The withProxy method clones the agent and configures the atproto-proxy
-  // header automatically on every request
   const getChatAgent = () => {
     if (!agent) throw new Error("Not authenticated")
+    console.log("[v0] Agent type:", typeof agent)
+    console.log("[v0] Agent keys:", Object.getOwnPropertyNames(Object.getPrototypeOf(agent)))
+    console.log("[v0] Has withProxy:", typeof agent.withProxy)
+    console.log("[v0] Has chat:", typeof agent.chat)
+    console.log("[v0] Has configureProxy:", typeof agent.configureProxy)
+    
+    if (typeof agent.withProxy !== 'function') {
+      // Fallback: configure proxy directly on agent
+      console.log("[v0] withProxy not available, using configureProxy")
+      agent.configureProxy('bsky_chat', 'did:web:api.bsky.chat')
+      return agent
+    }
+    
     return agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
   }
 
@@ -1311,8 +1322,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const chatAgent = getChatAgent()
+      console.log("[v0] Chat agent created, calling listConvos...")
       
       const response = await chatAgent.chat.bsky.convo.listConvos({ limit: 100 })
+      console.log("[v0] listConvos response:", response.data.convos?.length, "conversations")
       
       return response.data.convos.map((convo) => ({
         id: convo.id,
@@ -1332,7 +1345,14 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch {
+    } catch (err) {
+      console.error("[v0] getConversations ERROR:", err)
+      console.error("[v0] Error type:", typeof err)
+      console.error("[v0] Error message:", err instanceof Error ? err.message : String(err))
+      if (err && typeof err === 'object') {
+        console.error("[v0] Error keys:", Object.keys(err))
+        console.error("[v0] Error stringified:", JSON.stringify(err, null, 2))
+      }
       return []
     }
   }
@@ -1383,11 +1403,17 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const startConversation = async (did: string): Promise<BlueskyConvo> => {
     if (!agent) throw new Error("Not authenticated")
     
+    console.log("[v0] startConversation called with DID:", did)
+    
     const chatAgent = getChatAgent()
+    
+    console.log("[v0] Calling getConvoForMembers...")
     
     const response = await chatAgent.chat.bsky.convo.getConvoForMembers(
       { members: [did] }
     )
+    
+    console.log("[v0] getConvoForMembers success:", response.data)
     
     const convo = response.data.convo
     return {
