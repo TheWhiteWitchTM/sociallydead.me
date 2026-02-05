@@ -84,22 +84,43 @@ export default function HomePage() {
   const [feedLoading, setFeedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("following")
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false)
+  const [latestPostUri, setLatestPostUri] = useState<string | null>(null)
 
-  const loadTimeline = useCallback(async () => {
+  const loadTimeline = useCallback(async (isBackgroundRefresh = false) => {
     if (!isAuthenticated) return
     
-    setFeedLoading(true)
-    setError(null)
+    if (!isBackgroundRefresh) {
+      setFeedLoading(true)
+      setError(null)
+    }
     
     try {
       const result = await getTimeline()
-      setPosts(result.posts)
+      
+      if (isBackgroundRefresh && result.posts.length > 0 && latestPostUri) {
+        // Check if there are new posts
+        const firstPostUri = result.posts[0].uri
+        if (firstPostUri !== latestPostUri) {
+          setNewPostsAvailable(true)
+        }
+      } else {
+        setPosts(result.posts)
+        setNewPostsAvailable(false)
+        if (result.posts.length > 0) {
+          setLatestPostUri(result.posts[0].uri)
+        }
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load timeline")
+      if (!isBackgroundRefresh) {
+        setError(err instanceof Error ? err.message : "Failed to load timeline")
+      }
     } finally {
-      setFeedLoading(false)
+      if (!isBackgroundRefresh) {
+        setFeedLoading(false)
+      }
     }
-  }, [isAuthenticated, getTimeline])
+  }, [isAuthenticated, getTimeline, latestPostUri])
 
   const loadFeed = useCallback(async (feedUri: string) => {
     setFeedLoading(true)
@@ -115,8 +136,27 @@ export default function HomePage() {
     }
   }, [getCustomFeed])
 
+  const handleShowNewPosts = useCallback(async () => {
+    setNewPostsAvailable(false)
+    setFeedLoading(true)
+    try {
+      const result = await getTimeline()
+      setPosts(result.posts)
+      if (result.posts.length > 0) {
+        setLatestPostUri(result.posts[0].uri)
+      }
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load timeline")
+    } finally {
+      setFeedLoading(false)
+    }
+  }, [getTimeline])
+
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab)
+    setNewPostsAvailable(false)
     
     switch (tab) {
       case "following":
@@ -145,8 +185,17 @@ export default function HomePage() {
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       loadTimeline()
+      
+      // Background refresh every 30 seconds to check for new posts
+      const interval = setInterval(() => {
+        if (activeTab === 'following') {
+          loadTimeline(true)
+        }
+      }, 30000)
+      
+      return () => clearInterval(interval)
     }
-  }, [isAuthenticated, isLoading, loadTimeline])
+  }, [isAuthenticated, isLoading, loadTimeline, activeTab])
 
   // Loading state
   if (isLoading) {
@@ -337,6 +386,20 @@ export default function HomePage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* New Posts Indicator */}
+        {newPostsAvailable && (
+          <div className="sticky top-16 z-20 flex justify-center mb-4">
+            <Button 
+              onClick={handleShowNewPosts}
+              className="rounded-full shadow-lg animate-bounce"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              New posts available
+            </Button>
+          </div>
+        )}
 
         {/* Feed Content */}
         {feedLoading && posts.length === 0 ? (

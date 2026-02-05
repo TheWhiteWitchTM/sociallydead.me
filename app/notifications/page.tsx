@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { VerifiedBadge } from "@/components/verified-badge"
-import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck } from "lucide-react"
+import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users } from "lucide-react"
 
 interface Notification {
   uri: string
@@ -73,6 +73,7 @@ export default function NotificationsPage() {
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({})
   const [postPreviews, setPostPreviews] = useState<Record<string, string>>({})
   const [profileHandles, setProfileHandles] = useState<Record<string, string>>({})
+  const [followAllLoading, setFollowAllLoading] = useState(false)
 
   const loadNotifications = useCallback(async () => {
     setIsLoading(true)
@@ -155,6 +156,33 @@ export default function NotificationsPage() {
     }
   }
 
+  // Get list of users who followed but we don't follow back
+  const unfollowedFollowers = notifications
+    .filter(n => n.reason === 'follow' && user?.did !== n.author.did && !followingStatus[n.author.did])
+    .map(n => n.author)
+    // Remove duplicates by DID
+    .filter((author, index, self) => 
+      index === self.findIndex(a => a.did === author.did)
+    )
+
+  const handleFollowAllBack = async () => {
+    if (unfollowedFollowers.length === 0) return
+    
+    setFollowAllLoading(true)
+    try {
+      for (const author of unfollowedFollowers) {
+        try {
+          await followUser(author.did)
+          setFollowingStatus(prev => ({ ...prev, [author.did]: true }))
+        } catch (error) {
+          console.error(`Failed to follow ${author.handle}:`, error)
+        }
+      }
+    } finally {
+      setFollowAllLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       loadNotifications()
@@ -181,6 +209,22 @@ export default function NotificationsPage() {
         <div className="flex h-14 items-center justify-between px-4">
           <h1 className="text-xl font-bold">Notifications</h1>
           <div className="flex items-center gap-2">
+            {unfollowedFollowers.length > 0 && (
+              <Button 
+                onClick={handleFollowAllBack} 
+                variant="outline" 
+                size="sm" 
+                className="hidden sm:flex"
+                disabled={followAllLoading}
+              >
+                {followAllLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Users className="h-4 w-4 mr-2" />
+                )}
+                Follow all back ({unfollowedFollowers.length})
+              </Button>
+            )}
             <Button onClick={handleMarkAllRead} variant="ghost" size="sm" className="hidden sm:flex">
               <CheckCheck className="h-4 w-4 mr-2" />
               Mark all read
@@ -193,6 +237,25 @@ export default function NotificationsPage() {
             </Button>
           </div>
         </div>
+        {/* Mobile follow all back button */}
+        {unfollowedFollowers.length > 0 && (
+          <div className="sm:hidden px-4 pb-2">
+            <Button 
+              onClick={handleFollowAllBack} 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              disabled={followAllLoading}
+            >
+              {followAllLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Users className="h-4 w-4 mr-2" />
+              )}
+              Follow all back ({unfollowedFollowers.length})
+            </Button>
+          </div>
+        )}
       </header>
 
       <main className="mx-auto max-w-2xl px-2 sm:px-4 py-6">
