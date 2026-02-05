@@ -285,6 +285,7 @@ interface BlueskyContextType {
   getMessages: (convoId: string, cursor?: string) => Promise<{ messages: BlueskyMessage[]; cursor?: string }>
   sendMessage: (convoId: string, text: string) => Promise<BlueskyMessage>
   startConversation: (did: string) => Promise<BlueskyConvo>
+  markConvoRead: (convoId: string) => Promise<void>
   getUnreadMessageCount: () => Promise<number>
   // Starter Packs
   getStarterPacks: (actor?: string) => Promise<BlueskyStarterPack[]>
@@ -1473,6 +1474,16 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const markConvoRead = async (convoId: string): Promise<void> => {
+    if (!agent) return
+    try {
+      const chatAgent = getChatAgent()
+      await chatAgent.chat.bsky.convo.updateRead({ convoId })
+    } catch {
+      // Silently fail - non-critical
+    }
+  }
+
   const getUnreadMessageCount = async (): Promise<number> => {
     if (!agent) return 0
     try {
@@ -1979,6 +1990,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         getMessages,
         sendMessage,
         startConversation,
+        markConvoRead,
         getUnreadMessageCount,
         getStarterPacks,
         getStarterPack,
