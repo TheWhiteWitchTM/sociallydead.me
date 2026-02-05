@@ -350,7 +350,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
           setAgent(oauthAgent)
           
           const profile = await oauthAgent.getProfile({ actor: result.session.did })
-          console.log("[v0] Profile data loaded - banner:", profile.data.banner)
           setUser({
             did: result.session.did,
             handle: profile.data.handle,
@@ -1296,19 +1295,18 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  // Chat/Messages - requires chat service proxy using withProxy
+  // Chat/Messages - requires atproto-proxy header for chat service
   const getConversations = async (): Promise<BlueskyConvo[]> => {
     if (!agent) throw new Error("Not authenticated")
     
     try {
-      // Create a proxy agent for chat service
-      const chatAgent = agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
+      // Use atproto-proxy header to route to chat service
+      const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
       
-      console.log("[v0] Fetching conversations using chat proxy agent...")
-      
-      const response = await chatAgent.api.chat.bsky.convo.listConvos({ limit: 100 })
-      
-      console.log("[v0] Chat convos response:", response.data.convos?.length || 0, "conversations")
+      const response = await agent.api.chat.bsky.convo.listConvos(
+        { limit: 100 },
+        { headers: proxyHeader }
+      )
       
       return response.data.convos.map((convo) => ({
         id: convo.id,
@@ -1328,11 +1326,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch (error) {
-      console.error("[v0] Chat API error:", error)
-      if (error instanceof Error) {
-        console.error("[v0] Chat error message:", error.message)
-      }
+    } catch {
+      // Chat may not be available or user may not have access
       return []
     }
   }
@@ -1340,10 +1335,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const getMessages = async (convoId: string, cursor?: string): Promise<{ messages: BlueskyMessage[]; cursor?: string }> => {
     if (!agent) throw new Error("Not authenticated")
     
-    const chatAgent = agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
+    const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
     
-    const response = await chatAgent.api.chat.bsky.convo.getMessages(
-      { convoId, limit: 50, cursor }
+    const response = await agent.api.chat.bsky.convo.getMessages(
+      { convoId, limit: 50, cursor },
+      { headers: proxyHeader }
     )
     
     return {
@@ -1365,10 +1361,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const sendMessage = async (convoId: string, text: string): Promise<BlueskyMessage> => {
     if (!agent) throw new Error("Not authenticated")
     
-    const chatAgent = agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
+    const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
     
-    const response = await chatAgent.api.chat.bsky.convo.sendMessage(
-      { convoId, message: { text } }
+    const response = await agent.api.chat.bsky.convo.sendMessage(
+      { convoId, message: { text } },
+      { headers: proxyHeader }
     )
     
     return {
@@ -1383,10 +1380,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const startConversation = async (did: string): Promise<BlueskyConvo> => {
     if (!agent) throw new Error("Not authenticated")
     
-    const chatAgent = agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
+    const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
     
-    const response = await chatAgent.api.chat.bsky.convo.getConvoForMembers(
-      { members: [did] }
+    const response = await agent.api.chat.bsky.convo.getConvoForMembers(
+      { members: [did] },
+      { headers: proxyHeader }
     )
     
     const convo = response.data.convo
