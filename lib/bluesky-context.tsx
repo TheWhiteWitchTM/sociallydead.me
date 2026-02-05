@@ -398,38 +398,52 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
           // Revoke may fail, continue with cleanup
         }
       }
-    } catch (error) {
-      console.error("Logout error:", error)
+    } catch {
+      // Logout error, continue with cleanup
     } finally {
       setUser(null)
       setAgent(null)
       oauthClient = null
       
-      // Clear all IndexedDB databases used by @atproto/oauth-client-browser
-      // This ensures the old token (without chat scope) is fully removed
+      // Nuke ALL IndexedDB databases used by @atproto/oauth-client-browser
+      // Known DB names used by the SDK
+      const knownDBs = [
+        'atproto-oauth-client',
+        'atproto-oauth-client-browser', 
+        'oauth-client',
+        'oauth-session',
+        'atproto',
+      ]
+      knownDBs.forEach(name => {
+        try { window.indexedDB.deleteDatabase(name) } catch {}
+      })
+      
+      // Also try the databases() API to catch any others
       try {
-        const databases = await window.indexedDB.databases()
-        for (const db of databases) {
-          if (db.name && (db.name.includes('atproto') || db.name.includes('oauth'))) {
-            window.indexedDB.deleteDatabase(db.name)
+        if ('databases' in window.indexedDB) {
+          const databases = await window.indexedDB.databases()
+          for (const db of databases) {
+            if (db.name) {
+              window.indexedDB.deleteDatabase(db.name)
+            }
           }
         }
       } catch {
-        // IndexedDB cleanup failed, not critical
+        // Not available in all browsers
       }
       
-      // Also clear any localStorage keys related to atproto
+      // Clear all localStorage
       try {
-        const keysToRemove: string[] = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && (key.includes('atproto') || key.includes('oauth') || key.includes('bsky'))) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key))
+        localStorage.clear()
       } catch {
-        // localStorage cleanup failed, not critical  
+        // localStorage cleanup failed
+      }
+      
+      // Clear all sessionStorage  
+      try {
+        sessionStorage.clear()
+      } catch {
+        // sessionStorage cleanup failed
       }
       
       window.location.href = "/"
@@ -1333,6 +1347,18 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     return agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
   }
 
+  // Check if agent session has chat scope before attempting chat calls
+  const hasChatScope = (): boolean => {
+    if (!agent) return false
+    try {
+      // Try to create a proxy agent - if scope is missing, this will be caught when calling
+      getChatAgent()
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const getConversations = async (): Promise<BlueskyConvo[]> => {
     if (!agent) throw new Error("Not authenticated")
     
@@ -1358,7 +1384,13 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch {
+    } catch (err) {
+      // Re-throw scope errors so the UI can show re-auth prompt
+      const errMsg = err instanceof Error ? err.message : String(err)
+      const errName = err instanceof Error ? err.name : ''
+      if (errName.includes('Scope') || errMsg.includes('scope') || errMsg.includes('Missing')) {
+        throw new Error('Chat permissions missing. Please log out and log back in.')
+      }
       return []
     }
   }

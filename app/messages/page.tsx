@@ -70,17 +70,24 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Array<{ did: string; handle: string; displayName?: string; avatar?: string }>>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [needsReauth, setNeedsReauth] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadConversations = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+    setNeedsReauth(false)
     
     try {
       const convos = await getConversations()
       setConversations(convos)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load conversations")
+      const errMsg = err instanceof Error ? err.message : String(err)
+      if (errMsg.includes('cope') || errMsg.includes('Missing') || errMsg.includes('403')) {
+        setNeedsReauth(true)
+      } else {
+        setError(errMsg)
+      }
     } finally {
       setIsLoading(false)
     }
