@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Newspaper } from "lucide-react"
+import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Newspaper, Landmark } from "lucide-react"
 
 // Official Bluesky feed URIs - All from the Bluesky team (did:plc:z72i7hdynmk6r22z27h6tvur)
 // These are guaranteed to work with the public API
@@ -161,6 +161,9 @@ export default function HomePage() {
       case "news":
         loadHashtagFeed("news")
         break
+      case "politics":
+        loadHashtagFeed("politics")
+        break
       case "popular":
         loadFeed(KNOWN_FEEDS.popular)
         break
@@ -251,6 +254,10 @@ export default function HomePage() {
               <TabsTrigger value="news" className="gap-1.5">
                 <Newspaper className="h-4 w-4" />
                 <span className="hidden sm:inline">News</span>
+              </TabsTrigger>
+              <TabsTrigger value="politics" className="gap-1.5">
+                <Landmark className="h-4 w-4" />
+                <span className="hidden sm:inline">Politics</span>
               </TabsTrigger>
               <TabsTrigger value="popular" className="gap-1.5">
                 <Globe className="h-4 w-4" />
@@ -409,6 +416,10 @@ export default function HomePage() {
             <TabsTrigger value="news" className="gap-1.5">
               <Newspaper className="h-4 w-4" />
               <span className="hidden sm:inline">News</span>
+            </TabsTrigger>
+            <TabsTrigger value="politics" className="gap-1.5">
+              <Landmark className="h-4 w-4" />
+              <span className="hidden sm:inline">Politics</span>
             </TabsTrigger>
             <TabsTrigger value="popular" className="gap-1.5">
               <Globe className="h-4 w-4" />
