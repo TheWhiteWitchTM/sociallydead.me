@@ -830,7 +830,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Profile
-  const getProfile = async (actor: string): Promise<BlueskyUser> => {
+  const getProfile = async (actor: string): Promise<BlueskyUser & { viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string } }> => {
     const agentToUse = agent || publicAgent
     const response = await agentToUse.getProfile({ actor })
     return {
@@ -843,6 +843,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       followersCount: response.data.followersCount,
       followsCount: response.data.followsCount,
       postsCount: response.data.postsCount,
+      viewer: response.data.viewer,
     }
   }
 

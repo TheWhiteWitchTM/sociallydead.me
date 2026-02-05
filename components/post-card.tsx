@@ -278,40 +278,40 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
   return (
     <>
       <Card className="border-border hover:bg-accent/50 transition-colors">
-        <CardContent className="p-4">
+        <CardContent className="p-3 sm:p-4">
           {/* Repost indicator */}
           {isRepostReason && post.reason?.by && (
             <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-              <Repeat2 className="h-4 w-4" />
-              <Link href={`/profile/${post.reason.by.handle}`} className="hover:underline">
+              <Repeat2 className="h-4 w-4 shrink-0" />
+              <Link href={`/profile/${post.reason.by.handle}`} className="hover:underline truncate">
                 {post.reason.by.displayName || post.reason.by.handle} reposted
               </Link>
             </div>
           )}
 
-          <div className="flex gap-3">
-            <Link href={`/profile/${post.author.handle}`}>
-              <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+          <div className="flex gap-2 sm:gap-3">
+            <Link href={`/profile/${post.author.handle}`} className="shrink-0">
+              <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
                 <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-                <AvatarFallback>
+                <AvatarFallback className="text-sm">
                   {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </Link>
             
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1 min-w-0">
-                  <Link href={`/profile/${post.author.handle}`} className="font-semibold truncate hover:underline">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex items-start justify-between gap-1">
+                <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
+                  <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
                     {post.author.displayName || post.author.handle}
                   </Link>
-                  <span className="text-muted-foreground truncate">
+                  <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
                     @{post.author.handle}
                   </span>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground hidden sm:inline">·</span>
                   <Link 
                     href={`/post/${post.author.handle}/${post.uri.split('/').pop()}`}
-                    className="text-muted-foreground text-sm whitespace-nowrap hover:underline"
+                    className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
                   >
                     {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
                   </Link>
@@ -424,41 +424,41 @@ export function PostCard({ post, isOwnPost, onPostUpdated, showReplyContext = tr
                 </Card>
               )}
               
-              <div className="mt-3 flex items-center gap-1">
+              <div className="mt-2 sm:mt-3 flex items-center -ml-2">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="gap-1.5 text-muted-foreground h-8 px-2 hover:text-primary hover:bg-primary/10"
+                  className="gap-1 text-muted-foreground h-8 px-2 hover:text-primary hover:bg-primary/10"
                   onClick={handleReplyClick}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  <span className="text-sm">{replyCount}</span>
+                  <span className="text-xs sm:text-sm tabular-nums">{replyCount}</span>
                 </Button>
                 
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className={cn(
-                    "gap-1.5 h-8 px-2 hover:text-green-500 hover:bg-green-500/10",
+                    "gap-1 h-8 px-2 hover:text-green-500 hover:bg-green-500/10",
                     isReposted ? "text-green-500" : "text-muted-foreground"
                   )}
                   onClick={handleRepostClick}
                 >
                   <Repeat2 className="h-4 w-4" />
-                  <span className="text-sm">{repostCount}</span>
+                  <span className="text-xs sm:text-sm tabular-nums">{repostCount}</span>
                 </Button>
                 
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className={cn(
-                    "gap-1.5 h-8 px-2 hover:text-red-500 hover:bg-red-500/10",
+                    "gap-1 h-8 px-2 hover:text-red-500 hover:bg-red-500/10",
                     isLiked ? "text-red-500" : "text-muted-foreground"
                   )}
                   onClick={handleLike}
                 >
                   <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-                  <span className="text-sm">{likeCount}</span>
+                  <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
                 </Button>
               </div>
             </div>

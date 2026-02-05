@@ -40,25 +40,26 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex gap-3">
-          <Avatar className="h-12 w-12">
+    <Card className="border-border hover:bg-accent/50 transition-colors">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex gap-2 sm:gap-3">
+          <Avatar className="h-9 w-9 sm:h-10 sm:w-10 shrink-0">
             <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-            <AvatarFallback>
+            <AvatarFallback className="text-sm">
               {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold truncate">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-x-1 leading-tight">
+              <span className="font-semibold break-all">
                 {post.author.displayName || post.author.handle}
               </span>
-              <span className="text-sm text-muted-foreground truncate">
+              <span className="text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
                 @{post.author.handle}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground hidden sm:inline">·</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {timeAgo}
               </span>
             </div>
@@ -67,32 +68,32 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
               <MarkdownRenderer content={post.record.text} />
             </div>
             
-            <div className="mt-3 flex items-center gap-6">
+            <div className="mt-2 sm:mt-3 flex items-center -ml-2">
               <button
                 onClick={handleInteraction}
-                className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-primary transition-colors"
                 title="Sign in to reply"
               >
                 <MessageCircle className="h-4 w-4" />
-                <span className="text-sm">{post.replyCount}</span>
+                <span className="text-xs sm:text-sm tabular-nums">{post.replyCount}</span>
               </button>
               
               <button
                 onClick={handleInteraction}
-                className="flex items-center gap-1 text-muted-foreground hover:text-green-500 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-green-500 transition-colors"
                 title="Sign in to repost"
               >
                 <Repeat2 className="h-4 w-4" />
-                <span className="text-sm">{post.repostCount}</span>
+                <span className="text-xs sm:text-sm tabular-nums">{post.repostCount}</span>
               </button>
               
               <button
                 onClick={handleInteraction}
-                className="flex items-center gap-1 text-muted-foreground hover:text-red-500 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-red-500 transition-colors"
                 title="Sign in to like"
               >
                 <Heart className="h-4 w-4" />
-                <span className="text-sm">{post.likeCount}</span>
+                <span className="text-xs sm:text-sm tabular-nums">{post.likeCount}</span>
               </button>
             </div>
           </div>

@@ -178,7 +178,7 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           {selectedConvo ? (
             <>
               <div className="flex items-center gap-3">
@@ -267,7 +267,7 @@ export default function MessagesPage() {
         </div>
       </header>
 
-      <main className="container px-4 py-6">
+      <main className="mx-auto max-w-4xl px-2 sm:px-4 py-6">
         <div className="flex gap-4">
           {/* Conversation List */}
           <div className={`w-full lg:w-80 lg:border-r lg:pr-4 ${selectedConvo ? 'hidden lg:block' : ''}`}>

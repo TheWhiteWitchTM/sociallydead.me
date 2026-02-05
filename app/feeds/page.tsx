@@ -190,7 +190,7 @@ export default function FeedsPage() {
     return (
       <div className="min-h-screen">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 items-center gap-4 px-4">
+          <div className="flex h-14 items-center gap-4 px-4">
             <Button variant="ghost" size="icon" onClick={() => setSelectedFeed(null)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -209,7 +209,7 @@ export default function FeedsPage() {
           </div>
         </header>
 
-        <main className="container max-w-2xl px-4 py-6">
+        <main className="max-w-2xl mx-auto px-4 py-6">
           {/* Feed Info */}
           <Card className="mb-6">
             <CardContent className="p-4">
@@ -285,7 +285,7 @@ export default function FeedsPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           <h1 className="text-xl font-bold">Feeds</h1>
           <Button onClick={loadAll} variant="ghost" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -293,7 +293,7 @@ export default function FeedsPage() {
         </div>
       </header>
 
-      <main className="container max-w-2xl px-4 py-6">
+      <main className="max-w-2xl mx-auto px-4 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

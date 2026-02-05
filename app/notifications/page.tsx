@@ -103,12 +103,15 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           <h1 className="text-xl font-bold">Notifications</h1>
           <div className="flex items-center gap-2">
-            <Button onClick={handleMarkAllRead} variant="ghost" size="sm">
+            <Button onClick={handleMarkAllRead} variant="ghost" size="sm" className="hidden sm:flex">
               <CheckCheck className="h-4 w-4 mr-2" />
               Mark all read
+            </Button>
+            <Button onClick={handleMarkAllRead} variant="ghost" size="icon" className="sm:hidden">
+              <CheckCheck className="h-4 w-4" />
             </Button>
             <Button onClick={loadNotifications} variant="ghost" size="icon" disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -117,7 +120,7 @@ export default function NotificationsPage() {
         </div>
       </header>
 
-      <main className="container max-w-2xl px-4 py-6">
+      <main className="mx-auto max-w-2xl px-2 sm:px-4 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -149,7 +152,7 @@ export default function NotificationsPage() {
                   key={`${notification.uri}-${notification.indexedAt}`}
                   className={`transition-colors ${!notification.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="flex gap-3">
                       <div className={`mt-1 ${colorClass}`}>
                         <Icon className="h-5 w-5" />

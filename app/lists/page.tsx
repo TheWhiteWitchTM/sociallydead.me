@@ -237,7 +237,7 @@ export default function ListsPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           <h1 className="text-xl font-bold">Lists</h1>
           <div className="flex items-center gap-2">
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -311,7 +311,7 @@ export default function ListsPage() {
         </div>
       </header>
 
-      <main className="container px-4 py-6">
+      <main className="px-4 py-6">
         <div className="flex gap-6">
           {/* Lists */}
           <div className={`w-full lg:w-80 ${selectedList ? 'hidden lg:block' : ''}`}>

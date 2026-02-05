@@ -273,7 +273,7 @@ export default function StarterPacksPage() {
     return (
       <div className="min-h-screen">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 items-center gap-4 px-4">
+          <div className="flex h-14 items-center gap-4 px-4">
             <Button variant="ghost" size="icon" onClick={() => setSelectedPack(null)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -303,7 +303,7 @@ export default function StarterPacksPage() {
           </div>
         </header>
 
-        <main className="container max-w-2xl px-4 py-6">
+        <main className="max-w-2xl mx-auto px-4 py-6">
           {/* Pack Info Card */}
           <Card className="mb-6">
             <CardContent className="p-6">
@@ -528,7 +528,7 @@ export default function StarterPacksPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           <h1 className="text-xl font-bold">Starter Packs</h1>
           <div className="flex items-center gap-2">
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -584,7 +584,7 @@ export default function StarterPacksPage() {
         </div>
       </header>
 
-      <main className="container max-w-2xl px-4 py-6">
+      <main className="max-w-2xl mx-auto px-4 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
