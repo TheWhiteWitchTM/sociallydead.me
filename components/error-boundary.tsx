@@ -3,7 +3,7 @@
 import { Component, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-react"
+import { AlertCircle, RefreshCw, Home, ChevronDown, Copy, Check } from "lucide-react"
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -14,21 +14,30 @@ interface ErrorBoundaryState {
   hasError: boolean
   error: Error | null
   errorInfo: string | null
+  showDetails: boolean
+  copied: boolean
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
-    this.state = { hasError: false, error: null, errorInfo: null }
+    this.state = { hasError: false, error: null, errorInfo: null, showDetails: false, copied: false }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error, errorInfo: null }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo)
     this.setState({ errorInfo: errorInfo.componentStack || null })
+  }
+
+  copyDetails = () => {
+    const details = `Error: ${this.state.error?.message}\n\nStack: ${this.state.error?.stack}\n\nComponent: ${this.state.errorInfo}`
+    navigator.clipboard.writeText(details)
+    this.setState({ copied: true })
+    setTimeout(() => this.setState({ copied: false }), 2000)
   }
 
   render() {
@@ -39,27 +48,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="h-8 w-8 text-destructive" />
+          <Card className="w-full max-w-md border-border/50">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="h-7 w-7 text-primary" />
               </div>
               <CardTitle className="text-xl">Something went wrong</CardTitle>
-              <CardDescription>
-                An unexpected error occurred. We apologize for the inconvenience.
+              <CardDescription className="text-sm">
+                We encountered an unexpected error. Please try again or return to the home page.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {this.state.error && (
-                <div className="bg-muted rounded-lg p-4 text-sm">
-                  <p className="font-mono text-destructive break-all">
-                    {this.state.error.message || "Unknown error"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-              <div className="flex gap-2 w-full">
+            <CardContent className="pb-4">
+              <div className="flex gap-3 w-full">
                 <Button
                   onClick={() => {
                     this.setState({ hasError: false, error: null, errorInfo: null })
@@ -81,18 +81,43 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   Go Home
                 </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const details = `Error: ${this.state.error?.message}\n\nStack: ${this.state.error?.stack}\n\nComponent: ${this.state.errorInfo}`
-                  navigator.clipboard.writeText(details)
-                }}
-                className="text-muted-foreground"
+            </CardContent>
+            <CardFooter className="flex flex-col pt-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-muted-foreground hover:text-foreground"
+                onClick={() => this.setState({ showDetails: !this.state.showDetails })}
               >
-                <Bug className="h-4 w-4 mr-2" />
-                Copy Error Details
+                <ChevronDown className={`h-4 w-4 mr-1 transition-transform ${this.state.showDetails ? "rotate-180" : ""}`} />
+                {this.state.showDetails ? "Hide details" : "Show details"}
               </Button>
+              
+              {this.state.showDetails && this.state.error && (
+                <div className="mt-3 w-full bg-muted/50 rounded-lg p-3 text-sm border border-border/50">
+                  <p className="font-mono text-xs text-muted-foreground break-all whitespace-pre-wrap">
+                    {this.state.error.message || "Unknown error"}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={this.copyDetails}
+                    className="mt-2 h-7 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {this.state.copied ? (
+                      <>
+                        <Check className="h-3 w-3 mr-1" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy details
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardFooter>
           </Card>
         </div>

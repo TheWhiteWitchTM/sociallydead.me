@@ -312,6 +312,11 @@ const BlueskyContext = createContext<BlueskyContextType | undefined>(undefined)
 let oauthClient: BrowserOAuthClient | null = null
 
 async function getOAuthClient(): Promise<BrowserOAuthClient> {
+  // Safety check for SSR - only run in browser
+  if (typeof window === 'undefined') {
+    throw new Error("OAuth client can only be initialized in the browser")
+  }
+  
   if (oauthClient) return oauthClient
   
   oauthClient = new BrowserOAuthClient({
@@ -340,6 +345,12 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const [publicAgent] = useState(() => new Agent("https://api.bsky.app"))
 
   useEffect(() => {
+    // Ensure we're in the browser before initializing OAuth
+    if (typeof window === 'undefined') {
+      setIsLoading(false)
+      return
+    }
+    
     const init = async () => {
       try {
         const client = await getOAuthClient()
