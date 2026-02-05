@@ -64,11 +64,12 @@ export function AppSidebar() {
           console.error("Failed to fetch unread count:", error)
         }
       }
+      // Fetch immediately and also when navigating away from notifications (after marking read)
       fetchUnread()
       const interval = setInterval(fetchUnread, 30000)
       return () => clearInterval(interval)
     }
-  }, [isAuthenticated, getUnreadCount])
+  }, [isAuthenticated, getUnreadCount, pathname])
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-20 flex-col border-r border-border bg-sidebar lg:w-64">

@@ -1227,7 +1227,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     if (!agent) throw new Error("Not authenticated")
     
     try {
-      const response = await agent.api.chat.bsky.convo.listConvos({})
+      const response = await agent.api.chat.bsky.convo.listConvos({ limit: 100 })
       return response.data.convos.map((convo) => ({
         id: convo.id,
         rev: convo.rev,

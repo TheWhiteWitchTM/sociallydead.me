@@ -85,8 +85,10 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadNotifications()
+      // Auto-mark notifications as read when viewing the page
+      markNotificationsRead().catch(console.error)
     }
-  }, [isAuthenticated, loadNotifications])
+  }, [isAuthenticated, loadNotifications, markNotificationsRead])
 
   if (authLoading) {
     return (
