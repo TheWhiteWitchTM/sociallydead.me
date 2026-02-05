@@ -1,0 +1,624 @@
+"use client"
+
+import { useState, useCallback, useEffect } from "react"
+import { useParams } from "next/navigation"
+import Link from "next/link"
+import { useBluesky } from "@/lib/bluesky-context"
+import { PostCard } from "@/components/post-card"
+import { PublicPostCard } from "@/components/public-post-card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle } from "lucide-react"
+
+interface UserProfile {
+  did: string
+  handle: string
+  displayName?: string
+  avatar?: string
+  banner?: string
+  description?: string
+  followersCount?: number
+  followsCount?: number
+  postsCount?: number
+  viewer?: {
+    muted?: boolean
+    blockedBy?: boolean
+    blocking?: string
+    following?: string
+    followedBy?: string
+  }
+}
+
+interface Post {
+  uri: string
+  cid: string
+  author: {
+    did: string
+    handle: string
+    displayName?: string
+    avatar?: string
+  }
+  record: {
+    text: string
+    createdAt: string
+    reply?: {
+      root: { uri: string; cid: string }
+      parent: { uri: string; cid: string }
+    }
+  }
+  embed?: {
+    $type: string
+    record?: {
+      uri: string
+      cid: string
+      author: {
+        did: string
+        handle: string
+        displayName?: string
+        avatar?: string
+      }
+      value: {
+        text: string
+        createdAt: string
+      }
+    }
+    images?: Array<{
+      thumb: string
+      fullsize: string
+      alt: string
+    }>
+  }
+  replyCount: number
+  repostCount: number
+  likeCount: number
+  viewer?: {
+    like?: string
+    repost?: string
+  }
+}
+
+export default function UserProfilePage() {
+  const params = useParams()
+  const handle = params.handle as string
+  
+  const { 
+    user, 
+    isAuthenticated, 
+    isLoading: authLoading,
+    getProfile,
+    getUserPosts,
+    getUserReplies,
+    getUserMedia,
+    followUser,
+    unfollowUser,
+    blockUser,
+    unblockUser,
+    muteUser,
+    unmuteUser,
+    startConversation,
+    getFollowers,
+    getFollowing,
+  } = useBluesky()
+  
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [postsLoading, setPostsLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("posts")
+  const [error, setError] = useState<string | null>(null)
+  
+  // Followers/Following lists
+  const [followers, setFollowers] = useState<UserProfile[]>([])
+  const [following, setFollowing] = useState<UserProfile[]>([])
+  const [listLoading, setListLoading] = useState(false)
+
+  const isOwnProfile = user?.handle === handle || user?.did === handle
+
+  const loadProfile = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const profileData = await getProfile(handle)
+      setProfile(profileData as UserProfile)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load profile")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [handle, getProfile])
+
+  const loadPosts = useCallback(async (type: string) => {
+    if (!profile) return
+    setPostsLoading(true)
+    
+    try {
+      let fetchedPosts: Post[]
+      
+      switch (type) {
+        case "posts":
+          fetchedPosts = await getUserPosts(profile.did)
+          break
+        case "replies":
+          fetchedPosts = await getUserReplies(profile.did)
+          break
+        case "media":
+          fetchedPosts = await getUserMedia(profile.did)
+          break
+        default:
+          fetchedPosts = await getUserPosts(profile.did)
+      }
+      
+      setPosts(fetchedPosts)
+    } catch (err) {
+      console.error("Failed to load posts:", err)
+    } finally {
+      setPostsLoading(false)
+    }
+  }, [profile, getUserPosts, getUserReplies, getUserMedia])
+
+  const loadFollowers = useCallback(async () => {
+    if (!profile) return
+    setListLoading(true)
+    try {
+      const result = await getFollowers(profile.handle)
+      setFollowers(result.followers as UserProfile[])
+    } catch (error) {
+      console.error("Failed to load followers:", error)
+    } finally {
+      setListLoading(false)
+    }
+  }, [profile, getFollowers])
+
+  const loadFollowing = useCallback(async () => {
+    if (!profile) return
+    setListLoading(true)
+    try {
+      const result = await getFollowing(profile.handle)
+      setFollowing(result.following as UserProfile[])
+    } catch (error) {
+      console.error("Failed to load following:", error)
+    } finally {
+      setListLoading(false)
+    }
+  }, [profile, getFollowing])
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    if (tab === "followers") {
+      loadFollowers()
+    } else if (tab === "following") {
+      loadFollowing()
+    } else {
+      loadPosts(tab)
+    }
+  }
+
+  const handleFollow = async () => {
+    if (!profile || !isAuthenticated) return
+    setActionLoading(true)
+    
+    try {
+      if (profile.viewer?.following) {
+        await unfollowUser(profile.viewer.following)
+        setProfile(prev => prev ? {
+          ...prev,
+          followersCount: (prev.followersCount || 0) - 1,
+          viewer: { ...prev.viewer, following: undefined }
+        } : null)
+      } else {
+        const followUri = await followUser(profile.did)
+        setProfile(prev => prev ? {
+          ...prev,
+          followersCount: (prev.followersCount || 0) + 1,
+          viewer: { ...prev.viewer, following: followUri }
+        } : null)
+      }
+    } catch (error) {
+      console.error("Follow action failed:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleBlock = async () => {
+    if (!profile || !isAuthenticated) return
+    setActionLoading(true)
+    
+    try {
+      if (profile.viewer?.blocking) {
+        await unblockUser(profile.viewer.blocking)
+        setProfile(prev => prev ? {
+          ...prev,
+          viewer: { ...prev.viewer, blocking: undefined }
+        } : null)
+      } else {
+        const blockUri = await blockUser(profile.did)
+        setProfile(prev => prev ? {
+          ...prev,
+          viewer: { ...prev.viewer, blocking: blockUri, following: undefined }
+        } : null)
+      }
+    } catch (error) {
+      console.error("Block action failed:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleMute = async () => {
+    if (!profile || !isAuthenticated) return
+    setActionLoading(true)
+    
+    try {
+      if (profile.viewer?.muted) {
+        await unmuteUser(profile.did)
+        setProfile(prev => prev ? {
+          ...prev,
+          viewer: { ...prev.viewer, muted: false }
+        } : null)
+      } else {
+        await muteUser(profile.did)
+        setProfile(prev => prev ? {
+          ...prev,
+          viewer: { ...prev.viewer, muted: true }
+        } : null)
+      }
+    } catch (error) {
+      console.error("Mute action failed:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleMessage = async () => {
+    if (!profile || !isAuthenticated) return
+    try {
+      await startConversation(profile.did)
+      window.location.href = "/messages"
+    } catch (error) {
+      console.error("Failed to start conversation:", error)
+    }
+  }
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
+
+  useEffect(() => {
+    if (profile && activeTab !== "followers" && activeTab !== "following") {
+      loadPosts(activeTab)
+    }
+  }, [profile, activeTab, loadPosts])
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex h-14 items-center gap-4 px-4">
+            <Link href="/">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-bold">Profile</h1>
+          </div>
+        </header>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-muted-foreground">{error || "Profile not found"}</p>
+          <Link href="/" className="mt-4">
+            <Button variant="outline">Go Home</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect to own profile page if viewing own profile
+  if (isOwnProfile) {
+    window.location.href = "/profile"
+    return null
+  }
+
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center gap-4 px-4">
+          <Link href="/">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold truncate">{profile.displayName || profile.handle}</h1>
+            <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-2xl">
+        {/* Profile Header */}
+        <div className="relative">
+          {/* Banner */}
+          {profile.banner ? (
+            <div 
+              className="h-32 sm:h-48 w-full bg-cover bg-center" 
+              style={{ backgroundImage: `url(${profile.banner})` }} 
+            />
+          ) : (
+            <div className="h-32 sm:h-48 w-full bg-gradient-to-r from-primary/30 to-primary/10" />
+          )}
+          
+          {/* Avatar */}
+          <div className="absolute -bottom-16 left-4">
+            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+              <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.displayName || profile.handle} />
+              <AvatarFallback className="text-2xl sm:text-3xl">
+                {(profile.displayName || profile.handle).slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="absolute right-4 bottom-4 flex gap-2">
+            {isAuthenticated && (
+              <>
+                <Button 
+                  variant={profile.viewer?.following ? "secondary" : "default"}
+                  size="sm"
+                  onClick={handleFollow}
+                  disabled={actionLoading || !!profile.viewer?.blocking}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : profile.viewer?.following ? (
+                    <>
+                      <UserMinus className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Following</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Follow</span>
+                    </>
+                  )}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-9 w-9">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleMessage}>
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Message
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleMute}>
+                      <BellOff className="mr-2 h-4 w-4" />
+                      {profile.viewer?.muted ? "Unmute" : "Mute"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleBlock}
+                      className={profile.viewer?.blocking ? "" : "text-destructive"}
+                    >
+                      <Ban className="mr-2 h-4 w-4" />
+                      {profile.viewer?.blocking ? "Unblock" : "Block"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* Profile Info */}
+        <div className="px-4 pt-20 pb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold">{profile.displayName || profile.handle}</h2>
+              <p className="text-muted-foreground">@{profile.handle}</p>
+            </div>
+          </div>
+          
+          {/* Relationship badges */}
+          {(profile.viewer?.followedBy || profile.viewer?.blocking || profile.viewer?.muted) && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {profile.viewer?.followedBy && (
+                <span className="text-xs bg-muted px-2 py-1 rounded">Follows you</span>
+              )}
+              {profile.viewer?.blocking && (
+                <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">Blocked</span>
+              )}
+              {profile.viewer?.muted && (
+                <span className="text-xs bg-muted px-2 py-1 rounded">Muted</span>
+              )}
+            </div>
+          )}
+          
+          {profile.description && (
+            <p className="mt-3 whitespace-pre-wrap">{profile.description}</p>
+          )}
+          
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-muted-foreground">
+            <a 
+              href={`https://bsky.app/profile/${profile.handle}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>View on Bluesky</span>
+            </a>
+          </div>
+          
+          {/* Stats */}
+          <div className="flex gap-4 mt-3 text-sm">
+            <button 
+              onClick={() => handleTabChange("following")}
+              className="hover:underline"
+            >
+              <span className="font-semibold">{profile.followsCount || 0}</span>
+              <span className="text-muted-foreground ml-1">Following</span>
+            </button>
+            <button 
+              onClick={() => handleTabChange("followers")}
+              className="hover:underline"
+            >
+              <span className="font-semibold">{profile.followersCount || 0}</span>
+              <span className="text-muted-foreground ml-1">Followers</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Profile Tabs */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="px-2 sm:px-4">
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="replies">Replies</TabsTrigger>
+            <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="followers">Followers</TabsTrigger>
+            <TabsTrigger value="following">Following</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="posts" className="mt-4">
+            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
+          </TabsContent>
+          
+          <TabsContent value="replies" className="mt-4">
+            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
+          </TabsContent>
+          
+          <TabsContent value="media" className="mt-4">
+            <PostsList posts={posts} loading={postsLoading} isAuthenticated={isAuthenticated} userId={user?.did} />
+          </TabsContent>
+          
+          <TabsContent value="followers" className="mt-4">
+            {listLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : followers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-muted-foreground">No followers yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {followers.map((follower) => (
+                  <UserCard key={follower.did} user={follower} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="following" className="mt-4">
+            {listLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : following.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-muted-foreground">Not following anyone yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {following.map((followed) => (
+                  <UserCard key={followed.did} user={followed} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  )
+}
+
+function PostsList({ 
+  posts, 
+  loading, 
+  isAuthenticated, 
+  userId 
+}: { 
+  posts: Post[]
+  loading: boolean
+  isAuthenticated: boolean
+  userId?: string
+}) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <p className="text-muted-foreground">No posts yet</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {posts.map((post) => (
+        isAuthenticated ? (
+          <PostCard
+            key={post.uri}
+            post={post}
+            isOwnPost={userId === post.author.did}
+          />
+        ) : (
+          <PublicPostCard key={post.uri} post={post as any} />
+        )
+      ))}
+    </div>
+  )
+}
+
+function UserCard({ user }: { user: UserProfile }) {
+  return (
+    <Card className="hover:bg-accent/50 transition-colors">
+      <CardContent className="p-3 sm:p-4">
+        <Link href={`/profile/${user.handle}`} className="flex items-start gap-3">
+          <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
+            <AvatarFallback>
+              {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold truncate">{user.displayName || user.handle}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">@{user.handle}</p>
+            {user.description && (
+              <p className="text-sm mt-1 line-clamp-2">{user.description}</p>
+            )}
+          </div>
+        </Link>
+      </CardContent>
+    </Card>
+  )
+}
