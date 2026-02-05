@@ -380,9 +380,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       const userHandle = handle || window.prompt("Enter your Bluesky handle (e.g., user.bsky.social):")
       if (!userHandle) return
       
-      await client.signIn(userHandle, {
-        signal: new AbortController().signal,
-      })
+  await client.signIn(userHandle, {
+  scope: 'atproto transition:generic transition:chat.bsky',
+  signal: new AbortController().signal,
+  })
     } catch (error) {
       console.error("Login error:", error)
       throw error
