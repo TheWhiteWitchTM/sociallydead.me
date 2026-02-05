@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -21,18 +21,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { useBluesky } from "@/lib/bluesky-context"
+import { SignInDialog } from "@/components/sign-in-dialog"
 
 const authNavItems = [
   { href: "/", icon: Home, label: "Home" },
@@ -56,10 +48,7 @@ const publicNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { user, login, logout, isAuthenticated, isLoading, getUnreadCount } = useBluesky()
-  const [handle, setHandle] = useState("")
-  const [isSigningIn, setIsSigningIn] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const { user, logout, isAuthenticated, isLoading, getUnreadCount } = useBluesky()
   const [unreadCount, setUnreadCount] = useState(0)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
@@ -79,21 +68,6 @@ export function AppSidebar() {
       return () => clearInterval(interval)
     }
   }, [isAuthenticated, getUnreadCount])
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!handle.trim()) return
-
-    setIsSigningIn(true)
-    try {
-      await login(handle.trim())
-      setDialogOpen(false)
-    } catch (error) {
-      console.error("Login failed:", error)
-    } finally {
-      setIsSigningIn(false)
-    }
-  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-20 flex-col border-r border-border bg-sidebar lg:w-64">
@@ -139,8 +113,8 @@ export function AppSidebar() {
             </Button>
           </div>
         ) : (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
+          <SignInDialog
+            trigger={
               <Button
                 className="w-full justify-center lg:justify-start"
                 disabled={isLoading}
@@ -154,40 +128,8 @@ export function AppSidebar() {
                   </>
                 )}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Sign in with Bluesky</DialogTitle>
-                <DialogDescription>
-                  Enter your Bluesky handle to sign in using OAuth
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="handle.bsky.social"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
-                  disabled={isSigningIn}
-                  autoFocus
-                />
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSigningIn || !handle.trim()}
-                >
-                  {isSigningIn ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Continue with Bluesky"
-                  )}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            }
+          />
         )}
       </div>
 

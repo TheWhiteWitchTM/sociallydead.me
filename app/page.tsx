@@ -5,10 +5,11 @@ import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
+import { SignInDialog } from "@/components/sign-in-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Newspaper, Gamepad2, Globe } from "lucide-react"
 
 // Known working Bluesky feed URIs
@@ -78,7 +79,7 @@ interface Post {
 }
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed, getPublicFeed, login } = useBluesky()
+  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed, getPublicFeed } = useBluesky()
   const [posts, setPosts] = useState<Post[]>([])
   const [feedLoading, setFeedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -174,9 +175,13 @@ export default function HomePage() {
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-14 items-center justify-between px-4">
             <h1 className="text-xl font-bold">SociallyDead</h1>
-            <Button onClick={() => login()} variant="default" size="sm">
-              Sign In
-            </Button>
+            <SignInDialog
+              trigger={
+                <Button variant="default" size="sm">
+                  Sign In
+                </Button>
+              }
+            />
           </div>
         </header>
         <main className="mx-auto max-w-2xl px-2 sm:px-4 py-6">
@@ -191,9 +196,13 @@ export default function HomePage() {
                 <p className="text-muted-foreground mb-4 max-w-sm">
                   Sign in with your Bluesky account to see your timeline, post updates, and connect with others.
                 </p>
-                <Button onClick={() => login()} size="lg" className="w-full max-w-xs">
-                  Sign in with Bluesky
-                </Button>
+                <SignInDialog
+                  trigger={
+                    <Button size="lg" className="w-full max-w-xs">
+                      Sign in with Bluesky
+                    </Button>
+                  }
+                />
               </div>
             </CardContent>
           </Card>

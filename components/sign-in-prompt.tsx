@@ -1,8 +1,8 @@
 "use client"
 
-import { useBluesky } from "@/lib/bluesky-context"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { SignInDialog } from "@/components/sign-in-dialog"
+import { Button } from "@/components/ui/button"
 import { LogIn } from "lucide-react"
 
 interface SignInPromptProps {
@@ -14,8 +14,6 @@ export function SignInPrompt({
   title = "Sign in to continue", 
   description = "You need to be signed in to access this feature" 
 }: SignInPromptProps) {
-  const { login, isLoading } = useBluesky()
-
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -26,16 +24,15 @@ export function SignInPrompt({
           <CardTitle className="text-2xl">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={login} 
-            className="w-full" 
-            size="lg"
-            disabled={isLoading}
-          >
-            <LogIn className="mr-2 h-5 w-5" />
-            Sign in with Bluesky
-          </Button>
+        <CardContent className="flex flex-col items-center">
+          <SignInDialog
+            trigger={
+              <Button className="w-full" size="lg">
+                <LogIn className="mr-2 h-5 w-5" />
+                Sign in with Bluesky
+              </Button>
+            }
+          />
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Uses secure OAuth - we never see your password
           </p>
