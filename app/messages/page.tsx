@@ -73,16 +73,13 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadConversations = useCallback(async () => {
-    console.log("[v0] Messages: Loading conversations...")
     setIsLoading(true)
     setError(null)
     
     try {
       const convos = await getConversations()
-      console.log("[v0] Messages: Got conversations:", convos.length, convos)
       setConversations(convos)
     } catch (err) {
-      console.error("[v0] Messages: Error loading conversations:", err)
       setError(err instanceof Error ? err.message : "Failed to load conversations")
     } finally {
       setIsLoading(false)
@@ -164,17 +161,15 @@ export default function MessagesPage() {
   }
 
   const handleStartConvo = async (did: string) => {
-    console.log("[v0] Starting conversation with DID:", did)
     try {
       const convo = await startConversation(did)
-      console.log("[v0] Conversation started successfully:", convo)
       setNewConvoOpen(false)
       setSearchQuery("")
       setSearchResults([])
       await loadConversations()
       handleSelectConvo(convo)
     } catch (error) {
-      console.error("[v0] Failed to start conversation:", error)
+      console.error("Failed to start conversation:", error)
       alert("Failed to start conversation. Please try logging out and back in to enable chat permissions.")
     }
   }
@@ -273,7 +268,6 @@ export default function MessagesPage() {
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                console.log("[v0] Clicked on user:", actor.handle, actor.did)
                                 handleStartConvo(actor.did)
                               }}
                             >

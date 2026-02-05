@@ -1306,15 +1306,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       // Use atproto-proxy header to route to chat service
       const headers = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
       
-      console.log("[v0] Chat: Attempting to load conversations")
-      console.log("[v0] Chat: Agent session DID:", agent.session?.did)
-      
       const response = await agent.api.chat.bsky.convo.listConvos(
         { limit: 100 },
         { headers }
       )
-      
-      console.log("[v0] Chat: Success! Found", response.data.convos?.length || 0, "conversations")
       
       return response.data.convos.map((convo) => ({
         id: convo.id,
@@ -1334,14 +1329,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         unreadCount: convo.unreadCount,
         muted: convo.muted,
       }))
-    } catch (error) {
-      console.error("[v0] Chat: ERROR loading conversations:", error)
-      if (error && typeof error === 'object' && 'status' in error) {
-        console.error("[v0] Chat: HTTP Status:", (error as { status: number }).status)
-      }
-      if (error && typeof error === 'object' && 'message' in error) {
-        console.error("[v0] Chat: Error message:", (error as { message: string }).message)
-      }
+    } catch {
       return []
     }
   }
@@ -1394,18 +1382,12 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const startConversation = async (did: string): Promise<BlueskyConvo> => {
     if (!agent) throw new Error("Not authenticated")
     
-    console.log("[v0] Chat: Starting conversation with:", did)
-    
     const proxyHeader = { 'atproto-proxy': 'did:web:api.bsky.chat#bsky_chat' }
-    
-    console.log("[v0] Chat: Calling getConvoForMembers API...")
     
     const response = await agent.api.chat.bsky.convo.getConvoForMembers(
       { members: [did] },
       { headers: proxyHeader }
     )
-    
-    console.log("[v0] Chat: Got response:", response.data)
     
     const convo = response.data.convo
     return {
