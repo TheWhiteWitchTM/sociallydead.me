@@ -4,12 +4,14 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
 import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare } from "lucide-react"
+// ScrollArea removed - using native overflow-y-auto for reliable pinned input
 import {
   Dialog,
   DialogContent,
@@ -430,9 +432,9 @@ export default function MessagesPage() {
             {!selectedConvo ? (
               <p className="text-muted-foreground">Select a conversation to view messages</p>
             ) : (
-              <div className="flex flex-col h-[calc(100vh-12rem)]">
-                {/* Messages */}
-                <ScrollArea className="flex-1 pr-4">
+              <div className="flex flex-col" style={{ height: 'calc(100vh - 7rem)' }}>
+                {/* Messages - scrollable area */}
+                <div className="flex-1 overflow-y-auto min-h-0 px-1">
                   {messagesLoading ? (
                     <div className="flex justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -455,7 +457,7 @@ export default function MessagesPage() {
                           >
                             <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : ''}`}>
                               {!isOwn && (
-                                <Avatar className="h-8 w-8 shrink-0">
+                                <Avatar className="h-8 w-8 shrink-0 mt-1">
                                   <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
                                   <AvatarFallback className="text-xs">
                                     {(sender?.displayName || sender?.handle || "?").slice(0, 2).toUpperCase()}
@@ -470,7 +472,10 @@ export default function MessagesPage() {
                                       : 'bg-muted'
                                   }`}
                                 >
-                                  <p className="text-sm">{message.text}</p>
+                                  <MarkdownRenderer 
+                                    content={message.text} 
+                                    className={`text-sm ${isOwn ? '[&_*]:text-primary-foreground [&_a]:text-primary-foreground [&_a]:underline' : ''}`}
+                                  />
                                 </div>
                                 <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? 'text-right' : ''}`}>
                                   {formatDistanceToNow(new Date(message.sentAt), { addSuffix: true })}
@@ -483,19 +488,31 @@ export default function MessagesPage() {
                       <div ref={messagesEndRef} />
                     </div>
                   )}
-                </ScrollArea>
+                </div>
 
-                {/* Message Input */}
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex gap-2">
-                    <Input
+                {/* Message Input - pinned to bottom */}
+                <div className="shrink-0 border-t border-border bg-background pt-3 pb-2">
+                  <div className="flex gap-2 items-end">
+                    <Textarea
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                      placeholder="Type a message... (Markdown supported)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSendMessage()
+                        }
+                      }}
                       disabled={isSending}
+                      rows={1}
+                      className="min-h-[40px] max-h-[120px] resize-none"
                     />
-                    <Button onClick={handleSendMessage} disabled={isSending || !newMessage.trim()}>
+                    <Button 
+                      onClick={handleSendMessage} 
+                      disabled={isSending || !newMessage.trim()} 
+                      size="icon"
+                      className="shrink-0 h-10 w-10"
+                    >
                       {isSending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
@@ -503,6 +520,7 @@ export default function MessagesPage() {
                       )}
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Shift+Enter for new line</p>
                 </div>
               </div>
             )}
