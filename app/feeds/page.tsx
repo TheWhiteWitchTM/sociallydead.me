@@ -6,8 +6,9 @@ import { PostCard } from "@/components/post-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, RefreshCw, Plus, Check, Heart, Rss, ArrowLeft } from "lucide-react"
+import { Loader2, RefreshCw, Plus, Check, Heart, Rss, ArrowLeft, Search } from "lucide-react"
 
 interface FeedGenerator {
   uri: string
@@ -84,6 +85,7 @@ export default function FeedsPage() {
     user,
     getSavedFeeds,
     getPopularFeeds,
+    searchFeedGenerators,
     getCustomFeed,
     saveFeed,
     unsaveFeed,
@@ -91,13 +93,16 @@ export default function FeedsPage() {
   
   const [savedFeeds, setSavedFeeds] = useState<FeedGenerator[]>([])
   const [popularFeeds, setPopularFeeds] = useState<FeedGenerator[]>([])
+  const [searchResults, setSearchResults] = useState<FeedGenerator[]>([])
   const [selectedFeed, setSelectedFeed] = useState<FeedGenerator | null>(null)
   const [feedPosts, setFeedPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [postsLoading, setPostsLoading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState("saved")
+  const [activeTab, setActiveTab] = useState("discover")
   const [savingFeed, setSavingFeed] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const loadSavedFeeds = useCallback(async () => {
     if (!isAuthenticated) return
@@ -146,6 +151,23 @@ export default function FeedsPage() {
       setPostsLoading(false)
     }
   }, [getCustomFeed])
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+    
+    setIsSearching(true)
+    setActiveTab("search")
+    
+    try {
+      const result = await searchFeedGenerators(searchQuery.trim())
+      setSearchResults(result.feeds)
+    } catch (err) {
+      console.error("Failed to search feeds:", err)
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   const handleSelectFeed = (feed: FeedGenerator) => {
     setSelectedFeed(feed)
@@ -307,11 +329,32 @@ export default function FeedsPage() {
             </Button>
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full justify-start mb-4">
-              {isAuthenticated && <TabsTrigger value="saved">My Feeds</TabsTrigger>}
-              <TabsTrigger value="discover">Discover</TabsTrigger>
-            </TabsList>
+          <>
+            {/* Search */}
+            <form onSubmit={handleSearch} className="mb-6">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search feeds..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button type="submit" disabled={isSearching || !searchQuery.trim()}>
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                </Button>
+              </div>
+            </form>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full justify-start mb-4">
+                <TabsTrigger value="discover">Discover</TabsTrigger>
+                {isAuthenticated && <TabsTrigger value="saved">My Feeds</TabsTrigger>}
+                {searchResults.length > 0 && <TabsTrigger value="search">Search Results</TabsTrigger>}
+              </TabsList>
             
             {isAuthenticated && (
               <TabsContent value="saved" className="mt-0">
@@ -369,7 +412,34 @@ export default function FeedsPage() {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="search" className="mt-0">
+              {isSearching ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <p className="text-muted-foreground">No feeds found for your search</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {searchResults.map((feed) => (
+                    <FeedCard 
+                      key={feed.uri} 
+                      feed={feed} 
+                      onClick={() => handleSelectFeed(feed)}
+                      isSaved={savedFeeds.some(f => f.uri === feed.uri)}
+                      onSave={() => handleSaveFeed(feed)}
+                      isSaving={savingFeed === feed.uri}
+                      showSaveButton={isAuthenticated}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
+          </>
         )}
       </main>
     </div>

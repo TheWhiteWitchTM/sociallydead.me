@@ -228,6 +228,7 @@ interface BlueskyContextType {
   getCustomFeed: (feedUri: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
   getSavedFeeds: () => Promise<BlueskyFeedGenerator[]>
   getPopularFeeds: (cursor?: string) => Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }>
+  searchFeedGenerators: (query: string, cursor?: string) => Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }>
   saveFeed: (uri: string) => Promise<void>
   unsaveFeed: (uri: string) => Promise<void>
   // Interactions
@@ -795,6 +796,36 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   const getPopularFeeds = async (cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
     const agentToUse = agent || publicAgent
     const response = await agentToUse.app.bsky.feed.getSuggestedFeeds({
+      limit: 50,
+      cursor,
+    })
+    
+    return {
+      feeds: response.data.feeds.map((feed) => ({
+        uri: feed.uri,
+        cid: feed.cid,
+        did: feed.did,
+        creator: {
+          did: feed.creator.did,
+          handle: feed.creator.handle,
+          displayName: feed.creator.displayName,
+          avatar: feed.creator.avatar,
+        },
+        displayName: feed.displayName,
+        description: feed.description,
+        avatar: feed.avatar,
+        likeCount: feed.likeCount,
+        indexedAt: feed.indexedAt,
+        viewer: feed.viewer,
+      })),
+      cursor: response.data.cursor,
+    }
+  }
+
+  const searchFeedGenerators = async (query: string, cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
+    const agentToUse = agent || publicAgent
+    const response = await agentToUse.app.bsky.unspecced.getPopularFeedGenerators({
+      query,
       limit: 50,
       cursor,
     })
@@ -1560,6 +1591,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         getCustomFeed,
         getSavedFeeds,
         getPopularFeeds,
+        searchFeedGenerators,
         saveFeed,
         unsaveFeed,
         likePost,
