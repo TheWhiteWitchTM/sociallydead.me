@@ -244,6 +244,19 @@ export default function MessagesPage() {
       loadConversations()
     }
     
+    // Reset to overview when Messages is clicked in sidebar (even if already on /messages)
+    const handleNavClick = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail === '/messages') {
+        setSelectedConvo(null)
+        setMessages([])
+        if (isAuthenticated) {
+          loadConversations()
+        }
+      }
+    }
+    window.addEventListener('nav-click', handleNavClick)
+    
     // Also reload when the tab becomes visible again
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && isAuthenticated) {
@@ -251,7 +264,10 @@ export default function MessagesPage() {
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('nav-click', handleNavClick)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated])
 

@@ -224,7 +224,14 @@ export function AppSidebar() {
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
-              <Link key={item.href} href={item.href}>
+              <Link 
+                key={item.href} 
+                href={item.href}
+                onClick={() => {
+                  // Dispatch event so pages can reset their view state
+                  window.dispatchEvent(new CustomEvent('nav-click', { detail: item.href }))
+                }}
+              >
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
