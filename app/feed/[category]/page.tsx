@@ -223,7 +223,7 @@ export default function FeedCategoryPage() {
           </div>
         </header>
 
-        <main className="max-w-2xl mx-auto px-4 py-6">
+        <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
           {/* Feed Info */}
           <Card className="mb-6">
             <CardContent className="p-4">
@@ -314,7 +314,7 @@ export default function FeedCategoryPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {/* Search */}
         <form onSubmit={handleSearch} className="mb-6">
           <div className="flex gap-2">

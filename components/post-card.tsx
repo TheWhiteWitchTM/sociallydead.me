@@ -420,7 +420,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
 
   return (
     <>
-      <Card className="border-border hover:bg-accent/50 transition-colors">
+      <Card className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
         <CardContent className="p-3 sm:p-4">
           {/* Repost indicator */}
           {isRepostReason && post.reason?.by && (

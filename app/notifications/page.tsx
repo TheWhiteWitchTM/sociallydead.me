@@ -282,7 +282,7 @@ export default function NotificationsPage() {
         )}
       </header>
 
-      <main className="mx-auto max-w-2xl px-2 sm:px-4 py-6">
+      <main className="mx-auto max-w-2xl px-0 sm:px-4 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
