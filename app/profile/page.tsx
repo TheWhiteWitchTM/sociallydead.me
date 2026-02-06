@@ -321,6 +321,15 @@ function ProfileContent() {
     }
   }, [user, loadHighlightsAndArticles])
 
+  // Auto-load feeds, lists, and starter packs on mount so tabs show if they have content
+  useEffect(() => {
+    if (user) {
+      loadFeeds()
+      loadLists()
+      loadStarterPacks()
+    }
+  }, [user, loadFeeds, loadLists, loadStarterPacks])
+
   // Load full profile data (including banner) on mount - always fetch fresh
   useEffect(() => {
     if (user) {
@@ -553,30 +562,40 @@ function ProfileContent() {
             <TabsList className="inline-flex w-max gap-0">
               <TabsTrigger value="posts" className="flex-none text-xs sm:text-sm px-2.5 sm:px-3">Posts</TabsTrigger>
               <TabsTrigger value="replies" className="flex-none text-xs sm:text-sm px-2.5 sm:px-3">Replies</TabsTrigger>
-              <TabsTrigger value="highlights" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
-                <Star className="h-3 w-3 shrink-0" />
-                Hlts
-              </TabsTrigger>
-              <TabsTrigger value="articles" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
-                <FileText className="h-3 w-3 shrink-0" />
-                Art.
-              </TabsTrigger>
+              {highlightPosts.length > 0 && (
+                <TabsTrigger value="highlights" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                  <Star className="h-3 w-3 shrink-0" />
+                  Highlights
+                </TabsTrigger>
+              )}
+              {articles.length > 0 && (
+                <TabsTrigger value="articles" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                  <FileText className="h-3 w-3 shrink-0" />
+                  Articles
+                </TabsTrigger>
+              )}
               <TabsTrigger value="media" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
                 <Image className="h-3 w-3 shrink-0" />
                 Media
               </TabsTrigger>
-              <TabsTrigger value="feeds" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
-                <Rss className="h-3 w-3 shrink-0" />
-                Feeds
-              </TabsTrigger>
-              <TabsTrigger value="lists" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
-                <ListIcon className="h-3 w-3 shrink-0" />
-                Lists
-              </TabsTrigger>
-              <TabsTrigger value="starterpacks" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
-                <Package className="h-3 w-3 shrink-0" />
-                Packs
-              </TabsTrigger>
+              {feeds.length > 0 && (
+                <TabsTrigger value="feeds" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                  <Rss className="h-3 w-3 shrink-0" />
+                  Feeds
+                </TabsTrigger>
+              )}
+              {lists.length > 0 && (
+                <TabsTrigger value="lists" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                  <ListIcon className="h-3 w-3 shrink-0" />
+                  Lists
+                </TabsTrigger>
+              )}
+              {starterPacks.length > 0 && (
+                <TabsTrigger value="starterpacks" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                  <Package className="h-3 w-3 shrink-0" />
+                  Packs
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
           
