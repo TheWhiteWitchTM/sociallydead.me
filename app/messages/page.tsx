@@ -9,7 +9,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare, MoreVertical, Trash2, BellOff, Bell, Ban, LogOut, X } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare,
+  MoreVertical, Trash2, BellOff, Bell, Ban, LogOut, X,
+  Bold, Italic, Strikethrough, Code, Heading1, Heading2,
+  Quote, List, ListOrdered, Link2, SmilePlus, Hash
+} from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +42,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+
+// Emoji categories (same as compose-input for consistency)
+const EMOJI_CATEGORIES = {
+  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
+  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
+  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
+  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
+} as const
 
 interface Convo {
   id: string
@@ -63,6 +80,199 @@ interface Message {
   sender: { did: string }
   sentAt: string
 }
+
+// Helper: check if a member handle is invalid/deleted
+function isInvalidHandle(handle: string): boolean {
+  return !handle || handle.endsWith(".invalid") || handle === "handle.invalid" || handle === "invalid.handle"
+}
+
+// Helper: get display name for a member, handling deleted accounts
+function getMemberDisplayName(member: { handle: string; displayName?: string }): string {
+  if (isInvalidHandle(member.handle)) return "Deleted Account"
+  return member.displayName || member.handle
+}
+
+// ---- Chat Composer Component ----
+function ChatComposer({
+  value,
+  onChange,
+  onSend,
+  isSending,
+  placeholder = "Type a message...",
+}: {
+  value: string
+  onChange: (v: string) => void
+  onSend: () => void
+  isSending: boolean
+  placeholder?: string
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
+
+  const insertEmoji = (emoji: string) => {
+    const cursorPos = textareaRef.current?.selectionStart || value.length
+    const before = value.slice(0, cursorPos)
+    const after = value.slice(cursorPos)
+    onChange(before + emoji + after)
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = cursorPos + emoji.length
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newPos, newPos)
+      }
+    }, 0)
+  }
+
+  const wrapSelection = (prefix: string, suffix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = value.slice(start, end)
+    const before = value.slice(0, start)
+    const after = value.slice(end)
+    const wrapped = selectedText
+      ? `${before}${prefix}${selectedText}${suffix}${after}`
+      : `${before}${prefix}text${suffix}${after}`
+    onChange(wrapped)
+    setTimeout(() => {
+      textarea.focus()
+      if (selectedText) {
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length)
+      } else {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4)
+      }
+    }, 0)
+  }
+
+  const insertAtLineStart = (prefix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1
+    const before = value.slice(0, lineStart)
+    const after = value.slice(lineStart)
+    onChange(`${before}${prefix}${after}`)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
+    }, 0)
+  }
+
+  const formatActions = [
+    { icon: Bold, label: "Bold", action: () => wrapSelection("**", "**") },
+    { icon: Italic, label: "Italic", action: () => wrapSelection("*", "*") },
+    { icon: Strikethrough, label: "Strikethrough", action: () => wrapSelection("~~", "~~") },
+    { icon: Code, label: "Code", action: () => wrapSelection("`", "`") },
+    { icon: Quote, label: "Quote", action: () => insertAtLineStart("> ") },
+    { icon: Link2, label: "Link", action: () => wrapSelection("[", "](url)") },
+  ]
+
+  return (
+    <div className="space-y-2">
+      <Textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={isSending}
+        className="resize-none min-h-[60px] max-h-[200px]"
+        rows={2}
+      />
+
+      {/* Toolbar + Send */}
+      <div className="flex items-center justify-between gap-2">
+        <TooltipProvider delayDuration={300}>
+          <div className="flex items-center gap-0.5 flex-wrap">
+            {formatActions.map(({ icon: Icon, label, action }) => (
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={action}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="sr-only">{label}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+
+            {/* Emoji Picker */}
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7">
+                      <SmilePlus className="h-3.5 w-3.5" />
+                      <span className="sr-only">Emoji</span>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Emoji</p>
+                </TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-72 p-0" align="start" side="top">
+                <div className="p-2">
+                  <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
+                    {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
+                      <Button
+                        key={cat}
+                        variant={emojiCategory === cat ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => setEmojiCategory(cat)}
+                      >
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                    {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
+                        onClick={() => insertEmoji(emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </TooltipProvider>
+
+        <Button
+          onClick={onSend}
+          disabled={isSending || !value.trim()}
+          size="sm"
+          className="gap-1.5 shrink-0"
+        >
+          {isSending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Send className="h-3.5 w-3.5" />
+              Send
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 
 export default function MessagesPage() {
   const { 
@@ -155,11 +365,7 @@ export default function MessagesPage() {
   const handleSelectConvo = (convo: Convo) => {
     setSelectedConvo(convo)
     loadMessages(convo.id)
-    
-    // Mark as read on the server
     markConvoRead(convo.id)
-    
-    // Immediately clear unread count in local state
     setConversations(prev => 
       prev.map(c => c.id === convo.id ? { ...c, unreadCount: 0 } : c)
     )
@@ -171,7 +377,6 @@ export default function MessagesPage() {
   }
 
   const handleCloseChat = () => {
-    // Simply closes the chat view and goes back to the list
     setSelectedConvo(null)
     setMessages([])
   }
@@ -217,15 +422,11 @@ export default function MessagesPage() {
       if (convo.muted) {
         await unmuteConvo(convo.id)
         setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, muted: false } : c))
-        if (selectedConvo?.id === convo.id) {
-          setSelectedConvo(prev => prev ? { ...prev, muted: false } : null)
-        }
+        if (selectedConvo?.id === convo.id) setSelectedConvo(prev => prev ? { ...prev, muted: false } : null)
       } else {
         await muteConvo(convo.id)
         setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, muted: true } : c))
-        if (selectedConvo?.id === convo.id) {
-          setSelectedConvo(prev => prev ? { ...prev, muted: true } : null)
-        }
+        if (selectedConvo?.id === convo.id) setSelectedConvo(prev => prev ? { ...prev, muted: true } : null)
       }
     } catch (error) {
       console.error("Failed to mute/unmute:", error)
@@ -239,7 +440,6 @@ export default function MessagesPage() {
     try {
       await leaveConvo(convo.id)
       setConversations(prev => prev.filter(c => c.id !== convo.id))
-      // If this was the selected convo, close it
       if (selectedConvo?.id === convo.id) {
         setSelectedConvo(null)
         setMessages([])
@@ -260,17 +460,13 @@ export default function MessagesPage() {
     
     setActionLoading(true)
     try {
-      // Check current block status
       const profile = await getProfile(otherMember.handle)
       if (profile.viewer?.blocking) {
-        // Unblock
         await unblockUser(profile.viewer.blocking)
       } else {
-        // Block
         await blockUser(otherMember.did)
       }
       setShowBlockDialog(false)
-      // Refresh conversations
       await loadConversations()
       setSelectedConvo(null)
       setMessages([])
@@ -281,7 +477,7 @@ export default function MessagesPage() {
     }
   }
 
-  // Poll for new messages in active conversation every 5 seconds
+  // Poll for new messages in active conversation
   useEffect(() => {
     if (!selectedConvo) return
     
@@ -290,10 +486,8 @@ export default function MessagesPage() {
         const result = await getMessages(selectedConvo.id)
         const newMsgs = result.messages.reverse()
         setMessages(prev => {
-          // Only update if there are actually new messages
           if (newMsgs.length !== prev.length || 
               (newMsgs.length > 0 && prev.length > 0 && newMsgs[newMsgs.length - 1].id !== prev[prev.length - 1].id)) {
-            // Auto-scroll to bottom for new messages
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
             return newMsgs
           }
@@ -308,7 +502,7 @@ export default function MessagesPage() {
     return () => clearInterval(interval)
   }, [selectedConvo, getMessages])
 
-  // Also poll conversation list to update unread counts
+  // Poll conversation list
   useEffect(() => {
     if (!isAuthenticated) return
     
@@ -316,8 +510,6 @@ export default function MessagesPage() {
       try {
         const convos = await getConversations()
         setConversations(prev => {
-          // Preserve unreadCount=0 for the currently selected convo
-          // (we just marked it read, API may be stale)
           return convos.map(c => {
             if (selectedConvo && c.id === selectedConvo.id) {
               return { ...c, unreadCount: 0 }
@@ -334,7 +526,7 @@ export default function MessagesPage() {
     return () => clearInterval(interval)
   }, [isAuthenticated, getConversations, selectedConvo])
 
-  // Debounced search effect for autocomplete
+  // Debounced search for new conversation
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setSearchResults([])
@@ -375,33 +567,25 @@ export default function MessagesPage() {
     }
   }
 
-  // Always reset to conversation list and force fresh load on mount
+  // Reset to list on mount
   useEffect(() => {
     setSelectedConvo(null)
     setMessages([])
     
-    if (isAuthenticated) {
-      loadConversations()
-    }
+    if (isAuthenticated) loadConversations()
     
-    // Reset to overview when Messages is clicked in sidebar (even if already on /messages)
     const handleNavClick = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (detail === '/messages') {
         setSelectedConvo(null)
         setMessages([])
-        if (isAuthenticated) {
-          loadConversations()
-        }
+        if (isAuthenticated) loadConversations()
       }
     }
     window.addEventListener('nav-click', handleNavClick)
     
-    // Also reload when the tab becomes visible again
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isAuthenticated) {
-        loadConversations()
-      }
+      if (document.visibilityState === 'visible' && isAuthenticated) loadConversations()
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => {
@@ -427,9 +611,23 @@ export default function MessagesPage() {
     return <SignInPrompt title="Messages" description="Sign in to view your messages" />
   }
 
-  // Mobile: Show conversation list or selected conversation
-  // Desktop: Show both side by side
-  
+  // Sorted & filtered conversations (filter out convos where all other members are deleted)
+  const sortedConversations = [...conversations]
+    .filter((convo) => {
+      const otherMembers = convo.members.filter(m => m.did !== user?.did)
+      // Keep convo if at least one other member has a valid handle
+      return otherMembers.some(m => !isInvalidHandle(m.handle))
+    })
+    .sort((a, b) => {
+      const aUnread = a.unreadCount > 0 && a.lastMessage?.sender.did !== user?.did
+      const bUnread = b.unreadCount > 0 && b.lastMessage?.sender.did !== user?.did
+      if (aUnread && !bUnread) return -1
+      if (!aUnread && bUnread) return 1
+      const aTime = a.lastMessage ? new Date(a.lastMessage.sentAt).getTime() : 0
+      const bTime = b.lastMessage ? new Date(b.lastMessage.sentAt).getTime() : 0
+      return bTime - aTime
+    })
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -446,11 +644,13 @@ export default function MessagesPage() {
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={member.avatar || "/placeholder.svg"} />
                         <AvatarFallback className="text-xs">
-                          {(member.displayName || member.handle).slice(0, 2).toUpperCase()}
+                          {getMemberDisplayName(member).slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-semibold truncate max-w-[150px] sm:max-w-none">{member.displayName || member.handle}</span>
-                      <VerifiedBadge handle={member.handle} />
+                      <span className="font-semibold truncate max-w-[150px] sm:max-w-none">
+                        {getMemberDisplayName(member)}
+                      </span>
+                      {!isInvalidHandle(member.handle) && <VerifiedBadge handle={member.handle} did={member.did} />}
                       {selectedConvo.muted && (
                         <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Muted</span>
                       )}
@@ -475,15 +675,9 @@ export default function MessagesPage() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleMuteConvo} disabled={actionLoading}>
                       {selectedConvo.muted ? (
-                        <>
-                          <Bell className="mr-2 h-4 w-4" />
-                          Unmute Notifications
-                        </>
+                        <><Bell className="mr-2 h-4 w-4" />Unmute Notifications</>
                       ) : (
-                        <>
-                          <BellOff className="mr-2 h-4 w-4" />
-                          Mute Notifications
-                        </>
+                        <><BellOff className="mr-2 h-4 w-4" />Mute Notifications</>
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -591,10 +785,7 @@ export default function MessagesPage() {
                 <p className="text-muted-foreground text-sm text-center">
                   Chat permissions are missing from your current session.
                 </p>
-                <Button 
-                  variant="default" 
-                  onClick={logout}
-                >
+                <Button variant="default" onClick={logout}>
                   Log out and re-authenticate
                 </Button>
               </div>
@@ -612,17 +803,12 @@ export default function MessagesPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Log out and log back in to grant chat permissions.
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3 w-full"
-                    onClick={logout}
-                  >
+                  <Button variant="outline" size="sm" className="mt-3 w-full" onClick={logout}>
                     Log out and re-authenticate
                   </Button>
                 </div>
               </div>
-            ) : conversations.length === 0 ? (
+            ) : sortedConversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <p className="text-muted-foreground">No messages yet</p>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -639,39 +825,19 @@ export default function MessagesPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     If you logged in before chat was enabled, you may need to log out and log back in to grant chat permissions.
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3 w-full"
-                    onClick={logout}
-                  >
+                  <Button variant="outline" size="sm" className="mt-3 w-full" onClick={logout}>
                     Log out and re-authenticate
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
-                {[...conversations]
-                  .sort((a, b) => {
-                    // Sort: truly unread first (last msg from other person), then by most recent
-                    const aUnread = a.unreadCount > 0 && a.lastMessage?.sender.did !== user?.did
-                    const bUnread = b.unreadCount > 0 && b.lastMessage?.sender.did !== user?.did
-                    if (aUnread && !bUnread) return -1
-                    if (!aUnread && bUnread) return 1
-                    const aTime = a.lastMessage ? new Date(a.lastMessage.sentAt).getTime() : 0
-                    const bTime = b.lastMessage ? new Date(b.lastMessage.sentAt).getTime() : 0
-                    return bTime - aTime
-                  })
-                  .map((convo) => {
+                {sortedConversations.map((convo) => {
                   const otherMembers = convo.members.filter(m => m.did !== user?.did)
+                  const validMembers = otherMembers.filter(m => !isInvalidHandle(m.handle))
                   const isSelected = selectedConvo?.id === convo.id
-                  // Check if other members are valid (not deleted/invalid accounts)
-                  const hasValidMembers = otherMembers.some(m => 
-                    m.handle && !m.handle.endsWith('.invalid') && m.handle !== 'handle.invalid'
-                  )
-                  // Only show unread if last message is from someone else AND members are valid
                   const lastMsgFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user?.did
-                  const hasUnread = convo.unreadCount > 0 && !!lastMsgFromOther && hasValidMembers
+                  const hasUnread = convo.unreadCount > 0 && !!lastMsgFromOther && validMembers.length > 0
                   
                   return (
                     <Card 
@@ -683,9 +849,9 @@ export default function MessagesPage() {
                         <div className="flex items-center gap-3">
                           <div className="relative">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={otherMembers[0]?.avatar || "/placeholder.svg"} />
+                              <AvatarImage src={validMembers[0]?.avatar || "/placeholder.svg"} />
                               <AvatarFallback>
-                                {(otherMembers[0]?.displayName || otherMembers[0]?.handle || "?").slice(0, 2).toUpperCase()}
+                                {getMemberDisplayName(validMembers[0] || otherMembers[0]).slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             {hasUnread && (
@@ -697,10 +863,10 @@ export default function MessagesPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1">
                               <p className={`truncate ${hasUnread ? 'font-bold' : 'font-semibold'}`}>
-                                {otherMembers.map(m => m.displayName || m.handle).join(", ")}
+                                {validMembers.map(m => getMemberDisplayName(m)).join(", ") || "Deleted Account"}
                               </p>
-                              {otherMembers.map(m => (
-                                <VerifiedBadge key={m.did} handle={m.handle} className="shrink-0" />
+                              {validMembers.map(m => (
+                                <VerifiedBadge key={m.did} handle={m.handle} did={m.did} className="shrink-0" />
                               ))}
                               {convo.muted && (
                                 <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -797,7 +963,7 @@ export default function MessagesPage() {
                                 <Avatar className="h-8 w-8 shrink-0 mt-1">
                                   <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
                                   <AvatarFallback className="text-xs">
-                                    {(sender?.displayName || sender?.handle || "?").slice(0, 2).toUpperCase()}
+                                    {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                               )}
@@ -811,7 +977,7 @@ export default function MessagesPage() {
                                 >
                                   <MarkdownRenderer 
                                     content={message.text} 
-                                    className={`text-sm ${isOwn ? '[&_*]:text-primary-foreground [&_a]:text-primary-foreground [&_a]:underline' : ''}`}
+                                    className={`text-sm [&_p]:leading-relaxed ${isOwn ? '[&_*]:text-primary-foreground [&_a]:text-primary-foreground [&_a]:underline' : ''}`}
                                   />
                                 </div>
                                 <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? 'text-right' : ''}`}>
@@ -827,35 +993,15 @@ export default function MessagesPage() {
                   )}
                 </div>
 
-                {/* Message Input - pinned to bottom */}
+                {/* Chat Composer - pinned to bottom */}
                 <div className="shrink-0 border-t border-border bg-background pt-3 pb-2">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }}
-                    className="flex gap-2 items-center"
-                  >
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      disabled={isSending}
-                      className="flex-1"
-                    />
-                    <Button 
-                      type="submit"
-                      disabled={isSending || !newMessage.trim()} 
-                      size="icon"
-                      className="shrink-0 h-10 w-10"
-                    >
-                      {isSending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </form>
+                  <ChatComposer
+                    value={newMessage}
+                    onChange={setNewMessage}
+                    onSend={handleSendMessage}
+                    isSending={isSending}
+                    placeholder="Type a message... (Markdown supported)"
+                  />
                 </div>
               </div>
             )}
@@ -871,7 +1017,7 @@ export default function MessagesPage() {
             <AlertDialogDescription>
               {convoToDelete && (() => {
                 const otherMember = convoToDelete.members.find(m => m.did !== user?.did)
-                return `Remove your conversation with ${otherMember?.displayName || otherMember?.handle || 'this user'}? This will leave the conversation and it will no longer appear in your messages.`
+                return `Remove your conversation with ${getMemberDisplayName(otherMember || { handle: "", displayName: "this user" })}? This will leave the conversation and it will no longer appear in your messages.`
               })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -883,10 +1029,7 @@ export default function MessagesPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {actionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Removing...
-                </>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Removing...</>
               ) : (
                 "Remove"
               )}
@@ -912,10 +1055,7 @@ export default function MessagesPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {actionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Leaving...
-                </>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Leaving...</>
               ) : (
                 "Leave Conversation"
               )}
@@ -932,7 +1072,7 @@ export default function MessagesPage() {
             <AlertDialogDescription>
               {selectedConvo && (() => {
                 const otherMember = selectedConvo.members.find(m => m.did !== user?.did)
-                return `Are you sure you want to block ${otherMember?.displayName || otherMember?.handle || 'this user'}? They won't be able to message you or see your posts.`
+                return `Are you sure you want to block ${getMemberDisplayName(otherMember || { handle: "", displayName: "this user" })}? They won't be able to message you or see your posts.`
               })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -944,10 +1084,7 @@ export default function MessagesPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {actionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Blocking...
-                </>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Blocking...</>
               ) : (
                 "Block User"
               )}
