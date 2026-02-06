@@ -37,7 +37,7 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
   const timeAgo = formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })
 
   return (
-    <Card className="border-border hover:bg-accent/50 transition-colors">
+    <Card className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
         <CardContent className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
             <UserHoverCard handle={post.author.handle}>

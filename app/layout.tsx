@@ -56,13 +56,11 @@ export default function RootLayout({
         >
           <BlueskyProvider>
             <AppSidebar />
-            <div className="flex min-h-screen flex-col pl-0 transition-all lg:pl-64">
-              <div className="flex min-h-screen flex-col pl-20 lg:pl-0">
-                <AppHeader />
-                <main className="flex-1">{children}</main>
-                <MainScrollIndicator />
-                <AppFooter />
-              </div>
+            <div className="flex min-h-screen flex-col pl-0 transition-all md:pl-20 lg:pl-64">
+              <AppHeader />
+              <main className="flex-1 pb-16 md:pb-0">{children}</main>
+              <MainScrollIndicator />
+              <AppFooter />
             </div>
           </BlueskyProvider>
         </ThemeProvider>

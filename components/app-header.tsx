@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home } from "lucide-react"
+import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -23,6 +23,7 @@ export function AppHeader() {
   const { theme, setTheme } = useTheme()
   const [canInstall, setCanInstall] = React.useState(false)
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -39,6 +40,11 @@ export function AppHeader() {
 
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
+
+  // Close mobile menu on route change
+  React.useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   const handleInstall = async () => {
     if (!deferredPrompt) return
@@ -59,8 +65,26 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-between px-4">
-        {/* Feed Categories - Center */}
-        <nav className="flex items-center gap-1">
+        {/* Logo + Hamburger - mobile only */}
+        <div className="flex items-center gap-2 md:hidden">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">SD</span>
+            </div>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle feed menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        {/* Feed Categories - Desktop (hidden on mobile) */}
+        <nav className="hidden md:flex items-center gap-1">
           {feedCategories.map((category) => {
             const isActive =
               pathname === category.href ||
@@ -71,12 +95,12 @@ export function AppHeader() {
                   variant={isActive ? "secondary" : "ghost"}
                   size="sm"
                   className={cn(
-                    "gap-1.5 px-2 sm:px-3",
+                    "gap-1.5 px-3",
                     isActive && "bg-accent text-accent-foreground"
                   )}
                 >
                   <category.icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{category.label}</span>
+                  <span>{category.label}</span>
                 </Button>
               </Link>
             )
@@ -111,6 +135,34 @@ export function AppHeader() {
           </Button>
         </div>
       </div>
+
+      {/* Mobile dropdown menu */}
+      {mobileMenuOpen && (
+        <nav className="md:hidden border-t border-border bg-background px-4 pb-3 pt-2">
+          <div className="flex flex-col gap-1">
+            {feedCategories.map((category) => {
+              const isActive =
+                pathname === category.href ||
+                (category.id !== "discover" && pathname === `/feed/${category.id}`)
+              return (
+                <Link key={category.id} href={category.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start gap-2",
+                      isActive && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <category.icon className="h-4 w-4" />
+                    {category.label}
+                  </Button>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+      )}
     </header>
   )
 }

@@ -82,7 +82,7 @@ export default function SearchPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-2 sm:px-4 py-6">
+      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         <div className="flex gap-2 mb-6">
           <Input
             placeholder="Search posts and users..."

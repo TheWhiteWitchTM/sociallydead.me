@@ -45,7 +45,7 @@ export default function DiscoverPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-2 sm:px-4 py-6">
+      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {isLoading && posts.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
