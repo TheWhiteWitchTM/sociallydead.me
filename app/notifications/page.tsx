@@ -551,20 +551,43 @@ export default function NotificationsPage() {
                           </div>
                         </div>
                         
-                        {/* Show post content for relevant notification types */}
-                        {notification.reasonSubject && ['reply', 'quote'].includes(notification.reason) && (() => {
-                          const parsed = parseAtUri(notification.reasonSubject)
-                          const handle = profileHandles[notification.reasonSubject] || parsed?.handle || ''
-                          const rkey = parsed?.rkey || ''
-                          const previewText = postPreviews[notification.reasonSubject] || 'View post'
+                        {/* Show reply/quote content and link to the actual reply */}
+                        {['reply', 'quote'].includes(notification.reason) && (() => {
+                          // The notification's record contains the reply/quote text
+                          const replyRecord = notification.record as { text?: string } | undefined
+                          const replyText = replyRecord?.text || ''
+                          
+                          // The notification's URI is the reply/quote post itself
+                          const replyParsed = parseAtUri(notification.uri)
+                          const replyHandle = notification.author.handle || replyParsed?.handle || ''
+                          const replyRkey = replyParsed?.rkey || ''
+                          
+                          // The reasonSubject is the original post that was replied to
+                          const originalParsed = notification.reasonSubject ? parseAtUri(notification.reasonSubject) : null
+                          const originalHandle = notification.reasonSubject ? (profileHandles[notification.reasonSubject] || originalParsed?.handle || '') : ''
+                          const originalRkey = originalParsed?.rkey || ''
+                          const originalText = notification.reasonSubject ? (postPreviews[notification.reasonSubject] || '') : ''
                           
                           return (
-                            <Link 
-                              href={`/profile/${handle}/post/${rkey}`}
-                              className="block mt-2 p-2 rounded bg-muted/50 text-sm hover:bg-muted transition-colors"
-                            >
-                              <p className="text-foreground line-clamp-2">{previewText}{previewText.length >= 100 ? '...' : ''}</p>
-                            </Link>
+                            <div className="mt-2 space-y-1.5">
+                              {/* The reply/quote itself - primary content */}
+                              <Link 
+                                href={`/profile/${replyHandle}/post/${replyRkey}`}
+                                className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
+                              >
+                                <p className="text-foreground line-clamp-3">{replyText}</p>
+                              </Link>
+                              {/* The original post being replied to - context */}
+                              {originalText && notification.reasonSubject && (
+                                <Link 
+                                  href={`/profile/${originalHandle}/post/${originalRkey}`}
+                                  className="block p-2 rounded bg-muted/40 text-xs hover:bg-muted/70 transition-colors"
+                                >
+                                  <span className="text-muted-foreground">Replying to: </span>
+                                  <span className="text-muted-foreground/80 line-clamp-1">{originalText}{originalText.length >= 100 ? '...' : ''}</span>
+                                </Link>
+                              )}
+                            </div>
                           )
                         })()}
                       </div>

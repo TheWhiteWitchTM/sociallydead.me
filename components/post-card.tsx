@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus, BarChart3 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,10 +26,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { MarkdownRenderer, RichMarkdownRenderer } from "@/components/markdown-renderer"
+import { ComposeInput, type LinkCardData, type MediaFile } from "@/components/compose-input"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
+
+function formatEngagement(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+  return count.toString()
+}
 
 interface PostCardProps {
   post: {
@@ -135,6 +142,14 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   const [replyText, setReplyText] = useState("")
   const [quoteText, setQuoteText] = useState("")
   
+  // Reply media state
+  const [replyMediaFiles, setReplyMediaFiles] = useState<MediaFile[]>([])
+  const [replyLinkCard, setReplyLinkCard] = useState<LinkCardData | null>(null)
+  
+  // Quote media state
+  const [quoteMediaFiles, setQuoteMediaFiles] = useState<MediaFile[]>([])
+  const [quoteLinkCard, setQuoteLinkCard] = useState<LinkCardData | null>(null)
+  
   // Follow state
   const [isFollowing, setIsFollowing] = useState<boolean | null>(null)
   const [isFollowLoading, setIsFollowLoading] = useState(false)
@@ -228,11 +243,20 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   }
 
   const handleReply = async () => {
-    if (!replyText.trim()) return
+    if (!replyText.trim() && replyMediaFiles.length === 0) return
     setIsLoading(true)
     try {
-      await createPost(replyText, { reply: { uri: post.uri, cid: post.cid } })
+      const images = replyMediaFiles.filter(f => f.type === "image").map(f => f.file)
+      const video = replyMediaFiles.find(f => f.type === "video")?.file
+      await createPost(replyText, { 
+        reply: { uri: post.uri, cid: post.cid },
+        images: images.length > 0 ? images : undefined,
+        video: video || undefined,
+        linkCard: replyLinkCard && !replyMediaFiles.length ? replyLinkCard : undefined,
+      })
       setReplyText("")
+      setReplyMediaFiles([])
+      setReplyLinkCard(null)
       setReplyCount((c) => c + 1)
       setIsReplyDialogOpen(false)
       onPostUpdated?.()
@@ -244,11 +268,13 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   }
 
   const handleQuote = async () => {
-    if (!quoteText.trim()) return
+    if (!quoteText.trim() && quoteMediaFiles.length === 0) return
     setIsLoading(true)
     try {
       await quotePost(quoteText, { uri: post.uri, cid: post.cid })
       setQuoteText("")
+      setQuoteMediaFiles([])
+      setQuoteLinkCard(null)
       setIsQuoteDialogOpen(false)
       onPostUpdated?.()
     } catch (error) {
@@ -692,6 +718,19 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
                   <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
                 </Button>
+                
+                {/* Engagement / Views metric */}
+                {(replyCount + repostCount + likeCount) > 0 && (
+                  <span
+                    className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto"
+                    title={`${replyCount + repostCount + likeCount} engagements`}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="text-xs tabular-nums">
+                      {formatEngagement(replyCount + repostCount + likeCount)}
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -699,8 +738,14 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
       </Card>
 
       {/* Reply Dialog */}
-      <Dialog open={isReplyDialogOpen} onOpenChange={setIsReplyDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+      <Dialog open={isReplyDialogOpen} onOpenChange={(open) => {
+        setIsReplyDialogOpen(open)
+        if (!open) {
+          setReplyMediaFiles([])
+          setReplyLinkCard(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reply to Post</DialogTitle>
           </DialogHeader>
@@ -714,31 +759,31 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                            <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
-                            <VerifiedBadge handle={post.author.handle} />
-                            <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
+                <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                <VerifiedBadge handle={post.author.handle} />
+                <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
             </div>
             
-            <Textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              className="min-h-32"
+            <ComposeInput
+              text={replyText}
+              onTextChange={setReplyText}
+              mediaFiles={replyMediaFiles}
+              onMediaFilesChange={setReplyMediaFiles}
+              linkCard={replyLinkCard}
+              onLinkCardChange={setReplyLinkCard}
               placeholder="Write your reply..."
-              maxLength={300}
+              minHeight="min-h-24"
+              compact
+              autoFocus
             />
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">
-                {replyText.length}/300
-              </span>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsReplyDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleReply} disabled={isLoading || !replyText.trim()}>
+            <Button onClick={handleReply} disabled={isLoading || (!replyText.trim() && replyMediaFiles.length === 0)}>
               {isLoading ? "Posting..." : "Reply"}
             </Button>
           </DialogFooter>
@@ -784,24 +829,30 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
       </Dialog>
 
       {/* Quote Dialog */}
-      <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+      <Dialog open={isQuoteDialogOpen} onOpenChange={(open) => {
+        setIsQuoteDialogOpen(open)
+        if (!open) {
+          setQuoteMediaFiles([])
+          setQuoteLinkCard(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Quote Post</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Textarea
-              value={quoteText}
-              onChange={(e) => setQuoteText(e.target.value)}
-              className="min-h-24"
+            <ComposeInput
+              text={quoteText}
+              onTextChange={setQuoteText}
+              mediaFiles={quoteMediaFiles}
+              onMediaFilesChange={setQuoteMediaFiles}
+              linkCard={quoteLinkCard}
+              onLinkCardChange={setQuoteLinkCard}
               placeholder="Add your thoughts..."
-              maxLength={300}
+              minHeight="min-h-24"
+              compact
+              autoFocus
             />
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">
-                {quoteText.length}/300
-              </span>
-            </div>
             
             {/* Quoted post preview */}
             <Card className="border-border">
@@ -825,7 +876,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleQuote} disabled={isLoading || !quoteText.trim()}>
+            <Button onClick={handleQuote} disabled={isLoading || (!quoteText.trim() && quoteMediaFiles.length === 0)}>
               {isLoading ? "Posting..." : "Quote"}
             </Button>
           </DialogFooter>

@@ -3,9 +3,23 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X } from "lucide-react"
+import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X, CreditCard, HelpCircle, BadgeCheck, FileText } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 const feedCategories = [
@@ -24,6 +38,8 @@ export function AppHeader() {
   const [canInstall, setCanInstall] = React.useState(false)
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [markdownHelpOpen, setMarkdownHelpOpen] = React.useState(false)
+  const [verifiedHelpOpen, setVerifiedHelpOpen] = React.useState(false)
 
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -92,11 +108,11 @@ export function AppHeader() {
             return (
               <Link key={category.id} href={category.href}>
                 <Button
-                  variant={isActive ? "secondary" : "ghost"}
+                  variant={isActive ? "default" : "ghost"}
                   size="sm"
                   className={cn(
                     "gap-1.5 px-3",
-                    isActive && "bg-accent text-accent-foreground"
+                    isActive && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
                   <category.icon className="h-4 w-4" />
@@ -107,8 +123,42 @@ export function AppHeader() {
           })}
         </nav>
 
-        {/* Right side - PWA Install + Theme Toggle */}
-        <div className="flex items-center gap-2">
+        {/* Right side - Donate + Help + PWA Install + Theme Toggle */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Help Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <HelpCircle className="h-5 w-5" />
+                <span className="sr-only">Help</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Help</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setMarkdownHelpOpen(true)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Formatting Guide
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setVerifiedHelpOpen(true)}>
+                <BadgeCheck className="h-4 w-4 mr-2" />
+                Verification Levels
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Donate Button */}
+          <a
+            href="https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="ghost" size="icon" className="h-9 w-9" title="Support SociallyDead">
+              <CreditCard className="h-5 w-5" />
+              <span className="sr-only">Donate</span>
+            </Button>
+          </a>
+
           {canInstall && (
             <Button
               variant="outline"
@@ -147,11 +197,11 @@ export function AppHeader() {
               return (
                 <Link key={category.id} href={category.href}>
                   <Button
-                    variant={isActive ? "secondary" : "ghost"}
+                    variant={isActive ? "default" : "ghost"}
                     size="sm"
                     className={cn(
                       "w-full justify-start gap-2",
-                      isActive && "bg-accent text-accent-foreground"
+                      isActive && "bg-primary text-primary-foreground font-semibold"
                     )}
                   >
                     <category.icon className="h-4 w-4" />
@@ -163,6 +213,103 @@ export function AppHeader() {
           </div>
         </nav>
       )}
+      {/* Markdown Help Dialog */}
+      <Dialog open={markdownHelpOpen} onOpenChange={setMarkdownHelpOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Formatting Guide
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              Posts support plain text with automatic link detection. Here are some tips:
+            </p>
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="font-semibold mb-1">Mentions</p>
+                <p className="text-muted-foreground">Type <code className="bg-muted px-1 rounded">@handle</code> to mention someone. The compose box will suggest users as you type.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="font-semibold mb-1">Hashtags</p>
+                <p className="text-muted-foreground">Type <code className="bg-muted px-1 rounded">#topic</code> to add a hashtag. These are clickable and searchable.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="font-semibold mb-1">Links</p>
+                <p className="text-muted-foreground">Paste any URL and it will be automatically detected. URLs at the start or end of your post will generate a rich link card preview.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="font-semibold mb-1">Line Breaks</p>
+                <p className="text-muted-foreground">Press Enter to create a new line. Your line breaks will be preserved exactly as you type them.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="font-semibold mb-1">Media</p>
+                <p className="text-muted-foreground">Attach up to 4 images or 1 video per post. Images and video cannot be mixed in the same post.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="font-semibold mb-1">Character Limit</p>
+                <p className="text-muted-foreground">Posts have a 300 character limit. The counter turns yellow at 280 and red at 300.</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verification Levels Dialog */}
+      <Dialog open={verifiedHelpOpen} onOpenChange={setVerifiedHelpOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BadgeCheck className="h-5 w-5" />
+              Verification Levels
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              SociallyDead has three levels of verification, each shown with a different colored badge next to usernames.
+            </p>
+            <div className="space-y-4">
+              <div className="flex gap-3 p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+                <BadgeCheck className="h-6 w-6 text-yellow-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-yellow-500">Gold - SociallyDead Verified</p>
+                  <p className="text-muted-foreground mt-1">
+                    The highest tier. Awarded to users with a <code className="bg-muted px-1 rounded">.sociallydead.me</code> domain as their Bluesky handle. This means the account is part of the SociallyDead community.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 rounded-lg border border-green-500/30 bg-green-500/5">
+                <BadgeCheck className="h-6 w-6 text-green-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-green-500">Green - Domain Verified</p>
+                  <p className="text-muted-foreground mt-1">
+                    Awarded to users who use their own custom domain as their Bluesky handle (not <code className="bg-muted px-1 rounded">.bsky.social</code>). This proves they own and control that domain.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 rounded-lg border border-blue-500/30 bg-blue-500/5">
+                <BadgeCheck className="h-6 w-6 text-blue-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-blue-500">Blue - Supporter Verified</p>
+                  <p className="text-muted-foreground mt-1">
+                    Awarded to users who support SociallyDead through PayPal donations. Show your support and get recognized with a blue badge!
+                  </p>
+                  <a
+                    href="https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2 text-blue-500 hover:underline font-medium"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Donate to get verified
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }

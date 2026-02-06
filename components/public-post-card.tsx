@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
-import { MessageCircle, Repeat2, Heart } from "lucide-react"
+import { MessageCircle, Repeat2, Heart, BarChart3 } from "lucide-react"
 
 interface Post {
   uri: string
@@ -96,6 +96,23 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                   <Heart className="h-4 w-4" />
                   <span className="text-xs sm:text-sm tabular-nums">{post.likeCount}</span>
                 </span>
+                
+                {(post.replyCount + post.repostCount + post.likeCount) > 0 && (
+                  <span
+                    className="flex items-center gap-1 px-2 py-1 text-muted-foreground ml-auto"
+                    title={`${post.replyCount + post.repostCount + post.likeCount} engagements`}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="text-xs tabular-nums">
+                      {(() => {
+                        const count = post.replyCount + post.repostCount + post.likeCount
+                        if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+                        if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+                        return count.toString()
+                      })()}
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
           </div>

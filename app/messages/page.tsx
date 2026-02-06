@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare } from "lucide-react"
+import { VerifiedBadge } from "@/components/verified-badge"
 import {
   Dialog,
   DialogContent,
@@ -310,6 +311,7 @@ export default function MessagesPage() {
                         </AvatarFallback>
                       </Avatar>
                       <span className="font-semibold">{member.displayName || member.handle}</span>
+                      <VerifiedBadge handle={member.handle} />
                     </div>
                   ))}
                 </div>
@@ -373,7 +375,7 @@ export default function MessagesPage() {
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <p className="font-semibold">{actor.displayName || actor.handle}</p>
+                                  <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
                                   <p className="text-sm text-muted-foreground">@{actor.handle}</p>
                                 </div>
                               </div>

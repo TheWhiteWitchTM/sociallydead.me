@@ -13,9 +13,9 @@ interface PushNotificationState {
 const SOUND_ENABLED_KEY = "sociallydead_notification_sound"
 
 export function getNotificationSoundEnabled(): boolean {
-  if (typeof window === "undefined") return true
+  if (typeof window === "undefined") return false
   const stored = localStorage.getItem(SOUND_ENABLED_KEY)
-  return stored === null ? true : stored === "true"
+  return stored === null ? false : stored === "true"
 }
 
 export function setNotificationSoundEnabled(enabled: boolean) {
@@ -31,7 +31,7 @@ export function usePushNotifications() {
     subscription: null,
   })
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
-  const [soundEnabled, setSoundEnabledState] = useState(true)
+  const [soundEnabled, setSoundEnabledState] = useState(false)
 
   // Load sound preference
   useEffect(() => {

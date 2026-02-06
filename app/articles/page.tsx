@@ -57,21 +57,25 @@ export default function ArticlesPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-6 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">My Articles</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Long-form content stored on Bluesky (SociallyDead exclusive)
-          </p>
+    <>
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            <h1 className="text-xl font-bold">Articles</h1>
+          </div>
+          <Link href="/articles/new">
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Article
+            </Button>
+          </Link>
         </div>
-        <Link href="/articles/new">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Article
-          </Button>
-        </Link>
-      </div>
+      </header>
+      <div className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
+        <p className="text-muted-foreground text-sm mb-6 px-3 sm:px-0">
+          Long-form content stored on Bluesky (SociallyDead exclusive)
+        </p>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -123,6 +127,7 @@ export default function ArticlesPage() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

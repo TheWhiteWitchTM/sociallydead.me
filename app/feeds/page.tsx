@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Plus, Check, Heart, Rss, ArrowLeft, Search } from "lucide-react"
+import { VerifiedBadge } from "@/components/verified-badge"
 
 interface FeedGenerator {
   uri: string
@@ -245,9 +246,9 @@ export default function FeedsPage() {
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-bold">{selectedFeed.displayName}</h2>
                   <p className="text-sm text-muted-foreground">
-                    by @{selectedFeed.creator.handle}
-                  </p>
-                  {selectedFeed.description && (
+by @{selectedFeed.creator.handle} <VerifiedBadge handle={selectedFeed.creator.handle} />
+</p>
+{selectedFeed.description && (
                     <p className="text-sm mt-2">{selectedFeed.description}</p>
                   )}
                   <div className="flex items-center gap-4 mt-3">
@@ -482,8 +483,8 @@ function FeedCard({
               <div>
                 <h3 className="font-semibold">{feed.displayName}</h3>
                 <p className="text-sm text-muted-foreground">
-                  by @{feed.creator.handle}
-                </p>
+by @{feed.creator.handle} <VerifiedBadge handle={feed.creator.handle} />
+</p>
               </div>
               {showSaveButton && (
                 <Button 

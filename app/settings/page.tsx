@@ -1,16 +1,18 @@
 "use client"
 
+import { useState } from "react"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX } from "lucide-react"
+import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX, Eye, Type, Contrast } from "lucide-react"
 import { useTheme } from "next-themes"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { useAccessibility } from "@/hooks/use-accessibility"
 
 export default function SettingsPage() {
   const { user, logout, isAuthenticated, isLoading } = useBluesky()
@@ -26,6 +28,9 @@ export default function SettingsPage() {
     setSoundEnabled,
     playNotificationSound,
   } = usePushNotifications()
+  const { fontSize, setFontSize, highContrast, setHighContrast } = useAccessibility()
+  
+  const [pushLoading, setPushLoading] = useState(false)
 
   if (isLoading) {
     return (
@@ -37,6 +42,21 @@ export default function SettingsPage() {
 
   if (!isAuthenticated) {
     return <SignInPrompt title="Settings" description="Sign in to access settings" />
+  }
+
+  const handlePushToggle = async (checked: boolean) => {
+    setPushLoading(true)
+    try {
+      if (checked) {
+        await subscribe()
+      } else {
+        await unsubscribe()
+      }
+    } catch (error) {
+      console.error("Failed to toggle push notifications:", error)
+    } finally {
+      setPushLoading(false)
+    }
   }
 
   return (
@@ -51,19 +71,16 @@ export default function SettingsPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Appearance */}
         <Card>
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sun className="h-5 w-5" />
+              Appearance
+            </CardTitle>
             <CardDescription>Customize how SociallyDead looks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <span className="text-sm">Toggle Dark Mode</span>
-              </div>
-            </div>
-            <Separator />
             <div className="grid grid-cols-3 gap-2">
               <Button
                 variant={theme === "light" ? "default" : "outline"}
@@ -93,13 +110,84 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Accessibility */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Accessibility
+            </CardTitle>
+            <CardDescription>Adjust display for better readability</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* High Contrast */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="high-contrast" className="flex items-center gap-2">
+                  <Contrast className="h-4 w-4" />
+                  High Contrast
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Stronger colors and borders for better visibility
+                </p>
+              </div>
+              <Switch
+                id="high-contrast"
+                checked={highContrast}
+                onCheckedChange={setHighContrast}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Font Size */}
+            <div className="space-y-3">
+              <div className="space-y-0.5">
+                <Label className="flex items-center gap-2">
+                  <Type className="h-4 w-4" />
+                  Font Size
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Adjust text size across the app
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-muted-foreground">A</span>
+                <Slider
+                  value={[fontSize]}
+                  onValueChange={([v]) => setFontSize(v)}
+                  min={12}
+                  max={24}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-lg text-muted-foreground font-bold">A</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{fontSize}px</span>
+                {fontSize !== 16 && (
+                  <Button variant="ghost" size="sm" onClick={() => setFontSize(16)}>
+                    Reset to default
+                  </Button>
+                )}
+              </div>
+              <div className="rounded-lg border border-border p-3 bg-muted/30">
+                <p style={{ fontSize: `${fontSize}px` }}>
+                  This is a preview of how text will look at this size.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Push Notifications */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Push Notifications
+              Notifications
             </CardTitle>
-            <CardDescription>Get notified about new activity</CardDescription>
+            <CardDescription>Control notification behaviour</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!pushSupported ? (
@@ -116,7 +204,7 @@ export default function SettingsPage() {
               <>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="push-notifications">Enable Push Notifications</Label>
+                    <Label htmlFor="push-notifications">Push Notifications</Label>
                     <p className="text-sm text-muted-foreground">
                       Receive notifications for likes, replies, and new followers
                     </p>
@@ -124,44 +212,43 @@ export default function SettingsPage() {
                   <Switch
                     id="push-notifications"
                     checked={isSubscribed}
-                    onCheckedChange={async (checked) => {
-                      if (checked) {
-                        await subscribe()
-                      } else {
-                        await unsubscribe()
-                      }
-                    }}
+                    disabled={pushLoading}
+                    onCheckedChange={handlePushToggle}
                   />
                 </div>
+
+                <Separator />
+
+                {/* Notification Sound - always visible, works independently */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="notification-sound" className="flex items-center gap-2">
+                      {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                      Notification Beep
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Play a beep sound when new notifications arrive (off by default)
+                    </p>
+                  </div>
+                  <Switch
+                    id="notification-sound"
+                    checked={soundEnabled}
+                    onCheckedChange={setSoundEnabled}
+                  />
+                </div>
+                {soundEnabled && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={playNotificationSound}
+                  >
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Test Beep
+                  </Button>
+                )}
+
                 {isSubscribed && (
-                  <div className="space-y-4">
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="notification-sound" className="flex items-center gap-2">
-                          {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                          Notification Sound
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Play a sound when new notifications arrive
-                        </p>
-                      </div>
-                      <Switch
-                        id="notification-sound"
-                        checked={soundEnabled}
-                        onCheckedChange={setSoundEnabled}
-                      />
-                    </div>
-                    {soundEnabled && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={playNotificationSound}
-                      >
-                        <Volume2 className="h-4 w-4 mr-2" />
-                        Test Sound
-                      </Button>
-                    )}
+                  <>
                     <Separator />
                     <Button
                       variant="outline"
@@ -174,13 +261,14 @@ export default function SettingsPage() {
                       <BellRing className="h-4 w-4 mr-2" />
                       Send Test Notification
                     </Button>
-                  </div>
+                  </>
                 )}
               </>
             )}
           </CardContent>
         </Card>
 
+        {/* About */}
         <Card>
           <CardHeader>
             <CardTitle>About SociallyDead</CardTitle>
@@ -202,6 +290,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Account */}
         <Card>
           <CardHeader>
             <CardTitle>Account</CardTitle>

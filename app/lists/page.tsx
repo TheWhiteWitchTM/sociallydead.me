@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Loader2, RefreshCw, Plus, ListIcon, Shield, Users, MoreHorizontal, Pencil, Trash2, UserPlus, UserMinus } from "lucide-react"
+import { VerifiedBadge } from "@/components/verified-badge"
 import {
   Dialog,
   DialogContent,
@@ -478,8 +479,8 @@ export default function ListsPage() {
                                             </AvatarFallback>
                                           </Avatar>
                                           <div>
-                                            <p className="font-semibold">{actor.displayName || actor.handle}</p>
-                                            <p className="text-sm text-muted-foreground">@{actor.handle}</p>
+<p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
+<p className="text-sm text-muted-foreground">@{actor.handle}</p>
                                           </div>
                                         </div>
                                       </CardContent>
@@ -520,8 +521,8 @@ export default function ListsPage() {
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-semibold">{item.subject.displayName || item.subject.handle}</p>
-                                <p className="text-sm text-muted-foreground">@{item.subject.handle}</p>
+<p className="font-semibold flex items-center gap-1">{item.subject.displayName || item.subject.handle} <VerifiedBadge handle={item.subject.handle} /></p>
+<p className="text-sm text-muted-foreground">@{item.subject.handle}</p>
                                 {item.subject.description && (
                                   <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
                                     {item.subject.description}
