@@ -174,11 +174,11 @@ export function AppSidebar() {
 
   const renderNavButton = (item: typeof navItems[0], isActive: boolean, showLabel: boolean) => (
     <Button
-      variant={isActive ? "secondary" : "ghost"}
+      variant={isActive ? "default" : "ghost"}
       className={cn(
         showLabel ? "w-full justify-start" : "justify-center",
         "relative",
-        isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+        isActive && "bg-primary text-primary-foreground font-semibold"
       )}
       size={showLabel ? "default" : "icon"}
     >
@@ -292,10 +292,10 @@ export function AppSidebar() {
                   }}
                 >
                   <Button
-                    variant={isActive ? "secondary" : "ghost"}
+                    variant={isActive ? "default" : "ghost"}
                     className={cn(
                       "w-full justify-center lg:justify-start relative",
-                      isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      isActive && "bg-primary text-primary-foreground font-semibold"
                     )}
                   >
                     <item.icon className="h-5 w-5" />
@@ -352,7 +352,7 @@ export function AppSidebar() {
                   {renderNavButton(item, isActive, false)}
                   <span className={cn(
                     "text-[10px] mt-0.5 truncate max-w-full",
-                    isActive ? "text-sidebar-accent-foreground font-medium" : "text-muted-foreground"
+                    isActive ? "text-primary font-semibold" : "text-muted-foreground"
                   )}>
                     {item.label}
                   </span>
@@ -428,7 +428,7 @@ export function AppSidebar() {
                 </div>
                 <span className={cn(
                   "text-[10px] mt-0.5",
-                  isActive ? "text-primary font-medium" : "text-muted-foreground"
+                  isActive ? "text-primary font-semibold" : "text-muted-foreground"
                 )}>
                   {item.label}
                 </span>

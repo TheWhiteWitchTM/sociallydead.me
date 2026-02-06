@@ -92,11 +92,11 @@ export function AppHeader() {
             return (
               <Link key={category.id} href={category.href}>
                 <Button
-                  variant={isActive ? "secondary" : "ghost"}
+                  variant={isActive ? "default" : "ghost"}
                   size="sm"
                   className={cn(
                     "gap-1.5 px-3",
-                    isActive && "bg-accent text-accent-foreground"
+                    isActive && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
                   <category.icon className="h-4 w-4" />
@@ -147,11 +147,11 @@ export function AppHeader() {
               return (
                 <Link key={category.id} href={category.href}>
                   <Button
-                    variant={isActive ? "secondary" : "ghost"}
+                    variant={isActive ? "default" : "ghost"}
                     size="sm"
                     className={cn(
                       "w-full justify-start gap-2",
-                      isActive && "bg-accent text-accent-foreground"
+                      isActive && "bg-primary text-primary-foreground font-semibold"
                     )}
                   >
                     <category.icon className="h-4 w-4" />

@@ -47,6 +47,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var fs = localStorage.getItem('sociallydead_font_size');
+                  if (fs) document.documentElement.style.fontSize = fs + 'px';
+                  var hc = localStorage.getItem('sociallydead_high_contrast');
+                  if (hc === 'true') document.documentElement.classList.add('high-contrast');
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
