@@ -771,6 +771,19 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
                 </Button>
                 
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={cn(
+                    "gap-1 h-8 px-2 hover:text-blue-500 hover:bg-blue-500/10",
+                    isBookmarked ? "text-blue-500" : "text-muted-foreground"
+                  )}
+                  onClick={handleBookmark}
+                  title={isBookmarked ? "Remove bookmark" : "Bookmark"}
+                >
+                  <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
+                </Button>
+                
                 {/* View count */}
                 {viewCount > 0 && (
                   <span className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto" title={`${viewCount} views`}>

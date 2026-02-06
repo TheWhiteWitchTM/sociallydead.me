@@ -272,6 +272,8 @@ interface BlueskyContextType {
   getNotifications: (cursor?: string) => Promise<{ notifications: BlueskyNotification[]; cursor?: string }>
   getUnreadCount: () => Promise<number>
   markNotificationsRead: () => Promise<void>
+  // Feeds
+  getActorFeeds: (actor: string) => Promise<BlueskyFeedGenerator[]>
   // Lists
   getLists: (actor?: string) => Promise<BlueskyList[]>
   getList: (uri: string) => Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }> }>
@@ -970,6 +972,32 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     }))
   }
 
+  const getActorFeeds = async (actor: string): Promise<BlueskyFeedGenerator[]> => {
+    const agentToUse = agent || publicAgent
+    const response = await agentToUse.app.bsky.feed.getActorFeeds({
+      actor,
+      limit: 50,
+    })
+    
+    return response.data.feeds.map((feed) => ({
+      uri: feed.uri,
+      cid: feed.cid,
+      did: feed.did,
+      creator: {
+        did: feed.creator.did,
+        handle: feed.creator.handle,
+        displayName: feed.creator.displayName,
+        avatar: feed.creator.avatar,
+      },
+      displayName: feed.displayName,
+      description: feed.description,
+      avatar: feed.avatar,
+      likeCount: feed.likeCount,
+      indexedAt: feed.indexedAt,
+      viewer: feed.viewer,
+    }))
+  }
+
   const getPopularFeeds = async (cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
     const agentToUse = agent || publicAgent
     const response = await agentToUse.app.bsky.feed.getSuggestedFeeds({
@@ -1267,10 +1295,12 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   // Lists
   const getLists = async (actor?: string): Promise<BlueskyList[]> => {
-    if (!agent || !user) throw new Error("Not authenticated")
-    
-    const response = await agent.app.bsky.graph.getLists({
-      actor: actor || user.did,
+  const agentToUse = agent || publicAgent
+  const actorId = actor || user?.did
+  if (!actorId) throw new Error("No actor specified")
+  
+  const response = await agentToUse.app.bsky.graph.getLists({
+  actor: actorId,
       limit: 50,
     })
     
@@ -1583,10 +1613,12 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   // Starter Packs
   const getStarterPacks = async (actor?: string): Promise<BlueskyStarterPack[]> => {
-    if (!agent || !user) throw new Error("Not authenticated")
+    const agentToUse = agent || publicAgent
+    const actorId = actor || user?.did
+    if (!actorId) throw new Error("No actor specified")
     
-    const response = await agent.app.bsky.graph.getActorStarterPacks({
-      actor: actor || user.did,
+    const response = await agentToUse.app.bsky.graph.getActorStarterPacks({
+      actor: actorId,
       limit: 50,
     })
     
@@ -2066,7 +2098,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         getNotifications,
         getUnreadCount,
         markNotificationsRead,
-        getLists,
+        getActorFeeds,
+    getLists,
         getList,
         createList,
         updateList,
