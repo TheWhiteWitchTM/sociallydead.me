@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X, CreditCard, HelpCircle, BadgeCheck, FileText, Code } from "lucide-react"
+import { VerificationCheckout } from "@/components/verification-checkout"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import {
@@ -153,17 +154,15 @@ export function AppHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Donate Button */}
-          <a
-            href="https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="ghost" size="icon" className="h-9 w-9" title="Support SociallyDead">
-              <CreditCard className="h-5 w-5" />
-              <span className="sr-only">Donate</span>
-            </Button>
-          </a>
+          {/* Get Verified / Support Button */}
+          <VerificationCheckout
+            trigger={
+              <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified - Support SociallyDead">
+                <BadgeCheck className="h-5 w-5 text-blue-500" />
+                <span className="sr-only">Get Verified</span>
+              </Button>
+            }
+          />
 
           {canInstall && (
             <Button
@@ -358,15 +357,14 @@ export function AppHeader() {
                   <p className="text-muted-foreground mt-1">
                     Awarded to users who support SociallyDead through PayPal donations. Show your support and get recognized with a blue badge!
                   </p>
-                  <a
-                    href="https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-2 text-blue-500 hover:underline font-medium"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    Donate to get verified
-                  </a>
+                  <VerificationCheckout
+                    trigger={
+                      <button className="inline-flex items-center gap-1.5 mt-2 text-blue-500 hover:underline font-medium">
+                        <CreditCard className="h-4 w-4" />
+                        Get verified for $1+
+                      </button>
+                    }
+                  />
                 </div>
               </div>
             </div>

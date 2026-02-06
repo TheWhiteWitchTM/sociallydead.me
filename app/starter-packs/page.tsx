@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { Loader2, RefreshCw, Plus, UsersRound, MoreHorizontal, Pencil, Trash2, UserPlus, UserMinus, ExternalLink, ArrowLeft, Rss } from "lucide-react"
 import {
   Dialog,
@@ -313,8 +315,9 @@ export default function StarterPacksPage() {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-xl font-bold">{selectedPack.record.name}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Created by @{selectedPack.creator.handle}
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    Created by <HandleLink handle={selectedPack.creator.handle} className="text-sm" />
+                    <VerifiedBadge handle={selectedPack.creator.handle} />
                   </p>
                   {selectedPack.record.description && (
                     <p className="mt-2 text-sm">{selectedPack.record.description}</p>
@@ -378,8 +381,8 @@ export default function StarterPacksPage() {
                                           </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1">
-                                          <p className="font-semibold">{actor.displayName || actor.handle}</p>
-                                          <p className="text-sm text-muted-foreground">@{actor.handle}</p>
+                                          <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
+                                          <HandleLink handle={actor.handle} className="text-sm" />
                                         </div>
                                         {isAdding ? (
                                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -459,8 +462,8 @@ export default function StarterPacksPage() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold">{item.subject.displayName || item.subject.handle}</p>
-                            <p className="text-sm text-muted-foreground">@{item.subject.handle}</p>
+                            <p className="font-semibold flex items-center gap-1">{item.subject.displayName || item.subject.handle} <VerifiedBadge handle={item.subject.handle} /></p>
+                            <HandleLink handle={item.subject.handle} className="text-sm" />
                             {item.subject.description && (
                               <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
                                 {item.subject.description}

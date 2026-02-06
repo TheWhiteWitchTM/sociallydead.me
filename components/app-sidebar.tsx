@@ -28,6 +28,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInDialog } from "@/components/sign-in-dialog"
+import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 
 const authNavItems: Array<{ href: string; icon: typeof Home; label: string; showBadge?: boolean; showMessageBadge?: boolean; mobileKey?: boolean }> = [
@@ -242,10 +244,11 @@ export function AppSidebar() {
                 </Avatar>
               </Link>
               <div className="hidden flex-1 min-w-0 lg:block">
-                <p className="truncate text-sm font-medium text-sidebar-foreground">
+                <p className="truncate text-sm font-medium text-sidebar-foreground inline-flex items-center gap-1">
                   {user.displayName || user.handle}
+                  <VerifiedBadge handle={user.handle} did={user.did} />
                 </p>
-                <p className="truncate text-xs text-muted-foreground">@{user.handle}</p>
+                <HandleLink handle={user.handle} className="text-xs truncate block" />
               </div>
               <Button
                 variant="ghost"

@@ -22,8 +22,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star, FileText, Image, Plus, X, Pin } from "lucide-react"
+import { VerificationPrompt } from "@/components/verification-checkout"
 import { formatDistanceToNow } from "date-fns"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 
 interface UserProfile {
   did: string
@@ -390,7 +392,7 @@ function ProfileContent() {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
               {user.displayName || user.handle}
-              <VerifiedBadge handle={user.handle} />
+              <VerifiedBadge handle={user.handle} did={user.did} />
             </h1>
             <p className="text-xs text-muted-foreground">{user.postsCount || 0} posts</p>
           </div>
@@ -437,9 +439,9 @@ function ProfileContent() {
         <div className="px-4 pt-20 pb-4">
           <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
             {user.displayName || user.handle}
-            <VerifiedBadge handle={user.handle} className="h-5 w-5" />
+            <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
           </h2>
-          <p className="text-muted-foreground">@{user.handle}</p>
+          <HandleLink handle={user.handle} />
           
           {user.description && (
             <p className="mt-3 whitespace-pre-wrap">{user.description}</p>
@@ -484,6 +486,7 @@ function ProfileContent() {
               <span className="text-muted-foreground ml-1">Followers</span>
             </button>
           </div>
+          <VerificationPrompt className="mt-2" />
         </div>
 
         {/* Profile Tabs - X/Twitter Style */}

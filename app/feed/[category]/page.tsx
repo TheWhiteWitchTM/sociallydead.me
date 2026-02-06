@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { Loader2, RefreshCw, Vote, Gamepad2, Cpu, Heart, Rss, Newspaper, Search, ArrowLeft, Plus, Check } from "lucide-react"
 
 const categoryConfig: Record<string, { label: string; icon: React.ElementType; searchQuery: string }> = {
@@ -236,8 +238,9 @@ export default function FeedCategoryPage() {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-bold">{selectedFeed.displayName}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    by @{selectedFeed.creator.handle}
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    by <HandleLink handle={selectedFeed.creator.handle} className="text-sm" />
+                    <VerifiedBadge handle={selectedFeed.creator.handle} />
                   </p>
                   {selectedFeed.description && (
                     <p className="text-sm mt-2">{selectedFeed.description}</p>
@@ -374,8 +377,9 @@ export default function FeedCategoryPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h3 className="font-semibold">{feed.displayName}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            by @{feed.creator.handle}
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            by <HandleLink handle={feed.creator.handle} className="text-sm" />
+                            <VerifiedBadge handle={feed.creator.handle} />
                           </p>
                         </div>
                         {isAuthenticated && (

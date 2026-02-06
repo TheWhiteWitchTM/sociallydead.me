@@ -1,13 +1,27 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink } from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useBluesky } from "@/lib/bluesky-context"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { cn } from "@/lib/utils"
+
+// Common emoji categories like X/Twitter
+const EMOJI_CATEGORIES = {
+  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
+  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
+  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
+  "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
+  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","🧇","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
+  "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
+  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
+} as const
 
 // Popular hashtags for suggestions
 const POPULAR_HASHTAGS = [
@@ -333,6 +347,76 @@ export function ComposeInput({
     return ALL_MEDIA_TYPES.join(",")
   }
 
+  // Emoji picker state
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
+
+  const insertEmoji = (emoji: string) => {
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const before = text.slice(0, cursorPos)
+    const after = text.slice(cursorPos)
+    const newText = before + emoji + after
+    onTextChange(newText)
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = cursorPos + emoji.length
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newPos, newPos)
+      }
+    }, 0)
+  }
+
+  // Markdown formatting helpers
+  const wrapSelection = (prefix: string, suffix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = text.slice(start, end)
+    const before = text.slice(0, start)
+    const after = text.slice(end)
+    const wrapped = selectedText
+      ? `${before}${prefix}${selectedText}${suffix}${after}`
+      : `${before}${prefix}text${suffix}${after}`
+    onTextChange(wrapped)
+    setTimeout(() => {
+      textarea.focus()
+      if (selectedText) {
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length)
+      } else {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4)
+      }
+    }, 0)
+  }
+
+  const insertAtLineStart = (prefix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1
+    const before = text.slice(0, lineStart)
+    const after = text.slice(lineStart)
+    const newText = `${before}${prefix}${after}`
+    onTextChange(newText)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
+    }, 0)
+  }
+
+  const formatActions = [
+    { icon: Bold, label: "Bold", action: () => wrapSelection("**", "**") },
+    { icon: Italic, label: "Italic", action: () => wrapSelection("*", "*") },
+    { icon: Strikethrough, label: "Strikethrough", action: () => wrapSelection("~~", "~~") },
+    { icon: Code, label: "Code", action: () => wrapSelection("`", "`") },
+    { icon: Heading1, label: "Heading 1", action: () => insertAtLineStart("# ") },
+    { icon: Heading2, label: "Heading 2", action: () => insertAtLineStart("## ") },
+    { icon: Quote, label: "Quote", action: () => insertAtLineStart("> ") },
+    { icon: List, label: "Bullet List", action: () => insertAtLineStart("- ") },
+    { icon: ListOrdered, label: "Numbered List", action: () => insertAtLineStart("1. ") },
+    { icon: Link2, label: "Link", action: () => wrapSelection("[", "](url)") },
+  ]
+
   const charCount = text.length
   const isOverLimit = charCount > maxChars
 
@@ -373,7 +457,10 @@ export function ComposeInput({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{user.displayName || user.handle}</p>
+                      <p className="text-sm font-medium truncate inline-flex items-center gap-1">
+                        {user.displayName || user.handle}
+                        <VerifiedBadge handle={user.handle} />
+                      </p>
                       <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
                     </div>
                   </button>
@@ -493,7 +580,85 @@ export function ComposeInput({
         </div>
       )}
 
-      {/* Toolbar */}
+      {/* Markdown Formatting Toolbar */}
+      <TooltipProvider delayDuration={300}>
+        <div className="flex items-center gap-0.5 flex-wrap border rounded-lg p-1 bg-muted/30">
+          {formatActions.map(({ icon: Icon, label, action }) => (
+            <Tooltip key={label}>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={action}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="sr-only">{label}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">{label}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+
+          {/* Emoji Picker */}
+          <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                  >
+                    <SmilePlus className="h-3.5 w-3.5" />
+                    <span className="sr-only">Emoji</span>
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">Emoji</p>
+              </TooltipContent>
+            </Tooltip>
+            <PopoverContent className="w-72 p-0" align="start" side="top">
+              <div className="p-2">
+                <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
+                  {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
+                    <Button
+                      key={cat}
+                      variant={emojiCategory === cat ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-7 px-2 text-xs shrink-0"
+                      onClick={() => setEmojiCategory(cat)}
+                    >
+                      {cat}
+                    </Button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                  {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
+                      onClick={() => {
+                        insertEmoji(emoji)
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </TooltipProvider>
+
+      {/* Media Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
           <input

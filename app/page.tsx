@@ -9,7 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
+import { VerificationPrompt } from "@/components/verification-checkout"
 
 // Official Bluesky feed URIs
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
@@ -79,13 +82,25 @@ interface Post {
 }
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed } = useBluesky()
+  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed, getProfile } = useBluesky()
   const [posts, setPosts] = useState<Post[]>([])
   const [feedLoading, setFeedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("following")
   const [newPostsAvailable, setNewPostsAvailable] = useState(false)
   const [latestPostUri, setLatestPostUri] = useState<string | null>(null)
+  const [fullProfile, setFullProfile] = useState<{ banner?: string } | null>(null)
+
+  // Load full profile data with banner
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      getProfile(user.handle).then((profile) => {
+        setFullProfile(profile)
+      }).catch(() => {
+        // Silently fail
+      })
+    }
+  }, [isAuthenticated, user, getProfile])
 
   const loadTimeline = useCallback(async (isBackgroundRefresh = false) => {
     if (!isAuthenticated) return
@@ -315,43 +330,60 @@ export default function HomePage() {
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {/* User Profile Card */}
         {user && (
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <Avatar className="h-16 w-16">
+          <Card className="mb-6 overflow-hidden">
+            {/* Banner */}
+            <div className="relative">
+              {(fullProfile?.banner || user.banner) ? (
+                <div 
+                  className="h-24 sm:h-32 w-full bg-cover bg-center" 
+                  style={{ backgroundImage: `url(${fullProfile?.banner || user.banner})` }} 
+                />
+              ) : (
+                <div className="h-24 sm:h-32 w-full bg-gradient-to-r from-primary/30 to-primary/10" />
+              )}
+              {/* Avatar overlapping banner */}
+              <div className="absolute -bottom-8 left-4">
+                <Avatar className="h-16 w-16 border-4 border-card">
                   <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
                   <AvatarFallback className="text-lg">
                     {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h2 className="font-bold text-lg truncate">{user.displayName || user.handle}</h2>
-                      <p className="text-muted-foreground text-sm">@{user.handle}</p>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/profile">
-                        <Settings className="h-4 w-4 mr-1" />
-                        Edit
-                      </Link>
-                    </Button>
-                  </div>
-                  {user.description && (
-                    <p className="mt-2 text-sm line-clamp-2">{user.description}</p>
-                  )}
-                  <div className="flex gap-4 mt-3 text-sm">
-                    <Link href="/profile?tab=followers" className="hover:underline">
-                      <strong>{user.followersCount ?? 0}</strong> followers
-                    </Link>
-                    <Link href="/profile?tab=following" className="hover:underline">
-                      <strong>{user.followsCount ?? 0}</strong> following
-                    </Link>
-                    <Link href="/profile" className="hover:underline">
-                      <strong>{user.postsCount ?? 0}</strong> posts
-                    </Link>
-                  </div>
+              </div>
+              {/* Edit button on banner */}
+              <div className="absolute top-2 right-2">
+                <Button variant="secondary" size="sm" asChild className="bg-background/80 hover:bg-background">
+                  <Link href="/profile">
+                    <Settings className="h-4 w-4 mr-1" />
+                    Edit
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <CardContent className="pt-10 p-4">
+              <div className="flex-1 min-w-0">
+                <div>
+                  <h2 className="font-bold text-lg truncate inline-flex items-center gap-1.5">
+                    {user.displayName || user.handle}
+                    <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
+                  </h2>
+                  <HandleLink handle={user.handle} className="text-sm" />
                 </div>
+                {user.description && (
+                  <p className="mt-2 text-sm line-clamp-2">{user.description}</p>
+                )}
+                <div className="flex gap-4 mt-3 text-sm">
+                  <Link href="/profile?tab=followers" className="hover:underline">
+                    <strong>{user.followersCount ?? 0}</strong> followers
+                  </Link>
+                  <Link href="/profile?tab=following" className="hover:underline">
+                    <strong>{user.followsCount ?? 0}</strong> following
+                  </Link>
+                  <Link href="/profile" className="hover:underline">
+                    <strong>{user.postsCount ?? 0}</strong> posts
+                  </Link>
+                </div>
+                <VerificationPrompt className="mt-2" />
               </div>
             </CardContent>
           </Card>
