@@ -20,9 +20,9 @@ export default function SettingsPage() {
   const { 
     isSupported: pushSupported, 
     isSubscribed, 
+    notificationsEnabled,
+    toggleNotifications,
     permission,
-    subscribe,
-    unsubscribe,
     showNotification,
     soundEnabled,
     setSoundEnabled,
@@ -47,11 +47,7 @@ export default function SettingsPage() {
   const handlePushToggle = async (checked: boolean) => {
     setPushLoading(true)
     try {
-      if (checked) {
-        await subscribe()
-      } else {
-        await unsubscribe()
-      }
+      await toggleNotifications(checked)
     } catch (error) {
       console.error("Failed to toggle push notifications:", error)
     } finally {
@@ -211,7 +207,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     id="push-notifications"
-                    checked={isSubscribed}
+                    checked={notificationsEnabled}
                     disabled={pushLoading}
                     onCheckedChange={handlePushToggle}
                   />
