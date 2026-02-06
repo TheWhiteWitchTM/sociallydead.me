@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useBluesky } from "@/lib/bluesky-context"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { VerifiedBadge } from "@/components/verified-badge"
 import { cn } from "@/lib/utils"
 
 // Common emoji categories like X/Twitter
@@ -456,7 +457,10 @@ export function ComposeInput({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{user.displayName || user.handle}</p>
+                      <p className="text-sm font-medium truncate inline-flex items-center gap-1">
+                        {user.displayName || user.handle}
+                        <VerifiedBadge handle={user.handle} />
+                      </p>
                       <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
                     </div>
                   </button>

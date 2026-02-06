@@ -14,6 +14,7 @@ import {
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { MessageCircle, Repeat2, Heart, BarChart3 } from "lucide-react"
 
 interface Post {
@@ -69,9 +70,7 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                   </Link>
                 </UserHoverCard>
                 <VerifiedBadge handle={post.author.handle} />
-                <span className="text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
-                  @{post.author.handle}
-                </span>
+                <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
                 <span className="text-muted-foreground hidden sm:inline">·</span>
                 <span className="text-xs sm:text-sm text-muted-foreground">
                   {timeAgo}

@@ -13,6 +13,7 @@ import {
 import { Loader2, UserPlus, UserMinus, Calendar } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 
 interface UserHoverCardProps {
   handle: string
@@ -143,7 +144,7 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
                 </h4>
               </Link>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <span>@{profile.handle}</span>
+                <HandleLink handle={profile.handle} className="text-sm" />
                 {followsYou && (
                   <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Follows you</span>
                 )}

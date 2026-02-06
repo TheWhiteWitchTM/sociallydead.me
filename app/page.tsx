@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
 
 // Official Bluesky feed URIs
@@ -365,7 +366,7 @@ export default function HomePage() {
                     {user.displayName || user.handle}
                     <VerifiedBadge handle={user.handle} className="h-5 w-5" />
                   </h2>
-                  <p className="text-muted-foreground text-sm">@{user.handle}</p>
+                  <HandleLink handle={user.handle} className="text-sm" />
                 </div>
                 {user.description && (
                   <p className="mt-2 text-sm line-clamp-2">{user.description}</p>

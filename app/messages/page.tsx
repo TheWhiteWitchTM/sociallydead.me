@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import {
   Dialog,
   DialogContent,
@@ -512,7 +513,7 @@ export default function MessagesPage() {
                                 </Avatar>
                                 <div>
                                   <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
-                                  <p className="text-sm text-muted-foreground">@{actor.handle}</p>
+                                  <HandleLink handle={actor.handle} className="text-sm" />
                                 </div>
                               </div>
                             </button>
@@ -656,6 +657,9 @@ export default function MessagesPage() {
                               <p className={`truncate ${hasUnread ? 'font-bold' : 'font-semibold'}`}>
                                 {otherMembers.map(m => m.displayName || m.handle).join(", ")}
                               </p>
+                              {otherMembers.map(m => (
+                                <VerifiedBadge key={m.did} handle={m.handle} className="shrink-0" />
+                              ))}
                               {convo.muted && (
                                 <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />
                               )}

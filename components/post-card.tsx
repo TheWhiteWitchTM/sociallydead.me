@@ -29,6 +29,7 @@ import { MarkdownRenderer, RichMarkdownRenderer } from "@/components/markdown-re
 import { ComposeInput, type LinkCardData, type MediaFile } from "@/components/compose-input"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 
@@ -533,9 +534,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   </Link>
                 </UserHoverCard>
                 <VerifiedBadge handle={post.author.handle} />
-                  <span className="text-muted-foreground text-sm truncate max-w-[120px] sm:max-w-none">
-                    @{post.author.handle}
-                  </span>
+                  <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
                   {/* Follow button - show only if not following and not own post */}
                   {!isOwnPost && isFollowing === false && (
                     <Button
@@ -728,9 +727,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                         {post.embed.record.author?.displayName || post.embed.record.author?.handle}
                       </span>
                       <VerifiedBadge handle={post.embed.record.author?.handle || ""} />
-                      <span className="text-muted-foreground text-sm">
-                        @{post.embed.record.author?.handle}
-                      </span>
+                      <HandleLink handle={post.embed.record.author?.handle || ""} className="text-sm" />
                     </div>
                     <p className="text-sm">{post.embed.record.value?.text}</p>
                   </CardContent>
@@ -828,7 +825,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 </Avatar>
                 <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
                 <VerifiedBadge handle={post.author.handle} />
-                <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
+                <HandleLink handle={post.author.handle} className="text-sm" />
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
             </div>
@@ -933,7 +930,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   </Avatar>
                   <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
                   <VerifiedBadge handle={post.author.handle} />
-                  <span className="text-muted-foreground text-sm">@{post.author.handle}</span>
+                  <HandleLink handle={post.author.handle} className="text-sm" />
                 </div>
                 <p className="text-sm line-clamp-3">{post.record.text}</p>
               </CardContent>

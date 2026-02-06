@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { Loader2, Search } from "lucide-react"
 
 interface SearchResult {
@@ -145,7 +146,7 @@ export default function SearchPage() {
                             {actor.displayName || actor.handle}
                             <VerifiedBadge handle={actor.handle} />
                           </p>
-                          <p className="text-sm text-muted-foreground">@{actor.handle}</p>
+                          <HandleLink handle={actor.handle} className="text-sm" />
                           {actor.description && (
                             <p className="mt-1 text-sm line-clamp-2 text-muted-foreground">{actor.description}</p>
                           )}

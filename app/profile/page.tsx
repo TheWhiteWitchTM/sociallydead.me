@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star, FileText, Image, Plus, X, Pin } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 
 interface UserProfile {
   did: string
@@ -439,7 +440,7 @@ function ProfileContent() {
             {user.displayName || user.handle}
             <VerifiedBadge handle={user.handle} className="h-5 w-5" />
           </h2>
-          <p className="text-muted-foreground">@{user.handle}</p>
+          <HandleLink handle={user.handle} />
           
           {user.description && (
             <p className="mt-3 whitespace-pre-wrap">{user.description}</p>

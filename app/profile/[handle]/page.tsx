@@ -7,6 +7,7 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -522,7 +523,7 @@ const handleTabChange = (tab: string) => {
                   {profile.displayName || profile.handle}
                   <VerifiedBadge handle={profile.handle} className="h-5 w-5" />
                 </h2>
-                <p className="text-muted-foreground">@{profile.handle}</p>
+                <HandleLink handle={profile.handle} />
               </div>
           </div>
           
