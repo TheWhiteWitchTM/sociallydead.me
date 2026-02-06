@@ -143,7 +143,7 @@ export function AppHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setMarkdownSyntaxOpen(true)}>
                 <Code className="h-4 w-4 mr-2" />
-                Markdown Syntax (Articles)
+                Markdown Syntax
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setVerifiedHelpOpen(true)}>
@@ -273,7 +273,7 @@ export function AppHeader() {
           </DialogHeader>
           <div className="space-y-4 text-sm">
             <p className="text-muted-foreground">
-              Articles support full Markdown syntax for rich formatting. Here is a reference:
+              Articles, posts with rich content, and AI responses all support Markdown. Here is a full reference:
             </p>
             <div className="space-y-3">
               <div className="p-3 rounded-lg bg-muted/50 space-y-2">
@@ -297,8 +297,14 @@ export function AppHeader() {
                 <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'> This is a quote\n> It can span multiple lines'}</pre>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-                <p className="font-semibold">Code</p>
-                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'Inline `code` here\n\n```\nCode block\nMultiple lines\n```'}</pre>
+                <p className="font-semibold">Syntax Highlighted Code</p>
+                <p className="text-muted-foreground text-xs mb-1">Add a language name after the triple backticks for syntax highlighting. Colors adapt to your light/dark theme automatically.</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'```javascript\nconst greeting = "Hello, world!";\nconsole.log(greeting);\n```\n\n```python\ndef hello():\n    print("Hello, world!")\n```\n\n```css\n.card {\n  border-radius: 8px;\n}\n```'}</pre>
+                <p className="text-muted-foreground text-xs mt-1">Supported languages include: javascript, typescript, python, rust, go, java, c, cpp, css, html, json, bash, sql, markdown, yaml, and many more.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Inline Code</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'Use `backticks` for inline code'}</pre>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 space-y-2">
                 <p className="font-semibold">Horizontal Rule</p>
