@@ -28,6 +28,75 @@ interface Notification {
   indexedAt: string
 }
 
+interface GroupedNotification {
+  key: string
+  reason: string
+  authors: Notification['author'][]
+  reasonSubject?: string
+  isRead: boolean
+  indexedAt: string
+  notifications: Notification[]
+}
+
+function groupNotifications(notifications: Notification[]): (GroupedNotification | Notification)[] {
+  const result: (GroupedNotification | Notification)[] = []
+  const groupableReasons = ['like', 'repost', 'follow']
+  // Group by reason + reasonSubject (for likes/reposts) or just reason (for follows)
+  const groupMap = new Map<string, Notification[]>()
+  const ungrouped: Notification[] = []
+
+  for (const n of notifications) {
+    if (!groupableReasons.includes(n.reason)) {
+      ungrouped.push(n)
+      continue
+    }
+    const key = n.reason === 'follow' ? `follow` : `${n.reason}:${n.reasonSubject || n.uri}`
+    if (!groupMap.has(key)) {
+      groupMap.set(key, [])
+    }
+    groupMap.get(key)!.push(n)
+  }
+
+  // Merge groups and ungrouped notifications, sorted by latest indexedAt
+  const allItems: (GroupedNotification | Notification)[] = []
+
+  for (const [key, notifs] of groupMap) {
+    // Sort within group by time (newest first)
+    notifs.sort((a, b) => new Date(b.indexedAt).getTime() - new Date(a.indexedAt).getTime())
+    // Deduplicate authors by DID
+    const seenDids = new Set<string>()
+    const uniqueAuthors: Notification['author'][] = []
+    for (const n of notifs) {
+      if (!seenDids.has(n.author.did)) {
+        seenDids.add(n.author.did)
+        uniqueAuthors.push(n.author)
+      }
+    }
+    allItems.push({
+      key,
+      reason: notifs[0].reason,
+      authors: uniqueAuthors,
+      reasonSubject: notifs[0].reasonSubject,
+      isRead: notifs.every(n => n.isRead),
+      indexedAt: notifs[0].indexedAt,
+      notifications: notifs,
+    })
+  }
+
+  for (const n of ungrouped) {
+    allItems.push(n)
+  }
+
+  // Sort everything by time (newest first)
+  allItems.sort((a, b) => new Date(b.indexedAt).getTime() - new Date(a.indexedAt).getTime())
+
+  return allItems
+}
+
+function isGrouped(item: GroupedNotification | Notification): item is GroupedNotification {
+  return 'authors' in item
+}
+
 const notificationIcons: Record<string, typeof Heart> = {
   like: Heart,
   repost: Repeat2,
@@ -166,10 +235,12 @@ export default function NotificationsPage() {
     }
   }
 
-  // Filter notifications based on active tab
+  // Filter notifications based on active tab, then group
   const filteredNotifications = activeTab === 'mentions' 
     ? notifications.filter(n => n.reason === 'mention' || n.reason === 'reply')
     : notifications
+
+  const groupedNotifications = groupNotifications(filteredNotifications)
 
   // Get list of users who followed but we don't follow back
   const unfollowedFollowers = notifications
@@ -222,9 +293,9 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">Notifications</h1>
+        <div className="flex h-14 items-center justify-between px-3 sm:px-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <h1 className="text-lg sm:text-xl font-bold">Notifications</h1>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'mentions')}>
               <TabsList className="h-8">
                 <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
@@ -295,7 +366,7 @@ export default function NotificationsPage() {
               Try Again
             </Button>
           </div>
-        ) : filteredNotifications.length === 0 ? (
+        ) : groupedNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-muted-foreground">
               {activeTab === 'mentions' ? 'No mentions yet' : 'No notifications yet'}
@@ -308,7 +379,134 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredNotifications.map((notification) => {
+            {groupedNotifications.map((item) => {
+              if (isGrouped(item)) {
+                // Grouped notification (likes, reposts, follows)
+                const group = item
+                const Icon = notificationIcons[group.reason] || Heart
+                const colorClass = notificationColors[group.reason] || "text-muted-foreground"
+                const count = group.authors.length
+                const firstAuthor = group.authors[0]
+                if (!firstAuthor) return null
+
+                // Build "X and N others" text
+                const othersCount = count - 1
+                const reasonText = group.reason === 'follow'
+                  ? (count === 1 ? 'followed you' : 'followed you')
+                  : (notificationText[group.reason] || 'interacted with you')
+
+                return (
+                  <Card 
+                    key={group.key}
+                    className={`transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x ${!group.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
+                  >
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex gap-3">
+                        <div className={`mt-1 ${colorClass}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {/* Stacked avatars */}
+                          <div className="flex items-center mb-1.5">
+                            <div className="flex -space-x-2">
+                              {group.authors.slice(0, 6).map((author) => (
+                                <Link key={author.did} href={`/profile/${author.handle || author.did}`}>
+                                  <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
+                                    <AvatarImage src={author.avatar || "/placeholder.svg"} />
+                                    <AvatarFallback className="text-[10px]">
+                                      {(author.displayName || author.handle || '?').slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </Link>
+                              ))}
+                              {count > 6 && (
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] text-muted-foreground font-medium">
+                                  +{count - 6}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <p className="text-sm">
+                            <Link
+                              href={`/profile/${firstAuthor.handle || firstAuthor.did}`}
+                              className="font-semibold hover:underline"
+                            >
+                              {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
+                            </Link>
+                            {firstAuthor.handle && <VerifiedBadge handle={firstAuthor.handle} className="ml-0.5" />}
+                            {othersCount > 0 && (
+                              <span className="text-muted-foreground">
+                                {' '}and {othersCount} {othersCount === 1 ? 'other' : 'others'}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground ml-1">{reasonText}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(group.indexedAt), { addSuffix: true })}
+                          </p>
+
+                          {/* Post preview for likes/reposts */}
+                          {group.reasonSubject && ['like', 'repost'].includes(group.reason) && (() => {
+                            const parsed = parseAtUri(group.reasonSubject)
+                            const handle = profileHandles[group.reasonSubject] || parsed?.handle || ''
+                            const rkey = parsed?.rkey || ''
+                            const previewText = postPreviews[group.reasonSubject] || 'View post'
+                            return (
+                              <Link 
+                                href={`/profile/${handle}/post/${rkey}`}
+                                className="block mt-2 p-2 rounded bg-muted/50 text-sm hover:bg-muted transition-colors"
+                              >
+                                <p className="text-foreground line-clamp-2">{previewText}{previewText.length >= 100 ? '...' : ''}</p>
+                              </Link>
+                            )
+                          })()}
+
+                          {/* Follow back buttons for grouped follows */}
+                          {group.reason === 'follow' && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {group.authors.filter(a => user?.did !== a.did).slice(0, 3).map((author) => (
+                                <div key={author.did}>
+                                  {followingStatus[author.did] ? (
+                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                      <UserCheck className="h-3 w-3" />
+                                      {author.displayName || author.handle}
+                                    </span>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={() => handleFollowBack(author.did)}
+                                      disabled={followLoading[author.did]}
+                                    >
+                                      {followLoading[author.did] ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <UserPlus className="h-3 w-3 mr-1" />
+                                      )}
+                                      {author.displayName || author.handle}
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              {group.authors.filter(a => user?.did !== a.did).length > 3 && (
+                                <span className="inline-flex items-center text-xs text-muted-foreground px-1">
+                                  +{group.authors.filter(a => user?.did !== a.did).length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              }
+
+              // Ungrouped notification (mentions, replies, quotes)
+              const notification = item as Notification
               if (!notification?.author) return null
               
               const Icon = notificationIcons[notification.reason] || Heart
@@ -318,7 +516,7 @@ export default function NotificationsPage() {
               return (
                 <Card 
                   key={`${notification.uri}-${notification.indexedAt}`}
-                  className={`transition-colors ${!notification.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
+                  className={`transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x ${!notification.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
                 >
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex gap-3">
@@ -337,14 +535,14 @@ export default function NotificationsPage() {
                           </Link>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm">
-                      <Link
-                        href={`/profile/${notification.author.handle || notification.author.did}`}
-                        className="font-semibold hover:underline"
-                      >
-                        {notification.author.displayName || notification.author.handle || 'Unknown'}
-                      </Link>
-                      {notification.author.handle && <VerifiedBadge handle={notification.author.handle} className="ml-0.5" />}
-                      <span className="text-muted-foreground ml-1">{text}</span>
+                              <Link
+                                href={`/profile/${notification.author.handle || notification.author.did}`}
+                                className="font-semibold hover:underline"
+                              >
+                                {notification.author.displayName || notification.author.handle || 'Unknown'}
+                              </Link>
+                              {notification.author.handle && <VerifiedBadge handle={notification.author.handle} className="ml-0.5" />}
+                              <span className="text-muted-foreground ml-1">{text}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(notification.indexedAt), { addSuffix: true })}
@@ -353,9 +551,8 @@ export default function NotificationsPage() {
                         </div>
                         
                         {/* Show post content for relevant notification types */}
-                        {notification.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(notification.reason) && (() => {
+                        {notification.reasonSubject && ['reply', 'quote'].includes(notification.reason) && (() => {
                           const parsed = parseAtUri(notification.reasonSubject)
-                          // Use the handle from profileHandles if available, otherwise use the DID
                           const handle = profileHandles[notification.reasonSubject] || parsed?.handle || ''
                           const rkey = parsed?.rkey || ''
                           const previewText = postPreviews[notification.reasonSubject] || 'View post'
@@ -369,33 +566,6 @@ export default function NotificationsPage() {
                             </Link>
                           )
                         })()}
-                        
-                        {/* Follow back button for follow notifications */}
-                        {notification.reason === 'follow' && notification.author?.did && user?.did !== notification.author.did && (
-                          <div className="mt-2">
-                            {followingStatus[notification.author.did] ? (
-                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                <UserCheck className="h-3 w-3" />
-                                Following
-                              </span>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={() => handleFollowBack(notification.author.did)}
-                                disabled={followLoading[notification.author.did]}
-                              >
-                                {followLoading[notification.author.did] ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                ) : (
-                                  <UserPlus className="h-3 w-3 mr-1" />
-                                )}
-                                Follow back
-                              </Button>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </CardContent>

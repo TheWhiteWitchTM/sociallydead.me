@@ -65,16 +65,23 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-between px-4">
-        {/* Hamburger button - mobile only */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle feed menu"
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        {/* Logo + Hamburger - mobile only */}
+        <div className="flex items-center gap-2 md:hidden">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">SD</span>
+            </div>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle feed menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
 
         {/* Feed Categories - Desktop (hidden on mobile) */}
         <nav className="hidden md:flex items-center gap-1">
