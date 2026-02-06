@@ -49,10 +49,16 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
       })
 
       if (!createRes.ok) {
-        throw new Error("Failed to create order")
+        const errData = await createRes.json().catch(() => ({ error: "Failed to create order" }))
+        throw new Error(errData.error || "Failed to create order")
       }
 
-      const { orderId, approvalUrl } = await createRes.json()
+      const createData = await createRes.json()
+      const { orderId, approvalUrl, apiBase } = createData
+
+      if (!approvalUrl) {
+        throw new Error("PayPal did not return an approval URL. Please check your PayPal app configuration.")
+      }
 
       // 2. Open PayPal approval in a popup window using the URL returned by our API
       const popup = window.open(
@@ -82,11 +88,12 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
       const captureRes = await fetch("/api/paypal/capture-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, apiBase }),
       })
 
       if (!captureRes.ok) {
-        throw new Error("Payment was not completed. If you approved the payment, please try again.")
+        const captureErr = await captureRes.json().catch(() => ({ error: "Payment was not completed." }))
+        throw new Error(captureErr.error || "Payment was not completed. If you approved the payment, please try again.")
       }
 
       const captureData = await captureRes.json()
@@ -105,6 +112,7 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
           did: user?.did,
           accessJwt: session?.accessJwt,
           pdsUrl: session?.pdsUri || "https://bsky.social",
+          apiBase,
         }),
       })
 
