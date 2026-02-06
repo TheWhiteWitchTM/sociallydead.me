@@ -8,6 +8,7 @@ import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
+import { UserHoverCard } from "@/components/user-hover-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle, Pin, Star, FileText, Image, X, Plus } from "lucide-react"
+import { Loader2, ArrowLeft, ExternalLink, Calendar, MoreHorizontal, UserPlus, UserMinus, Ban, BellOff, MessageCircle, Pin, Star, FileText, Image, X, Plus, Rss, ListIcon, Package, Heart } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 interface UserProfile {
@@ -124,6 +125,9 @@ export default function UserProfilePage() {
     getHighlights,
     removeHighlight,
     getArticles,
+    getActorFeeds,
+    getLists,
+    getStarterPacks,
   } = useBluesky()
   
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -147,6 +151,14 @@ export default function UserProfilePage() {
   const [highlightPosts, setHighlightPosts] = useState<Post[]>([])
   const [articles, setArticles] = useState<Array<{ uri: string; rkey: string; title: string; content: string; createdAt: string }>>([])
   const [highlightLoading, setHighlightLoading] = useState(false)
+  
+  // Feeds, Lists, Starter Packs state
+  const [feeds, setFeeds] = useState<Array<{ uri: string; displayName: string; description?: string; avatar?: string; likeCount?: number; creator: { handle: string; displayName?: string } }>>([])
+  const [lists, setLists] = useState<Array<{ uri: string; name: string; purpose: string; description?: string; avatar?: string; listItemCount?: number }>>([])
+  const [starterPacks, setStarterPacks] = useState<Array<{ uri: string; cid: string; record: { name: string; description?: string; createdAt: string } }>>([])
+  const [feedsLoading, setFeedsLoading] = useState(false)
+  const [listsLoading, setListsLoading] = useState(false)
+  const [starterPacksLoading, setStarterPacksLoading] = useState(false)
 
   const isOwnProfile = user?.handle === handle || user?.did === handle
 
@@ -214,6 +226,45 @@ const loadProfile = useCallback(async () => {
     }
   }, [profile, loadHighlightsAndArticles])
 
+  const loadFeeds = useCallback(async () => {
+    if (!profile) return
+    setFeedsLoading(true)
+    try {
+      const data = await getActorFeeds(profile.did)
+      setFeeds(data as typeof feeds)
+    } catch (error) {
+      console.error("Failed to load feeds:", error)
+    } finally {
+      setFeedsLoading(false)
+    }
+  }, [profile, getActorFeeds])
+
+  const loadLists = useCallback(async () => {
+    if (!profile) return
+    setListsLoading(true)
+    try {
+      const data = await getLists(profile.did)
+      setLists(data as typeof lists)
+    } catch (error) {
+      console.error("Failed to load lists:", error)
+    } finally {
+      setListsLoading(false)
+    }
+  }, [profile, getLists])
+
+  const loadStarterPacks = useCallback(async () => {
+    if (!profile) return
+    setStarterPacksLoading(true)
+    try {
+      const data = await getStarterPacks(profile.did)
+      setStarterPacks(data as typeof starterPacks)
+    } catch (error) {
+      console.error("Failed to load starter packs:", error)
+    } finally {
+      setStarterPacksLoading(false)
+    }
+  }, [profile, getStarterPacks])
+
   const loadPosts = useCallback(async (type: string) => {
     if (!profile) return
     setPostsLoading(true)
@@ -273,6 +324,12 @@ const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     if (tab === "posts" || tab === "replies" || tab === "media") {
       loadPosts(tab)
+    } else if (tab === "feeds") {
+      loadFeeds()
+    } else if (tab === "lists") {
+      loadLists()
+    } else if (tab === "starterpacks") {
+      loadStarterPacks()
     }
   }
 
@@ -516,7 +573,7 @@ const handleTabChange = (tab: string) => {
         </div>
         
         {/* Profile Info */}
-        <div className="px-4 pt-20 pb-4">
+        <div className="px-4 pt-18 pb-3">
           <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
@@ -599,6 +656,18 @@ const handleTabChange = (tab: string) => {
             <TabsTrigger value="media" className="flex items-center gap-1">
               <Image className="h-3 w-3" />
               Media
+            </TabsTrigger>
+            <TabsTrigger value="feeds" className="flex items-center gap-1">
+              <Rss className="h-3 w-3" />
+              Feeds
+            </TabsTrigger>
+            <TabsTrigger value="lists" className="flex items-center gap-1">
+              <ListIcon className="h-3 w-3" />
+              Lists
+            </TabsTrigger>
+            <TabsTrigger value="starterpacks" className="flex items-center gap-1">
+              <Package className="h-3 w-3" />
+              Packs
             </TabsTrigger>
           </TabsList>
           
@@ -719,6 +788,128 @@ const handleTabChange = (tab: string) => {
               <MediaGrid posts={posts} />
             )}
           </TabsContent>
+
+          {/* Feeds Tab */}
+          <TabsContent value="feeds" className="mt-4">
+            {feedsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : feeds.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Rss className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No custom feeds</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {feeds.map((feed) => (
+                  <Link key={feed.uri} href={`/feeds/${encodeURIComponent(feed.uri)}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        {feed.avatar ? (
+                          <img src={feed.avatar} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Rss className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{feed.displayName}</p>
+                          <p className="text-sm text-muted-foreground truncate">by {feed.creator.displayName || feed.creator.handle}</p>
+                          {feed.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{feed.description}</p>
+                          )}
+                        </div>
+                        {feed.likeCount !== undefined && feed.likeCount > 0 && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
+                            <Heart className="h-3 w-3" />
+                            {feed.likeCount.toLocaleString()}
+                          </span>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Lists Tab */}
+          <TabsContent value="lists" className="mt-4">
+            {listsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : lists.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <ListIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No lists</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {lists.map((list) => (
+                  <Link key={list.uri} href={`/lists/${encodeURIComponent(list.uri)}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        {list.avatar ? (
+                          <img src={list.avatar} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <ListIcon className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{list.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {list.purpose === "app.bsky.graph.defs#modlist" ? "Moderation list" : "Curation list"}
+                            {list.listItemCount !== undefined && ` · ${list.listItemCount} members`}
+                          </p>
+                          {list.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{list.description}</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Starter Packs Tab */}
+          <TabsContent value="starterpacks" className="mt-4">
+            {starterPacksLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : starterPacks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No starter packs</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {starterPacks.map((sp) => (
+                  <Card key={sp.uri} className="hover:bg-accent/50 transition-colors">
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Package className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{sp.record.name}</p>
+                        {sp.record.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1">{sp.record.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatDistanceToNow(new Date(sp.record.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -825,31 +1016,82 @@ function PostsList({
   )
 }
 
-function UserCard({ user, onNavigate }: { user: UserProfile; onNavigate?: () => void }) {
+function UserCard({ user, onNavigate, showUnfollow }: { user: UserProfile; onNavigate?: () => void; showUnfollow?: boolean }) {
+  const { unfollowUser, followUser, isAuthenticated } = useBluesky()
+  const [followUri, setFollowUri] = useState(user.viewer?.following)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleToggleFollow = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsLoading(true)
+    try {
+      if (followUri) {
+        await unfollowUser(followUri)
+        setFollowUri(undefined)
+      } else {
+        const uri = await followUser(user.did)
+        setFollowUri(uri)
+      }
+    } catch (error) {
+      console.error("Failed to toggle follow:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Card className="hover:bg-accent/50 transition-colors">
-      <CardContent className="p-3 sm:p-4">
-        <Link 
-          href={`/profile/${user.handle}`} 
-          className="flex items-start gap-3"
-          onClick={onNavigate}
-        >
-          <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
-            <AvatarFallback>
-              {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+      <CardContent className="p-3">
+        <div className="flex items-center gap-3">
+          <UserHoverCard handle={user.handle}>
+            <Link href={`/profile/${user.handle}`} onClick={onNavigate} className="shrink-0">
+              <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
+                <AvatarFallback>
+                  {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          </UserHoverCard>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold truncate">{user.displayName || user.handle}</span>
+            <div className="flex items-center gap-1">
+              <UserHoverCard handle={user.handle}>
+                <Link href={`/profile/${user.handle}`} onClick={onNavigate} className="font-semibold truncate hover:underline">
+                  {user.displayName || user.handle}
+                </Link>
+              </UserHoverCard>
+              <VerifiedBadge handle={user.handle} did={user.did} />
             </div>
-            <p className="text-sm text-muted-foreground">@{user.handle}</p>
+            <HandleLink handle={user.handle} className="text-sm" />
             {user.description && (
-              <p className="text-sm mt-1 line-clamp-2">{user.description}</p>
+              <p className="text-sm mt-0.5 line-clamp-1 text-muted-foreground">{user.description}</p>
             )}
           </div>
-        </Link>
+          {isAuthenticated && (
+            <Button
+              variant={followUri ? "outline" : "default"}
+              size="sm"
+              className="shrink-0 h-8"
+              onClick={handleToggleFollow}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : followUri ? (
+                <>
+                  <UserMinus className="h-3.5 w-3.5 mr-1" />
+                  Unfollow
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-3.5 w-3.5 mr-1" />
+                  Follow
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
