@@ -6,7 +6,9 @@ import { SignInPrompt } from "@/components/sign-in-prompt"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX, Eye, Type, Contrast } from "lucide-react"
+import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX, Eye, Type, Contrast, BadgeCheck } from "lucide-react"
+import { VerificationCheckout } from "@/components/verification-checkout"
+import { getVerificationType } from "@/components/verified-badge"
 import { useTheme } from "next-themes"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { Switch } from "@/components/ui/switch"
@@ -263,6 +265,32 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Verification */}
+        {user && user.handle.endsWith(".bsky.social") && !getVerificationType(user.handle) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BadgeCheck className="h-5 w-5 text-blue-500" />
+                Verification
+              </CardTitle>
+              <CardDescription>Get a blue checkmark next to your name</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Support SociallyDead with a one-time payment of $1 or more and receive a blue verified badge that appears next to your name everywhere on the platform.
+              </p>
+              <VerificationCheckout
+                trigger={
+                  <Button variant="outline" className="w-full gap-2">
+                    <BadgeCheck className="h-4 w-4 text-blue-500" />
+                    Get Verified
+                  </Button>
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* About */}
         <Card>

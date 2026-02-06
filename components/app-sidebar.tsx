@@ -246,7 +246,7 @@ export function AppSidebar() {
               <div className="hidden flex-1 min-w-0 lg:block">
                 <p className="truncate text-sm font-medium text-sidebar-foreground inline-flex items-center gap-1">
                   {user.displayName || user.handle}
-                  <VerifiedBadge handle={user.handle} />
+                  <VerifiedBadge handle={user.handle} did={user.did} />
                 </p>
                 <HandleLink handle={user.handle} className="text-xs truncate block" />
               </div>

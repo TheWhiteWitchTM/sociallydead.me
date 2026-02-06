@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { VerificationCheckout } from "@/components/verification-checkout"
 
 export function AppFooter() {
   const currentYear = new Date().getFullYear()
@@ -53,14 +54,13 @@ export function AppFooter() {
             </Link>
           </span>
           <span className="hidden sm:inline">|</span>
-          <Link
-            href="https://www.paypal.com/ncp/payment/HUMB4VA29YFC4"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-primary hover:underline"
-          >
-            👉🏼💳Support Us👈🏼
-          </Link>
+          <VerificationCheckout
+            trigger={
+              <button className="font-medium text-primary hover:underline">
+                Support Us & Get Verified
+              </button>
+            }
+          />
         </div>
         
         {/* Legal links row */}

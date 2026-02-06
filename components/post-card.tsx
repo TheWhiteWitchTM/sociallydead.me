@@ -533,7 +533,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     {post.author.displayName || post.author.handle}
                   </Link>
                 </UserHoverCard>
-                <VerifiedBadge handle={post.author.handle} />
+                <VerifiedBadge handle={post.author.handle} did={post.author.did} />
                   <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
                   {/* Follow button - show only if not following and not own post */}
                   {!isOwnPost && isFollowing === false && (
@@ -726,7 +726,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                       <span className="font-medium text-sm">
                         {post.embed.record.author?.displayName || post.embed.record.author?.handle}
                       </span>
-                      <VerifiedBadge handle={post.embed.record.author?.handle || ""} />
+                      <VerifiedBadge handle={post.embed.record.author?.handle || ""} did={post.embed.record.author?.did} />
                       <HandleLink handle={post.embed.record.author?.handle || ""} className="text-sm" />
                     </div>
                     <p className="text-sm">{post.embed.record.value?.text}</p>
@@ -824,7 +824,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   </AvatarFallback>
                 </Avatar>
                 <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
-                <VerifiedBadge handle={post.author.handle} />
+                <VerifiedBadge handle={post.author.handle} did={post.author.did} />
                 <HandleLink handle={post.author.handle} className="text-sm" />
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
@@ -929,7 +929,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     </AvatarFallback>
                   </Avatar>
                   <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
-                  <VerifiedBadge handle={post.author.handle} />
+                  <VerifiedBadge handle={post.author.handle} did={post.author.did} />
                   <HandleLink handle={post.author.handle} className="text-sm" />
                 </div>
                 <p className="text-sm line-clamp-3">{post.record.text}</p>

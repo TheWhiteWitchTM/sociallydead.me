@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
+import { VerificationPrompt } from "@/components/verification-checkout"
 
 // Official Bluesky feed URIs
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
@@ -364,7 +365,7 @@ export default function HomePage() {
                 <div>
                   <h2 className="font-bold text-lg truncate inline-flex items-center gap-1.5">
                     {user.displayName || user.handle}
-                    <VerifiedBadge handle={user.handle} className="h-5 w-5" />
+                    <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
                   </h2>
                   <HandleLink handle={user.handle} className="text-sm" />
                 </div>
@@ -382,6 +383,7 @@ export default function HomePage() {
                     <strong>{user.postsCount ?? 0}</strong> posts
                   </Link>
                 </div>
+                <VerificationPrompt className="mt-2" />
               </div>
             </CardContent>
           </Card>

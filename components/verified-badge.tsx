@@ -7,19 +7,30 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import useSWR from "swr"
 
 interface VerifiedBadgeProps {
   handle: string
+  did?: string
   className?: string
 }
 
 type VerificationType = "gold" | "green" | "blue" | null
 
-// Handles of PayPal supporters who get the blue badge
-// Add handles here (without @) when someone donates
-const BLUE_VERIFIED_HANDLES = new Set<string>([
-  // "supporter.bsky.social",
-])
+// Check supporter record from PDS
+async function checkSupporterRecord(did: string): Promise<boolean> {
+  if (!did) return false
+  try {
+    const res = await fetch(
+      `https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=me.sociallydead.supporter&rkey=self`
+    )
+    if (!res.ok) return false
+    const data = await res.json()
+    return !!data?.value?.verifiedAt
+  } catch {
+    return false
+  }
+}
 
 export function getVerificationType(handle: string): VerificationType {
   // Gold checkmark for SociallyDead users
@@ -32,17 +43,27 @@ export function getVerificationType(handle: string): VerificationType {
     return "green"
   }
   
-  // Blue checkmark for PayPal supporters
-  if (BLUE_VERIFIED_HANDLES.has(handle.toLowerCase())) {
-    return "blue"
-  }
-  
-  // No checkmark for regular bsky.social users
+  // No static checkmark for regular bsky.social users
+  // Blue checkmark is determined by PDS record (async)
   return null
 }
 
-export function VerifiedBadge({ handle, className = "" }: VerifiedBadgeProps) {
-  const verificationType = getVerificationType(handle)
+export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProps) {
+  const staticType = getVerificationType(handle)
+  
+  // Only check PDS if there's no static badge and we have a DID
+  const shouldCheckPDS = !staticType && !!did
+  const { data: isSupporter } = useSWR(
+    shouldCheckPDS ? `supporter:${did}` : null,
+    () => checkSupporterRecord(did!),
+    { 
+      revalidateOnFocus: false, 
+      revalidateOnReconnect: false,
+      dedupingInterval: 300000, // 5 min dedup
+    }
+  )
+  
+  const verificationType = staticType || (isSupporter ? "blue" : null)
   
   if (!verificationType) {
     return null
@@ -61,8 +82,8 @@ export function VerifiedBadge({ handle, className = "" }: VerifiedBadgeProps) {
     },
     blue: {
       color: "text-blue-500",
-      label: "Verified",
-      description: "This account is verified",
+      label: "Supporter Verified",
+      description: "This account supports SociallyDead",
     },
   }
   
