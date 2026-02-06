@@ -142,6 +142,9 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   const [replyText, setReplyText] = useState("")
   const [quoteText, setQuoteText] = useState("")
   
+  // Analytics dialog
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false)
+  
   // Reply media state
   const [replyMediaFiles, setReplyMediaFiles] = useState<MediaFile[]>([])
   const [replyLinkCard, setReplyLinkCard] = useState<LinkCardData | null>(null)
@@ -721,15 +724,16 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 
                 {/* Engagement / Views metric */}
                 {(replyCount + repostCount + likeCount) > 0 && (
-                  <span
-                    className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto"
-                    title={`${replyCount + repostCount + likeCount} engagements`}
+                  <button
+                    onClick={() => setIsAnalyticsOpen(true)}
+                    className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors"
+                    title="View post analytics"
                   >
                     <BarChart3 className="h-3.5 w-3.5" />
                     <span className="text-xs tabular-nums">
                       {formatEngagement(replyCount + repostCount + likeCount)}
                     </span>
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
@@ -880,6 +884,100 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               {isLoading ? "Posting..." : "Quote"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Post Analytics Dialog */}
+      <Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Post Analytics
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
+                    <MessageCircle className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span className="text-sm font-medium">Replies</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{replyCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
+                    <Repeat2 className="h-4 w-4 text-green-500" />
+                  </div>
+                  <span className="text-sm font-medium">Reposts</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{repostCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
+                    <Heart className="h-4 w-4 text-red-500" />
+                  </div>
+                  <span className="text-sm font-medium">Likes</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
+                    <BarChart3 className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <span className="text-sm font-medium">Total Engagements</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{(replyCount + repostCount + likeCount).toLocaleString()}</span>
+              </div>
+            </div>
+            {(replyCount + repostCount + likeCount) > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
+                <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+                  {replyCount > 0 && (
+                    <div 
+                      className="h-full bg-blue-500 transition-all" 
+                      style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                      title={`Replies: ${((replyCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                    />
+                  )}
+                  {repostCount > 0 && (
+                    <div 
+                      className="h-full bg-green-500 transition-all" 
+                      style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                      title={`Reposts: ${((repostCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                    />
+                  )}
+                  {likeCount > 0 && (
+                    <div 
+                      className="h-full bg-red-500 transition-all" 
+                      style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                      title={`Likes: ${((likeCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                    />
+                  )}
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    Replies
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Reposts
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Likes
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

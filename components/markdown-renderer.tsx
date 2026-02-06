@@ -1,9 +1,10 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import remarkBreaks from "remark-breaks"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
 interface MarkdownRendererProps {
@@ -60,8 +61,75 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 }
 
 /**
+ * Shiki-powered syntax highlighted code block.
+ * Lazy-loads shiki on first render to keep initial bundle small.
+ * Uses github-light / github-dark themes to match the app theme.
+ */
+function ShikiCodeBlock({ code, language }: { code: string; language: string }) {
+  const { resolvedTheme } = useTheme()
+  const [html, setHtml] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function highlight() {
+      try {
+        const { codeToHtml } = await import("shiki")
+        const theme = resolvedTheme === "dark" ? "github-dark" : "github-light"
+        const result = await codeToHtml(code, {
+          lang: language || "text",
+          theme,
+        })
+        if (!cancelled) {
+          setHtml(result)
+        }
+      } catch {
+        // If language isn't supported, try plaintext
+        try {
+          const { codeToHtml } = await import("shiki")
+          const theme = resolvedTheme === "dark" ? "github-dark" : "github-light"
+          const result = await codeToHtml(code, {
+            lang: "text",
+            theme,
+          })
+          if (!cancelled) {
+            setHtml(result)
+          }
+        } catch {
+          if (!cancelled) {
+            setHtml(null)
+          }
+        }
+      }
+    }
+
+    highlight()
+    return () => {
+      cancelled = true
+    }
+  }, [code, language, resolvedTheme])
+
+  if (!html) {
+    // Fallback while loading or on error
+    return (
+      <code className="block text-sm font-mono whitespace-pre-wrap">
+        {code}
+      </code>
+    )
+  }
+
+  return (
+    <div
+      className="shiki-wrapper text-sm [&_pre]:!p-0 [&_pre]:!m-0 [&_pre]:!bg-transparent [&_code]:!bg-transparent [&_.line]:leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
+/**
  * Full Markdown renderer for rich content (articles, AI responses, etc.)
  * Not used for Bluesky post text - use MarkdownRenderer for that.
+ * Supports syntax highlighting via Shiki with GitHub themes.
  */
 export function RichMarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
@@ -83,18 +151,25 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
           ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
           ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
           li: ({ children }) => <li className="mb-1">{children}</li>,
-          code: ({ className, children }) => {
-            const isInline = !className
-            return isInline ? (
-              <code className="rounded bg-muted px-1 py-0.5 text-sm">{children}</code>
-            ) : (
-              <code className={cn("block rounded bg-muted p-2 text-sm overflow-x-auto", className)}>
+          code: ({ className: codeClassName, children }) => {
+            // Detect if this is a fenced code block (inside a <pre>)
+            const match = /language-(\w+)/.exec(codeClassName || "")
+            if (match) {
+              // Fenced code block - use Shiki
+              const codeString = String(children).replace(/\n$/, "")
+              return <ShikiCodeBlock code={codeString} language={match[1]} />
+            }
+            // Inline code
+            return (
+              <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono text-foreground">
                 {children}
               </code>
             )
           },
           pre: ({ children }) => (
-            <pre className="rounded bg-muted p-3 overflow-x-auto mb-2">{children}</pre>
+            <pre className="rounded-lg border border-border bg-muted/50 p-4 overflow-x-auto mb-2 not-prose">
+              {children}
+            </pre>
           ),
           blockquote: ({ children }) => (
             <blockquote className="border-l-2 border-primary pl-3 italic text-muted-foreground">
