@@ -286,6 +286,9 @@ interface BlueskyContextType {
   sendMessage: (convoId: string, text: string) => Promise<BlueskyMessage>
   startConversation: (did: string) => Promise<BlueskyConvo>
   markConvoRead: (convoId: string) => Promise<void>
+  leaveConvo: (convoId: string) => Promise<void>
+  muteConvo: (convoId: string) => Promise<void>
+  unmuteConvo: (convoId: string) => Promise<void>
   getUnreadMessageCount: () => Promise<number>
   // Starter Packs
   getStarterPacks: (actor?: string) => Promise<BlueskyStarterPack[]>
@@ -1526,6 +1529,39 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const leaveConvo = async (convoId: string): Promise<void> => {
+    if (!agent) throw new Error("Not authenticated")
+    try {
+      const chatAgent = getChatAgent()
+      await chatAgent.chat.bsky.convo.leaveConvo({ convoId })
+    } catch (err) {
+      console.error("Failed to leave conversation:", err)
+      throw err
+    }
+  }
+
+  const muteConvo = async (convoId: string): Promise<void> => {
+    if (!agent) throw new Error("Not authenticated")
+    try {
+      const chatAgent = getChatAgent()
+      await chatAgent.chat.bsky.convo.muteConvo({ convoId })
+    } catch (err) {
+      console.error("Failed to mute conversation:", err)
+      throw err
+    }
+  }
+
+  const unmuteConvo = async (convoId: string): Promise<void> => {
+    if (!agent) throw new Error("Not authenticated")
+    try {
+      const chatAgent = getChatAgent()
+      await chatAgent.chat.bsky.convo.unmuteConvo({ convoId })
+    } catch (err) {
+      console.error("Failed to unmute conversation:", err)
+      throw err
+    }
+  }
+
   const getUnreadMessageCount = async (): Promise<number> => {
     if (!agent || !user) return 0
     try {
@@ -2042,6 +2078,9 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
         sendMessage,
         startConversation,
         markConvoRead,
+        leaveConvo,
+        muteConvo,
+        unmuteConvo,
         getUnreadMessageCount,
         getStarterPacks,
         getStarterPack,

@@ -10,7 +10,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare } from "lucide-react"
+import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare, MoreVertical, Trash2, BellOff, Bell, Ban, LogOut, X } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { VerifiedBadge } from "@/components/verified-badge"
 import {
   Dialog,
@@ -57,6 +74,12 @@ export default function MessagesPage() {
     sendMessage,
     startConversation,
     markConvoRead,
+    leaveConvo,
+    muteConvo,
+    unmuteConvo,
+    blockUser,
+    unblockUser,
+    getProfile,
     searchActors,
     logout,
   } = useBluesky()
@@ -74,6 +97,9 @@ export default function MessagesPage() {
   const [searchResults, setSearchResults] = useState<Array<{ did: string; handle: string; displayName?: string; avatar?: string }>>([])
   const [isSearching, setIsSearching] = useState(false)
   const [needsReauth, setNeedsReauth] = useState(false)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showBlockDialog, setShowBlockDialog] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadConversations = useCallback(async () => {
@@ -140,6 +166,76 @@ export default function MessagesPage() {
   const handleBackToList = () => {
     setSelectedConvo(null)
     setMessages([])
+  }
+
+  const handleCloseChat = () => {
+    // Simply closes the chat view and goes back to the list
+    setSelectedConvo(null)
+    setMessages([])
+  }
+
+  const handleLeaveConvo = async () => {
+    if (!selectedConvo) return
+    setActionLoading(true)
+    try {
+      await leaveConvo(selectedConvo.id)
+      setConversations(prev => prev.filter(c => c.id !== selectedConvo.id))
+      setSelectedConvo(null)
+      setMessages([])
+      setShowLeaveDialog(false)
+    } catch (error) {
+      console.error("Failed to leave conversation:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleMuteConvo = async () => {
+    if (!selectedConvo) return
+    setActionLoading(true)
+    try {
+      if (selectedConvo.muted) {
+        await unmuteConvo(selectedConvo.id)
+        setSelectedConvo(prev => prev ? { ...prev, muted: false } : null)
+        setConversations(prev => prev.map(c => c.id === selectedConvo.id ? { ...c, muted: false } : c))
+      } else {
+        await muteConvo(selectedConvo.id)
+        setSelectedConvo(prev => prev ? { ...prev, muted: true } : null)
+        setConversations(prev => prev.map(c => c.id === selectedConvo.id ? { ...c, muted: true } : c))
+      }
+    } catch (error) {
+      console.error("Failed to mute/unmute conversation:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleBlockUser = async () => {
+    if (!selectedConvo) return
+    const otherMember = selectedConvo.members.find(m => m.did !== user?.did)
+    if (!otherMember) return
+    
+    setActionLoading(true)
+    try {
+      // Check current block status
+      const profile = await getProfile(otherMember.handle)
+      if (profile.viewer?.blocking) {
+        // Unblock
+        await unblockUser(profile.viewer.blocking)
+      } else {
+        // Block
+        await blockUser(otherMember.did)
+      }
+      setShowBlockDialog(false)
+      // Refresh conversations
+      await loadConversations()
+      setSelectedConvo(null)
+      setMessages([])
+    } catch (error) {
+      console.error("Failed to block/unblock user:", error)
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   // Poll for new messages in active conversation every 5 seconds
@@ -310,15 +406,55 @@ export default function MessagesPage() {
                           {(member.displayName || member.handle).slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-semibold">{member.displayName || member.handle}</span>
+                      <span className="font-semibold truncate max-w-[150px] sm:max-w-none">{member.displayName || member.handle}</span>
                       <VerifiedBadge handle={member.handle} />
+                      {selectedConvo.muted && (
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Muted</span>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
-              <Button onClick={() => loadMessages(selectedConvo.id)} variant="ghost" size="icon">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button onClick={() => loadMessages(selectedConvo.id)} variant="ghost" size="icon">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleCloseChat}>
+                      <X className="mr-2 h-4 w-4" />
+                      Close Chat
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleMuteConvo} disabled={actionLoading}>
+                      {selectedConvo.muted ? (
+                        <>
+                          <Bell className="mr-2 h-4 w-4" />
+                          Unmute Notifications
+                        </>
+                      ) : (
+                        <>
+                          <BellOff className="mr-2 h-4 w-4" />
+                          Mute Notifications
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowLeaveDialog(true)} className="text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Leave Conversation
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowBlockDialog(true)} className="text-destructive">
+                      <Ban className="mr-2 h-4 w-4" />
+                      Block User
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </>
           ) : (
             <>
@@ -497,7 +633,7 @@ export default function MessagesPage() {
                   return (
                     <Card 
                       key={convo.id}
-                      className={`cursor-pointer transition-colors ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
+                      className={`cursor-pointer transition-colors relative group ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
                       onClick={() => handleSelectConvo(convo)}
                     >
                       <CardContent className="p-3">
@@ -516,9 +652,14 @@ export default function MessagesPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`truncate ${hasUnread ? 'font-bold' : 'font-semibold'}`}>
-                              {otherMembers.map(m => m.displayName || m.handle).join(", ")}
-                            </p>
+                            <div className="flex items-center gap-1">
+                              <p className={`truncate ${hasUnread ? 'font-bold' : 'font-semibold'}`}>
+                                {otherMembers.map(m => m.displayName || m.handle).join(", ")}
+                              </p>
+                              {convo.muted && (
+                                <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />
+                              )}
+                            </div>
                             {convo.lastMessage && (
                               <p className={`text-sm truncate ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                                 {convo.lastMessage.text}
@@ -639,6 +780,67 @@ export default function MessagesPage() {
           </div>
         </div>
       </main>
+
+      {/* Leave Conversation Confirmation */}
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave this conversation? You will no longer see messages from this chat. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLeaveConvo} 
+              disabled={actionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Leaving...
+                </>
+              ) : (
+                "Leave Conversation"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Block User Confirmation */}
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block User</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedConvo && (() => {
+                const otherMember = selectedConvo.members.find(m => m.did !== user?.did)
+                return `Are you sure you want to block ${otherMember?.displayName || otherMember?.handle || 'this user'}? They won't be able to message you or see your posts.`
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBlockUser} 
+              disabled={actionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Blocking...
+                </>
+              ) : (
+                "Block User"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

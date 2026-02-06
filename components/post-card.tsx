@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus, BarChart3 } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus, BarChart3, Eye, MousePointerClick } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -165,6 +165,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isPinning, setIsPinning] = useState(false)
   const [isHighlighting, setIsHighlighting] = useState(false)
+  const [viewCount, setViewCount] = useState(0)
+  const [linkClickCount, setLinkClickCount] = useState(0)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const hasTrackedView = useRef(false)
 
   const handleAuthRequired = () => {
     if (!isAuthenticated) {
@@ -415,6 +419,53 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     setIsBookmarked(bookmarks.includes(post.uri))
   }, [post.uri])
 
+  // Track view when post becomes visible (IntersectionObserver)
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el || hasTrackedView.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasTrackedView.current) {
+            hasTrackedView.current = true
+            // Fire and forget view tracking
+            fetch('/api/views', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ postUri: post.uri, action: 'view' }),
+            })
+              .then(res => res.json())
+              .then(data => {
+                if (data.views) setViewCount(data.views)
+                if (data.linkClicks) setLinkClickCount(data.linkClicks)
+              })
+              .catch(() => { /* silently fail */ })
+            observer.disconnect()
+          }
+        })
+      },
+      { threshold: 0.5 }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [post.uri])
+
+  // Track link clicks
+  const trackLinkClick = () => {
+    fetch('/api/views', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postUri: post.uri, action: 'link_click' }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.linkClicks) setLinkClickCount(data.linkClicks)
+      })
+      .catch(() => { /* silently fail */ })
+  }
+
   // Check if following the author (only if authenticated and not own post)
   useEffect(() => {
     if (isAuthenticated && !isOwnPost && user?.did !== post.author.did) {
@@ -449,7 +500,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
 
   return (
     <>
-      <Card className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
+      <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
         <CardContent className="p-3 sm:p-4">
           {/* Repost indicator */}
           {isRepostReason && post.reason?.by && (
@@ -641,6 +692,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="block mt-3"
+                  onClick={trackLinkClick}
                 >
                   <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
                     {(post.embed.external as { thumb?: string }).thumb && (
@@ -722,11 +774,22 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
                 </Button>
                 
-                {/* Engagement / Views metric */}
-                {(replyCount + repostCount + likeCount) > 0 && (
+                {/* View count */}
+                {viewCount > 0 && (
+                  <span className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto" title={`${viewCount} views`}>
+                    <Eye className="h-3.5 w-3.5" />
+                    <span className="text-xs tabular-nums">{formatEngagement(viewCount)}</span>
+                  </span>
+                )}
+                
+                {/* Analytics button */}
+                {(replyCount + repostCount + likeCount + viewCount) > 0 && (
                   <button
                     onClick={() => setIsAnalyticsOpen(true)}
-                    className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors"
+                    className={cn(
+                      "flex items-center gap-1 h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors",
+                      viewCount === 0 && "ml-auto"
+                    )}
                     title="View post analytics"
                   >
                     <BarChart3 className="h-3.5 w-3.5" />
@@ -898,6 +961,31 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3">
+              {/* SociallyDead Custom Analytics */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-sky-500/10">
+                    <Eye className="h-4 w-4 text-sky-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Views</span>
+                    <p className="text-xs text-muted-foreground">SociallyDead only</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{viewCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-500/10">
+                    <MousePointerClick className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Link Clicks</span>
+                    <p className="text-xs text-muted-foreground">SociallyDead only</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{linkClickCount.toLocaleString()}</span>
+              </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2.5">
                   <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
