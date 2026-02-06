@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET!
-const PAYPAL_API = process.env.PAYPAL_MODE === "sandbox"
-  ? "https://api-m.sandbox.paypal.com"
-  : "https://api-m.paypal.com"
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || ""
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || ""
 
-async function getPayPalAccessToken(): Promise<string> {
-  const res = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+const PAYPAL_LIVE = "https://api-m.paypal.com"
+const PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
+
+async function getPayPalAccessToken(apiBase: string): Promise<string> {
+  const res = await fetch(`${apiBase}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64")}`,
@@ -17,17 +17,18 @@ async function getPayPalAccessToken(): Promise<string> {
   })
 
   if (!res.ok) {
-    throw new Error("Failed to get PayPal access token")
+    const errBody = await res.text()
+    throw new Error(`PayPal auth failed (${res.status}): ${errBody}`)
   }
 
   const data = await res.json()
   return data.access_token
 }
 
-async function verifyOrder(orderId: string): Promise<{ verified: boolean; amount: number; payerEmail?: string }> {
-  const accessToken = await getPayPalAccessToken()
+async function verifyOrder(orderId: string, apiBase: string): Promise<{ verified: boolean; amount: number; payerEmail?: string }> {
+  const accessToken = await getPayPalAccessToken(apiBase)
 
-  const res = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}`, {
+  const res = await fetch(`${apiBase}/v2/checkout/orders/${orderId}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -57,7 +58,7 @@ async function verifyOrder(orderId: string): Promise<{ verified: boolean; amount
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, handle, did, accessJwt, pdsUrl } = await req.json()
+    const { orderId, handle, did, accessJwt, pdsUrl, apiBase: clientApiBase } = await req.json()
 
     if (!orderId || !handle || !did || !accessJwt) {
       return NextResponse.json(
@@ -66,8 +67,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Use the same API base that was used to create/capture the order
+    const apiBase = clientApiBase && [PAYPAL_LIVE, PAYPAL_SANDBOX].includes(clientApiBase)
+      ? clientApiBase
+      : (process.env.PAYPAL_MODE === "sandbox" ? PAYPAL_SANDBOX : PAYPAL_LIVE)
+
     // 1. Verify the PayPal order
-    const { verified, amount, payerEmail } = await verifyOrder(orderId)
+    const { verified, amount, payerEmail } = await verifyOrder(orderId, apiBase)
 
     if (!verified) {
       return NextResponse.json(
@@ -105,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     if (!recordRes.ok) {
       const errText = await recordRes.text()
-      console.error("Failed to write supporter record:", errText)
+      console.error("[PayPal] Failed to write supporter record:", errText)
       return NextResponse.json(
         { error: "Payment verified but failed to save supporter status. Please contact support." },
         { status: 500 }
@@ -118,9 +124,9 @@ export async function POST(req: NextRequest) {
       amount,
     })
   } catch (error) {
-    console.error("PayPal verification error:", error)
+    console.error("[PayPal] Verification error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     )
   }
