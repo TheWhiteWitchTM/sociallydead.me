@@ -55,7 +55,7 @@ const publicNavItems: Array<{ href: string; icon: typeof Home; label: string; sh
 export function AppSidebar() {
   const pathname = usePathname()
   const { user, logout, isAuthenticated, isLoading, getUnreadCount, getUnreadMessageCount } = useBluesky()
-  const { isSubscribed, showNotification } = usePushNotifications()
+  const { isSubscribed, showNotification, setAppBadge, playNotificationSound, soundEnabled } = usePushNotifications()
   const [unreadCount, setUnreadCount] = useState(0)
   const [prevUnreadCount, setPrevUnreadCount] = useState(0)
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
@@ -143,6 +143,15 @@ export function AppSidebar() {
             setHasNewNotifications(false)
           }
           
+          // Update app badge (taskbar/dock badge)
+          const totalBadge = count + unreadMessageCount
+          setAppBadge(totalBadge)
+          
+          // Play notification sound for new notifications
+          if (soundEnabled && count > prevUnreadCount && prevUnreadCount > 0 && pathname !== "/notifications") {
+            playNotificationSound()
+          }
+
           setPrevUnreadCount(count)
           setUnreadCount(count)
         } catch (error) {
@@ -161,7 +170,7 @@ export function AppSidebar() {
         clearInterval(interval)
       }
     }
-  }, [isAuthenticated, getUnreadCount, pathname, isSubscribed, prevUnreadCount, showNotification, isLoading])
+  }, [isAuthenticated, getUnreadCount, pathname, isSubscribed, prevUnreadCount, showNotification, isLoading, setAppBadge, unreadMessageCount, soundEnabled, playNotificationSound])
 
   const renderNavButton = (item: typeof navItems[0], isActive: boolean, showLabel: boolean) => (
     <Button

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings } from "lucide-react"
+import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX } from "lucide-react"
 import { useTheme } from "next-themes"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { Switch } from "@/components/ui/switch"
@@ -22,6 +22,9 @@ export default function SettingsPage() {
     subscribe,
     unsubscribe,
     showNotification,
+    soundEnabled,
+    setSoundEnabled,
+    playNotificationSound,
   } = usePushNotifications()
 
   if (isLoading) {
@@ -131,17 +134,47 @@ export default function SettingsPage() {
                   />
                 </div>
                 {isSubscribed && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => showNotification("Test Notification", {
-                      body: "Push notifications are working!",
-                      url: "/notifications",
-                    })}
-                  >
-                    <BellRing className="h-4 w-4 mr-2" />
-                    Send Test Notification
-                  </Button>
+                  <div className="space-y-4">
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="notification-sound" className="flex items-center gap-2">
+                          {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                          Notification Sound
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Play a sound when new notifications arrive
+                        </p>
+                      </div>
+                      <Switch
+                        id="notification-sound"
+                        checked={soundEnabled}
+                        onCheckedChange={setSoundEnabled}
+                      />
+                    </div>
+                    {soundEnabled && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={playNotificationSound}
+                      >
+                        <Volume2 className="h-4 w-4 mr-2" />
+                        Test Sound
+                      </Button>
+                    )}
+                    <Separator />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => showNotification("Test Notification", {
+                        body: "Push notifications are working!",
+                        url: "/notifications",
+                      })}
+                    >
+                      <BellRing className="h-4 w-4 mr-2" />
+                      Send Test Notification
+                    </Button>
+                  </div>
                 )}
               </>
             )}

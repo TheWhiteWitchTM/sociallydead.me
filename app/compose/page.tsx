@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, Send, ImagePlus, X, AtSign, Hash, PenSquare } from "lucide-react"
+import { Loader2, Send, ImagePlus, X, AtSign, Hash, PenSquare, Video, Paperclip, Link2, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Popular hashtags for suggestions
@@ -27,6 +27,39 @@ interface MentionSuggestion {
   avatar?: string
 }
 
+interface LinkCardData {
+  url: string
+  title: string
+  description: string
+  image: string
+}
+
+type MediaFile = {
+  file: File
+  preview: string
+  type: "image" | "video"
+}
+
+// Bluesky supported media types
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
+const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
+const MAX_IMAGES = 4
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
+
+function extractUrl(text: string): string | null {
+  const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])/g
+  const matches = text.match(urlRegex)
+  if (!matches || matches.length === 0) return null
+  // Check if URL is at the very start or end of the text
+  const trimmed = text.trim()
+  const firstUrl = matches[0]
+  const lastUrl = matches[matches.length - 1]
+  if (trimmed.startsWith(firstUrl)) return firstUrl
+  if (trimmed.endsWith(lastUrl)) return lastUrl
+  return null
+}
+
 export default function ComposePage() {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading, createPost, searchActors } = useBluesky()
@@ -35,8 +68,14 @@ export default function ComposePage() {
   const audioContextRef = useRef<AudioContext | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [images, setImages] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
+  
+  // Link card state
+  const [linkCard, setLinkCard] = useState<LinkCardData | null>(null)
+  const [linkCardLoading, setLinkCardLoading] = useState(false)
+  const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
+  const [linkCardDismissed, setLinkCardDismissed] = useState(false)
+  const linkCardDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   // Autocomplete state
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
@@ -47,6 +86,10 @@ export default function ComposePage() {
   const [autocompletePosition, setAutocompletePosition] = useState(0)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
+
+  const hasVideo = mediaFiles.some(f => f.type === "video")
+  const hasImages = mediaFiles.some(f => f.type === "image")
+  const imageCount = mediaFiles.filter(f => f.type === "image").length
 
   // Play warning sound when hitting 275 characters
   const playWarningSound = useCallback(() => {
@@ -63,7 +106,7 @@ export default function ComposePage() {
       oscillator.connect(gainNode)
       gainNode.connect(ctx.destination)
       
-      oscillator.frequency.value = 440 // A4 note
+      oscillator.frequency.value = 440
       oscillator.type = 'sine'
       gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
@@ -76,6 +119,26 @@ export default function ComposePage() {
       // Audio not supported, ignore
     }
   }, [hasPlayedWarning])
+
+  // Fetch link card metadata
+  const fetchLinkCard = useCallback(async (url: string) => {
+    if (linkCardDismissed) return
+    setLinkCardLoading(true)
+    try {
+      const res = await fetch(`/api/og?url=${encodeURIComponent(url)}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.title || data.description) {
+          setLinkCard(data)
+          setLinkCardUrl(url)
+        }
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setLinkCardLoading(false)
+    }
+  }, [linkCardDismissed])
 
   // Search for mention suggestions
   const searchMentions = useCallback(async (query: string) => {
@@ -106,7 +169,7 @@ export default function ComposePage() {
     setHashtagSuggestions(matches)
   }, [])
 
-  // Handle text change with sound and autocomplete
+  // Handle text change with sound, autocomplete, and link detection
   const handleTextChange = (newText: string) => {
     setText(newText)
     
@@ -119,6 +182,19 @@ export default function ComposePage() {
     if (newText.length >= 275 && text.length < 275) {
       playWarningSound()
     }
+
+    // Detect URL at start/end for link card (debounced)
+    if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
+    linkCardDebounceRef.current = setTimeout(() => {
+      const url = extractUrl(newText)
+      if (url && url !== linkCardUrl && !linkCardDismissed) {
+        fetchLinkCard(url)
+      } else if (!url) {
+        setLinkCard(null)
+        setLinkCardUrl(null)
+        setLinkCardDismissed(false)
+      }
+    }, 800)
 
     // Check for @ or # autocomplete
     const cursorPos = textareaRef.current?.selectionStart || newText.length
@@ -165,7 +241,6 @@ export default function ComposePage() {
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
     
-    // Focus textarea and move cursor after inserted text
     setTimeout(() => {
       if (textareaRef.current) {
         const newCursorPos = beforeTrigger.length + prefix.length + suggestion.length + 1
@@ -204,24 +279,45 @@ export default function ComposePage() {
     }
   }
 
-  // Handle image selection
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle media file selection (images + videos)
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
-    const newImages = Array.from(files).slice(0, 4 - images.length) // Max 4 images
-    if (newImages.length === 0) return
-
-    setImages(prev => [...prev, ...newImages])
+    const newFiles = Array.from(files)
     
-    // Generate previews
-    newImages.forEach(file => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setImagePreviews(prev => [...prev, e.target?.result as string])
+    for (const file of newFiles) {
+      // Determine type
+      const isImage = IMAGE_TYPES.includes(file.type)
+      const isVideo = VIDEO_TYPES.includes(file.type)
+      
+      if (!isImage && !isVideo) continue
+      
+      // Bluesky rules: max 4 images OR 1 video, not both
+      if (isVideo) {
+        if (hasImages || hasVideo) continue // Can't mix or add multiple videos
+        if (file.size > MAX_VIDEO_SIZE) continue // 50MB limit
+        
+        const preview = URL.createObjectURL(file)
+        setMediaFiles([{ file, preview, type: "video" }])
+        break // Only 1 video allowed
       }
-      reader.readAsDataURL(file)
-    })
+      
+      if (isImage) {
+        if (hasVideo) continue // Can't mix
+        if (imageCount >= MAX_IMAGES) continue
+        
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          setMediaFiles(prev => {
+            if (prev.some(f => f.type === "video")) return prev
+            if (prev.filter(f => f.type === "image").length >= MAX_IMAGES) return prev
+            return [...prev, { file, preview: ev.target?.result as string, type: "image" }]
+          })
+        }
+        reader.readAsDataURL(file)
+      }
+    }
 
     // Reset input
     if (fileInputRef.current) {
@@ -229,9 +325,20 @@ export default function ComposePage() {
     }
   }
 
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index))
-    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  const removeMedia = (index: number) => {
+    setMediaFiles(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      // Revoke video object URLs
+      if (prev[index]?.type === "video") {
+        URL.revokeObjectURL(prev[index].preview)
+      }
+      return updated
+    })
+  }
+
+  const dismissLinkCard = () => {
+    setLinkCard(null)
+    setLinkCardDismissed(true)
   }
 
   // Load draft from AI assistant if available
@@ -242,20 +349,29 @@ export default function ComposePage() {
       sessionStorage.removeItem("compose_draft")
     }
   }, [])
+
   const [isPosting, setIsPosting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async () => {
-    if (!text.trim() && images.length === 0) return
+    if (!text.trim() && mediaFiles.length === 0) return
 
     setIsPosting(true)
     setError(null)
 
     try {
-      await createPost(text, { images: images.length > 0 ? images : undefined })
+      const images = mediaFiles.filter(f => f.type === "image").map(f => f.file)
+      const video = mediaFiles.find(f => f.type === "video")?.file
+      
+      await createPost(text, { 
+        images: images.length > 0 ? images : undefined,
+        video: video || undefined,
+        linkCard: linkCard && !mediaFiles.length ? linkCard : undefined,
+      })
       setText("")
-      setImages([])
-      setImagePreviews([])
+      setMediaFiles([])
+      setLinkCard(null)
+      setLinkCardUrl(null)
       router.push("/")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create post")
@@ -280,6 +396,15 @@ export default function ComposePage() {
   const maxChars = 300
   const isOverLimit = charCount > maxChars
 
+  // File input accept string based on current state
+  const getAcceptTypes = () => {
+    if (hasVideo) return "" // Disable further uploads
+    if (hasImages) return IMAGE_TYPES.join(",") // Only images if already has images
+    return ALL_MEDIA_TYPES.join(",") // Allow everything
+  }
+
+  const canAddMedia = !hasVideo && imageCount < MAX_IMAGES
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -290,7 +415,7 @@ export default function ComposePage() {
           </div>
           <Button 
             onClick={handleSubmit} 
-            disabled={isPosting || !text.trim() || isOverLimit}
+            disabled={isPosting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
           >
             {isPosting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -302,14 +427,14 @@ export default function ComposePage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {error && (
-          <Card className="mb-4 border-destructive">
+          <Card className="mb-4 border-destructive rounded-none sm:rounded-lg border-x-0 sm:border-x">
             <CardContent className="p-4 text-destructive">{error}</CardContent>
           </Card>
         )}
 
-        <Tabs defaultValue="write" className="w-full">
+        <Tabs defaultValue="write" className="w-full px-3 sm:px-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="write">Write</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -319,7 +444,7 @@ export default function ComposePage() {
             <div className="relative">
               <Textarea
                 ref={textareaRef}
-                placeholder="What's happening? (Markdown supported)"
+                placeholder="What's happening?"
                 value={text}
                 onChange={(e) => handleTextChange(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -382,22 +507,86 @@ export default function ComposePage() {
                 </Card>
               )}
             </div>
+
+            {/* Link Card Preview */}
+            {linkCardLoading && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground p-3 border rounded-lg">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading link preview...
+              </div>
+            )}
+            {linkCard && !linkCardLoading && (
+              <div className="mt-3 relative">
+                <Card className="overflow-hidden">
+                  {linkCard.image && (
+                    <div className="aspect-video relative bg-muted">
+                      <img
+                        src={linkCard.image}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                    </div>
+                  )}
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-2">
+                      <ExternalLink className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium line-clamp-2 text-sm">{linkCard.title}</p>
+                        {linkCard.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{linkCard.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{linkCard.url}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-2 right-2 h-6 w-6 rounded-full bg-background/80 hover:bg-background"
+                  onClick={dismissLinkCard}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
             
-            {/* Image Previews */}
-            {imagePreviews.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {imagePreviews.map((preview, index) => (
+            {/* Media Previews */}
+            {mediaFiles.length > 0 && (
+              <div className={cn(
+                "mt-3 gap-2",
+                hasVideo ? "flex" : "grid grid-cols-2"
+              )}>
+                {mediaFiles.map((media, index) => (
                   <div key={index} className="relative group">
-                    <img
-                      src={preview}
-                      alt={`Upload ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
+                    {media.type === "image" ? (
+                      <img
+                        src={media.preview}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border"
+                      />
+                    ) : (
+                      <div className="relative w-full rounded-lg border overflow-hidden bg-muted">
+                        <video
+                          src={media.preview}
+                          className="w-full max-h-64 object-contain"
+                          controls
+                          preload="metadata"
+                        />
+                        <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Video className="h-3 w-3" />
+                          Video
+                        </div>
+                      </div>
+                    )}
                     <Button
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeImage(index)}
+                      onClick={() => removeMedia(index)}
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -407,24 +596,51 @@ export default function ComposePage() {
             )}
             
             <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
-                  multiple
+                  accept={getAcceptTypes()}
+                  multiple={!hasVideo}
                   className="hidden"
-                  onChange={handleImageSelect}
+                  onChange={handleMediaSelect}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={images.length >= 4}
+                  disabled={!canAddMedia}
+                  title={hasVideo ? "Remove video to add images" : imageCount >= MAX_IMAGES ? "Maximum 4 images" : "Add media"}
                 >
-                  <ImagePlus className="h-4 w-4 mr-2" />
-                  Add Image {images.length > 0 && `(${images.length}/4)`}
+                  <ImagePlus className="h-4 w-4 mr-1.5" />
+                  <span className="hidden sm:inline">Image</span>
+                  {imageCount > 0 && <span className="ml-1 text-xs">({imageCount}/{MAX_IMAGES})</span>}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Set accept to video only and trigger
+                    if (fileInputRef.current) {
+                      fileInputRef.current.accept = VIDEO_TYPES.join(",")
+                      fileInputRef.current.multiple = false
+                      fileInputRef.current.click()
+                      // Reset accept after click
+                      setTimeout(() => {
+                        if (fileInputRef.current) {
+                          fileInputRef.current.accept = getAcceptTypes()
+                          fileInputRef.current.multiple = !hasVideo
+                        }
+                      }, 100)
+                    }
+                  }}
+                  disabled={hasImages || hasVideo}
+                  title={hasImages ? "Remove images to add video" : hasVideo ? "Only 1 video allowed" : "Add video (max 50MB)"}
+                >
+                  <Video className="h-4 w-4 mr-1.5" />
+                  <span className="hidden sm:inline">Video</span>
                 </Button>
               </div>
               <span className={cn(
@@ -437,9 +653,9 @@ export default function ComposePage() {
               </span>
             </div>
             
-            <p className="mt-2 text-xs text-muted-foreground">
-              Supports: **bold**, *italic*, `code`, [links](url), lists
-            </p>
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Tip: Paste a URL at the start or end to attach a link card</span>
+            </div>
           </TabsContent>
 
           <TabsContent value="preview" className="mt-4">
@@ -449,6 +665,24 @@ export default function ComposePage() {
                   <MarkdownRenderer content={text} />
                 ) : (
                   <p className="text-muted-foreground">Nothing to preview yet...</p>
+                )}
+                {linkCard && (
+                  <a href={linkCard.url} target="_blank" rel="noopener noreferrer" className="block mt-3">
+                    <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
+                      {linkCard.image && (
+                        <div className="aspect-video relative">
+                          <img src={linkCard.image} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <CardContent className="p-3">
+                        <p className="font-medium line-clamp-2">{linkCard.title}</p>
+                        {linkCard.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{linkCard.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2 truncate">{linkCard.url}</p>
+                      </CardContent>
+                    </Card>
+                  </a>
                 )}
               </CardContent>
             </Card>
