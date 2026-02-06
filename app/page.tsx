@@ -170,6 +170,7 @@ export default function HomePage() {
   }, [getTimeline])
 
   const handleTabChange = useCallback((tab: string) => {
+    console.log("[v0] Home handleTabChange:", tab)
     setActiveTab(tab)
     setNewPostsAvailable(false)
     
@@ -198,6 +199,7 @@ export default function HomePage() {
   }, [loadTimeline, loadFeed])
 
   useEffect(() => {
+    console.log("[v0] Home mount effect - isAuthenticated:", isAuthenticated, "isLoading:", isLoading, "activeTab:", activeTab)
     if (isAuthenticated && !isLoading) {
       loadTimeline()
       
