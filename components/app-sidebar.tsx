@@ -26,6 +26,12 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInDialog } from "@/components/sign-in-dialog"
 import { VerifiedBadge } from "@/components/verified-badge"
@@ -62,6 +68,7 @@ export function AppSidebar() {
   const [prevUnreadCount, setPrevUnreadCount] = useState(0)
   const [hasNewNotifications, setHasNewNotifications] = useState(false)
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
+  const [prevUnreadMessageCount, setPrevUnreadMessageCount] = useState(0)
   const [mobileExpanded, setMobileExpanded] = useState(false)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
@@ -103,7 +110,15 @@ export function AppSidebar() {
       const fetchUnreadMessages = async () => {
         try {
           const count = await getUnreadMessageCount()
-          if (isMounted) setUnreadMessageCount(count)
+          if (!isMounted) return
+
+          // Play sound for new DMs
+          if (soundEnabled && count > prevUnreadMessageCount && prevUnreadMessageCount >= 0 && pathname !== "/messages") {
+            playNotificationSound()
+          }
+
+          setPrevUnreadMessageCount(count)
+          setUnreadMessageCount(count)
         } catch {
           // Silently fail
         }
@@ -115,7 +130,7 @@ export function AppSidebar() {
         clearInterval(interval)
       }
     }
-  }, [isAuthenticated, getUnreadMessageCount, isLoading])
+  }, [isAuthenticated, getUnreadMessageCount, isLoading, soundEnabled, playNotificationSound, prevUnreadMessageCount, pathname])
 
   useEffect(() => {
     if (isAuthenticated && getUnreadCount && !isLoading) {
@@ -188,12 +203,12 @@ export function AppSidebar() {
       {showLabel && <span className="ml-3">{item.label}</span>}
       {item.showBadge && unreadCount > 0 && (
         <Badge 
-          variant="destructive" 
           className={cn(
+            "border-0 text-white bg-amber-500",
             showLabel
               ? "ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
               : "absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center text-[10px] px-1",
-            hasNewNotifications && "animate-pulse ring-2 ring-destructive/50"
+            hasNewNotifications && "animate-pulse ring-2 ring-amber-500/50"
           )}
         >
           {unreadCount > 99 ? "99+" : unreadCount}
@@ -201,8 +216,8 @@ export function AppSidebar() {
       )}
       {item.showMessageBadge && unreadMessageCount > 0 && (
         <Badge 
-          variant="destructive" 
           className={cn(
+            "border-0 text-white bg-blue-500",
             showLabel
               ? "ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
               : "absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center text-[10px] px-1"
@@ -304,23 +319,40 @@ export function AppSidebar() {
                     <item.icon className="h-5 w-5" />
                     <span className="ml-3 hidden lg:inline">{item.label}</span>
                     {item.showBadge && unreadCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className={cn(
-                          "absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5",
-                          hasNewNotifications && "animate-pulse ring-2 ring-destructive/50"
-                        )}
-                      >
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </Badge>
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge 
+                              className={cn(
+                                "absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5 border-0 text-white",
+                                "bg-amber-500 hover:bg-amber-600",
+                                hasNewNotifications && "animate-pulse ring-2 ring-amber-500/50"
+                              )}
+                            >
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="text-xs">
+                            {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     {item.showMessageBadge && unreadMessageCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5"
-                      >
-                        {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
-                      </Badge>
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge 
+                              className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5 border-0 text-white bg-blue-500 hover:bg-blue-600"
+                            >
+                              {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="text-xs">
+                            {unreadMessageCount} unread message{unreadMessageCount !== 1 ? "s" : ""}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </Button>
                 </Link>
@@ -411,10 +443,10 @@ export function AppSidebar() {
                   )} />
                   {item.showBadge && unreadCount > 0 && (
                     <Badge 
-                      variant="destructive" 
                       className={cn(
-                        "absolute -top-2 -right-3 h-4 min-w-4 flex items-center justify-center text-[10px] px-1",
-                        hasNewNotifications && "animate-pulse ring-2 ring-destructive/50"
+                        "absolute -top-2 -right-3 h-4 min-w-4 flex items-center justify-center text-[10px] px-1 border-0 text-white",
+                        "bg-amber-500",
+                        hasNewNotifications && "animate-pulse ring-2 ring-amber-500/50"
                       )}
                     >
                       {unreadCount > 99 ? "99+" : unreadCount}
@@ -422,8 +454,7 @@ export function AppSidebar() {
                   )}
                   {item.showMessageBadge && unreadMessageCount > 0 && (
                     <Badge 
-                      variant="destructive" 
-                      className="absolute -top-2 -right-3 h-4 min-w-4 flex items-center justify-center text-[10px] px-1"
+                      className="absolute -top-2 -right-3 h-4 min-w-4 flex items-center justify-center text-[10px] px-1 border-0 text-white bg-blue-500"
                     >
                       {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                     </Badge>

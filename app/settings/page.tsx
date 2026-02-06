@@ -6,7 +6,7 @@ import { SignInPrompt } from "@/components/sign-in-prompt"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX, Eye, Type, Contrast, BadgeCheck } from "lucide-react"
+import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings, Volume2, VolumeX, Eye, Type, Contrast, BadgeCheck, CreditCard } from "lucide-react"
 import { VerificationCheckout } from "@/components/verification-checkout"
 import { getVerificationType } from "@/components/verified-badge"
 import { useTheme } from "next-themes"
@@ -267,27 +267,75 @@ export default function SettingsPage() {
         </Card>
 
         {/* Verification */}
-        {user && user.handle.endsWith(".bsky.social") && !getVerificationType(user.handle) && (
+        {user && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BadgeCheck className="h-5 w-5 text-blue-500" />
                 Verification
               </CardTitle>
-              <CardDescription>Get a blue checkmark next to your name</CardDescription>
+              <CardDescription>Your verification status on SociallyDead</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Support SociallyDead with a one-time payment of $1 or more and receive a blue verified badge that appears next to your name everywhere on the platform.
-              </p>
-              <VerificationCheckout
-                trigger={
-                  <Button variant="outline" className="w-full gap-2">
-                    <BadgeCheck className="h-4 w-4 text-blue-500" />
-                    Get Verified
-                  </Button>
+            <CardContent className="space-y-4">
+              {/* Show current status */}
+              {(() => {
+                const type = getVerificationType(user.handle)
+                if (type === "gold") {
+                  return (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+                      <BadgeCheck className="h-5 w-5 text-yellow-500 shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-medium text-yellow-600 dark:text-yellow-400">SociallyDead Verified</p>
+                        <p className="text-muted-foreground">Your account is verified through SociallyDead</p>
+                      </div>
+                    </div>
+                  )
                 }
-              />
+                if (type === "green") {
+                  return (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-green-500/20 bg-green-500/5">
+                      <BadgeCheck className="h-5 w-5 text-green-500 shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-medium text-green-600 dark:text-green-400">Domain Verified</p>
+                        <p className="text-muted-foreground">Your account is verified through your custom domain</p>
+                      </div>
+                    </div>
+                  )
+                }
+                // For .bsky.social users without a static badge
+                return null
+              })()}
+
+              {/* Show supporter badge status via VerifiedBadge component's PDS check */}
+              {!getVerificationType(user.handle) && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Support SociallyDead development and receive a blue verified badge as a thank you. Every dollar helps keep the platform running.
+                  </p>
+                  <VerificationCheckout
+                    trigger={
+                      <Button variant="outline" className="w-full gap-2">
+                        <BadgeCheck className="h-4 w-4 text-blue-500" />
+                        Support & Get Verified
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Always show a way to support even if already verified */}
+              {getVerificationType(user.handle) && (
+                <div className="pt-1">
+                  <VerificationCheckout
+                    trigger={
+                      <Button variant="ghost" size="sm" className="text-muted-foreground gap-2 w-full">
+                        <CreditCard className="h-4 w-4" />
+                        Support SociallyDead Development
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

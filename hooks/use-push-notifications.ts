@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 
 interface PushNotificationState {
   isSupported: boolean
@@ -163,11 +163,27 @@ export function usePushNotifications() {
     }
   }, [state.subscription])
 
+  // Persistent AudioContext ref -- created once on first user interaction
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
+  // Warm up AudioContext on user interaction (e.g. toggling sound or testing beep)
+  const getAudioContext = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext()
+    }
+    // Resume if suspended (browsers require user gesture)
+    if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume()
+    }
+    return audioCtxRef.current
+  }, [])
+
   // Play notification sound locally
   const playNotificationSound = useCallback(() => {
     if (!soundEnabled) return
     try {
-      const audioCtx = new AudioContext()
+      const audioCtx = getAudioContext()
+      const now = audioCtx.currentTime
       // Play a pleasant two-tone notification sound
       const playTone = (freq: number, start: number, duration: number) => {
         const osc = audioCtx.createOscillator()
@@ -176,17 +192,17 @@ export function usePushNotifications() {
         gain.connect(audioCtx.destination)
         osc.frequency.value = freq
         osc.type = 'sine'
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime + start)
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration)
-        osc.start(audioCtx.currentTime + start)
-        osc.stop(audioCtx.currentTime + start + duration)
+        gain.gain.setValueAtTime(0.15, now + start)
+        gain.gain.exponentialRampToValueAtTime(0.01, now + start + duration)
+        osc.start(now + start)
+        osc.stop(now + start + duration)
       }
       playTone(587.33, 0, 0.15) // D5
       playTone(880, 0.12, 0.2) // A5
     } catch {
       // Audio not supported
     }
-  }, [soundEnabled])
+  }, [soundEnabled, getAudioContext])
 
   // Show a local notification
   const showNotification = useCallback(
@@ -241,11 +257,15 @@ export function usePushNotifications() {
     }
   }, [registration])
 
-  // Toggle sound
+  // Toggle sound -- warm up AudioContext when turning on (user gesture context)
   const setSoundEnabled = useCallback((enabled: boolean) => {
     setSoundEnabledState(enabled)
     setNotificationSoundEnabled(enabled)
-  }, [])
+    if (enabled) {
+      // Create & resume AudioContext while we have user gesture
+      try { getAudioContext() } catch { /* ok */ }
+    }
+  }, [getAudioContext])
 
   // Toggle notifications on/off (localStorage preference + actual push subscribe/unsubscribe)
   const toggleNotifications = useCallback(async (enabled: boolean) => {
