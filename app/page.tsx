@@ -3,262 +3,217 @@
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
-import { SignInPrompt } from "@/components/sign-in-prompt"
+import { PostCard } from "@/components/post-card"
+import { SignInDialog } from "@/components/sign-in-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
-import { Loader2, RefreshCw, Plus, UsersRound, MoreHorizontal, Pencil, Trash2, UserPlus, UserMinus, ExternalLink, ArrowLeft, Rss } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
+import { VerificationPrompt } from "@/components/verification-checkout"
 
-interface StarterPack {
+// Official Bluesky feed URIs
+const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
+const KNOWN_FEEDS = {
+  popular: `at://${BLUESKY_DID}/app.bsky.feed.generator/hot-classic`,
+  whats_hot: `at://${BLUESKY_DID}/app.bsky.feed.generator/whats-hot`,
+  with_friends: `at://${BLUESKY_DID}/app.bsky.feed.generator/with-friends`,
+  mutuals: `at://${BLUESKY_DID}/app.bsky.feed.generator/mutuals`,
+  best_of_follows: `at://${BLUESKY_DID}/app.bsky.feed.generator/best-of-follows`,
+}
+
+interface Post {
   uri: string
   cid: string
-  record: {
-    name: string
-    description?: string
-    list: string
-    feeds?: Array<{ uri: string }>
-    createdAt: string
-  }
-  creator: {
+  author: {
     did: string
     handle: string
     displayName?: string
     avatar?: string
   }
-  list?: {
-    uri: string
-    cid: string
-    name: string
-    listItemCount?: number
+  record: {
+    text: string
+    createdAt: string
+    reply?: {
+      root: { uri: string; cid: string }
+      parent: { uri: string; cid: string }
+    }
   }
-  listItemsSample?: Array<{
-    uri: string
-    subject: {
+  embed?: {
+    $type: string
+    record?: {
+      uri: string
+      cid: string
+      author: {
+        did: string
+        handle: string
+        displayName?: string
+        avatar?: string
+      }
+      value: {
+        text: string
+        createdAt: string
+      }
+    }
+    images?: Array<{
+      thumb: string
+      fullsize: string
+      alt: string
+    }>
+  }
+  replyCount: number
+  repostCount: number
+  likeCount: number
+  viewer?: {
+    like?: string
+    repost?: string
+  }
+  reason?: {
+    $type: string
+    by?: {
       did: string
       handle: string
       displayName?: string
       avatar?: string
-      description?: string
     }
-  }>
-  feeds?: Array<{
-    uri: string
-    cid: string
-    did: string
-    displayName: string
-    description?: string
-    avatar?: string
-    likeCount?: number
-  }>
-  joinedWeekCount?: number
-  joinedAllTimeCount?: number
-  indexedAt: string
+  }
 }
 
-export default function StarterPacksPage() {
-  const { 
-    isAuthenticated, 
-    isLoading: authLoading, 
-    user,
-    getStarterPacks,
-    getStarterPack,
-    createStarterPack,
-    updateStarterPack,
-    deleteStarterPack,
-    addToStarterPack,
-    removeFromStarterPack,
-    searchActors,
-    getList,
-  } = useBluesky()
-  
-  const [starterPacks, setStarterPacks] = useState<StarterPack[]>([])
-  const [selectedPack, setSelectedPack] = useState<StarterPack | null>(null)
-  const [packMembers, setPackMembers] = useState<Array<{ uri: string; subject: { did: string; handle: string; displayName?: string; avatar?: string; description?: string } }>>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [membersLoading, setMembersLoading] = useState(false)
+export default function HomePage() {
+  const { isAuthenticated, isLoading, user, getTimeline, getCustomFeed, getProfile } = useBluesky()
+  const [posts, setPosts] = useState<Post[]>([])
+  const [feedLoading, setFeedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
-  // Create dialog
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [newName, setNewName] = useState("")
-  const [newDescription, setNewDescription] = useState("")
-  const [isCreating, setIsCreating] = useState(false)
-  
-  // Edit dialog
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editName, setEditName] = useState("")
-  const [editDescription, setEditDescription] = useState("")
-  const [isEditing, setIsEditing] = useState(false)
-  
-  // Add user dialog
-  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<Array<{ did: string; handle: string; displayName?: string; avatar?: string }>>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [isAdding, setIsAdding] = useState(false)
+  const [activeTab, setActiveTab] = useState("following")
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false)
+  const [latestPostUri, setLatestPostUri] = useState<string | null>(null)
+  const [fullProfile, setFullProfile] = useState<{ banner?: string } | null>(null)
 
-  const loadStarterPacks = useCallback(async () => {
-    setIsLoading(true)
+  // Load full profile data with banner
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      getProfile(user.handle).then((profile) => {
+        setFullProfile(profile)
+      }).catch(() => {
+        // Silently fail
+      })
+    }
+  }, [isAuthenticated, user, getProfile])
+
+  const loadTimeline = useCallback(async (isBackgroundRefresh = false) => {
+    if (!isAuthenticated) return
+    
+    if (!isBackgroundRefresh) {
+      setFeedLoading(true)
+      setError(null)
+    }
+    
+    try {
+      const result = await getTimeline()
+      
+      if (isBackgroundRefresh && result.posts.length > 0 && latestPostUri) {
+        // Check if there are new posts
+        const firstPostUri = result.posts[0].uri
+        if (firstPostUri !== latestPostUri) {
+          setNewPostsAvailable(true)
+        }
+      } else {
+        setPosts(result.posts)
+        setNewPostsAvailable(false)
+        if (result.posts.length > 0) {
+          setLatestPostUri(result.posts[0].uri)
+        }
+      }
+    } catch (err) {
+      if (!isBackgroundRefresh) {
+        setError(err instanceof Error ? err.message : "Failed to load timeline")
+      }
+    } finally {
+      if (!isBackgroundRefresh) {
+        setFeedLoading(false)
+      }
+    }
+  }, [isAuthenticated, getTimeline, latestPostUri])
+
+  const loadFeed = useCallback(async (feedUri: string) => {
+    setFeedLoading(true)
     setError(null)
     
     try {
-      const packs = await getStarterPacks()
-      setStarterPacks(packs)
+      const result = await getCustomFeed(feedUri)
+      setPosts(result.posts)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load starter packs")
+      setError(err instanceof Error ? err.message : "Failed to load feed")
     } finally {
-      setIsLoading(false)
+      setFeedLoading(false)
     }
-  }, [getStarterPacks])
+  }, [getCustomFeed])
 
-  const loadPackMembers = useCallback(async (listUri: string) => {
-    setMembersLoading(true)
+  const handleShowNewPosts = useCallback(async () => {
+    setNewPostsAvailable(false)
+    setFeedLoading(true)
     try {
-      const result = await getList(listUri)
-      setPackMembers(result.items)
+      const result = await getTimeline()
+      setPosts(result.posts)
+      if (result.posts.length > 0) {
+        setLatestPostUri(result.posts[0].uri)
+      }
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      console.error("Failed to load pack members:", err)
+      setError(err instanceof Error ? err.message : "Failed to load timeline")
     } finally {
-      setMembersLoading(false)
+      setFeedLoading(false)
     }
-  }, [getList])
+  }, [getTimeline])
 
-  const handleSelectPack = async (pack: StarterPack) => {
-    setSelectedPack(pack)
-    setEditName(pack.record.name)
-    setEditDescription(pack.record.description || "")
-    if (pack.list) {
-      await loadPackMembers(pack.list.uri)
-    }
-  }
-
-  const handleCreatePack = async () => {
-    if (!newName.trim()) return
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab)
+    setNewPostsAvailable(false)
     
-    setIsCreating(true)
-    try {
-      // Create starter pack with empty list (no 7 people requirement)
-      await createStarterPack(newName, newDescription || undefined, [], [])
-      setNewName("")
-      setNewDescription("")
-      setCreateDialogOpen(false)
-      await loadStarterPacks()
-    } catch (error) {
-      console.error("Failed to create starter pack:", error)
-    } finally {
-      setIsCreating(false)
+    switch (tab) {
+      case "following":
+        loadTimeline()
+        break
+      case "all":
+        loadFeed(KNOWN_FEEDS.whats_hot)
+        break
+      case "popular":
+        loadFeed(KNOWN_FEEDS.popular)
+        break
+      case "with_friends":
+        loadFeed(KNOWN_FEEDS.with_friends)
+        break
+      case "mutuals":
+        loadFeed(KNOWN_FEEDS.mutuals)
+        break
+      case "best_of_follows":
+        loadFeed(KNOWN_FEEDS.best_of_follows)
+        break
+      default:
+        loadTimeline()
     }
-  }
-
-  const handleEditPack = async () => {
-    if (!selectedPack || !editName.trim()) return
-    
-    setIsEditing(true)
-    try {
-      await updateStarterPack(selectedPack.uri, editName, editDescription || undefined)
-      setEditDialogOpen(false)
-      await loadStarterPacks()
-      // Refresh selected pack
-      const updated = await getStarterPack(selectedPack.uri)
-      setSelectedPack(updated)
-    } catch (error) {
-      console.error("Failed to update starter pack:", error)
-    } finally {
-      setIsEditing(false)
-    }
-  }
-
-  const handleDeletePack = async (pack: StarterPack) => {
-    if (!confirm(`Are you sure you want to delete "${pack.record.name}"?`)) return
-    
-    try {
-      await deleteStarterPack(pack.uri)
-      if (selectedPack?.uri === pack.uri) {
-        setSelectedPack(null)
-        setPackMembers([])
-      }
-      await loadStarterPacks()
-    } catch (error) {
-      console.error("Failed to delete starter pack:", error)
-    }
-  }
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
-    
-    setIsSearching(true)
-    try {
-      const result = await searchActors(searchQuery)
-      setSearchResults(result.actors)
-    } catch (error) {
-      console.error("Search failed:", error)
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const handleAddToPack = async (did: string) => {
-    if (!selectedPack) return
-    
-    setIsAdding(true)
-    try {
-      await addToStarterPack(selectedPack.uri, did)
-      setAddUserDialogOpen(false)
-      setSearchQuery("")
-      setSearchResults([])
-      if (selectedPack.list) {
-        await loadPackMembers(selectedPack.list.uri)
-      }
-    } catch (error) {
-      console.error("Failed to add user to starter pack:", error)
-    } finally {
-      setIsAdding(false)
-    }
-  }
-
-  const handleRemoveFromPack = async (did: string) => {
-    if (!selectedPack) return
-    
-    try {
-      await removeFromStarterPack(selectedPack.uri, did)
-      setPackMembers((prev) => prev.filter(item => item.subject.did !== did))
-    } catch (error) {
-      console.error("Failed to remove from starter pack:", error)
-    }
-  }
-
-  const getShareUrl = (pack: StarterPack) => {
-    const rkey = pack.uri.split('/').pop()
-    return `https://bsky.app/starter-pack/${pack.creator.handle}/${rkey}`
-  }
+  }, [loadTimeline, loadFeed])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadStarterPacks()
+    if (isAuthenticated && !isLoading) {
+      loadTimeline()
+      
+      // Background refresh every 30 seconds to check for new posts
+      const interval = setInterval(() => {
+        if (activeTab === 'following') {
+          loadTimeline(true)
+        }
+      }, 30000)
+      
+      return () => clearInterval(interval)
     }
-  }, [isAuthenticated, loadStarterPacks])
+  }, [isAuthenticated, isLoading, loadTimeline, activeTab])
 
-  if (authLoading) {
+  // Loading state
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -266,439 +221,244 @@ export default function StarterPacksPage() {
     )
   }
 
+  // Not signed in - show sign in prompt
   if (!isAuthenticated) {
-    return <SignInPrompt title="Starter Packs" description="Sign in to create and manage starter packs" />
-  }
-
-  // Show selected pack details
-  if (selectedPack) {
     return (
       <div className="min-h-screen">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex h-14 items-center gap-4 px-4">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedPack(null)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-xl font-bold flex-1 truncate">{selectedPack.record.name}</h1>
-            {selectedPack.creator.did === user?.did && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleDeletePack(selectedPack)}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+          <div className="flex h-14 items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              {/* Bluesky butterfly icon */}
+              <svg viewBox="0 0 568 501" className="h-6 w-6 text-[#0085ff]" fill="currentColor">
+                <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 googled383.039C285.169 374.388 284.017 370.036 284 googled373.719C283.983 370.036 282.831 374.388 280.369 googled383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+              </svg>
+            </div>
+            <SignInDialog
+              trigger={
+                <Button variant="default" size="sm" className="gap-2">
+                  <svg viewBox="0 0 568 501" className="h-4 w-4" fill="currentColor">
+                    <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                  </svg>
+                  Sign in with Bluesky
+                </Button>
+              }
+            />
           </div>
         </header>
 
-        <main className="max-w-2xl mx-auto px-4 py-6">
-          {/* Pack Info Card */}
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-4 rounded-full bg-primary/10">
-                  <UsersRound className="h-8 w-8 text-primary" />
+        <main className="flex flex-col items-center justify-center px-4 py-16">
+          <Card className="w-full max-w-md border-[#0085ff]/20 bg-gradient-to-br from-[#0085ff]/5 to-[#0085ff]/10">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col items-center text-center">
+                {/* Bluesky butterfly logo */}
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0085ff] mb-6">
+                  <svg viewBox="0 0 568 501" className="h-10 w-10 text-white" fill="currentColor">
+                    <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                  </svg>
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{selectedPack.record.name}</h2>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    Created by <HandleLink handle={selectedPack.creator.handle} className="text-sm" />
-                    <VerifiedBadge handle={selectedPack.creator.handle} />
-                  </p>
-                  {selectedPack.record.description && (
-                    <p className="mt-2 text-sm">{selectedPack.record.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
-                    <span>{packMembers.length} members</span>
-                    {selectedPack.joinedAllTimeCount && (
-                      <span>{selectedPack.joinedAllTimeCount} joined</span>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.open(getShareUrl(selectedPack), '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      View on Bluesky
+                <h2 className="text-2xl font-bold mb-3">Welcome to SociallyDead</h2>
+                <p className="text-muted-foreground mb-6">
+                  A feature-rich Bluesky client with markdown support, multiple feeds, and more. Sign in with your Bluesky account to get started.
+                </p>
+                <SignInDialog
+                  trigger={
+                    <Button size="lg" className="w-full gap-2 bg-[#0085ff] hover:bg-[#0085ff]/90">
+                      <svg viewBox="0 0 568 501" className="h-5 w-5" fill="currentColor">
+                        <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                      </svg>
+                      Sign in with Bluesky
                     </Button>
-                    {selectedPack.creator.did === user?.did && (
-                      <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button size="sm">
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Add People
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Add People to Starter Pack</DialogTitle>
-                            <DialogDescription>
-                              Search for users to add to your starter pack.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="flex gap-2">
-                              <Input
-                                placeholder="Search for a user..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                              />
-                              <Button onClick={handleSearch} disabled={isSearching}>
-                                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                              </Button>
-                            </div>
-                            {searchResults.length > 0 && (
-                              <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {searchResults.map((actor) => (
-                                  <Card 
-                                    key={actor.did} 
-                                    className="cursor-pointer hover:bg-accent transition-colors"
-                                    onClick={() => handleAddToPack(actor.did)}
-                                  >
-                                    <CardContent className="p-3">
-                                      <div className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10">
-                                          <AvatarImage src={actor.avatar || "/placeholder.svg"} />
-                                          <AvatarFallback>
-                                            {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                          <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
-                                          <HandleLink handle={actor.handle} className="text-sm" />
-                                        </div>
-                                        {isAdding ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <UserPlus className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    )}
-                  </div>
-                </div>
+                  }
+                />
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Uses secure OAuth - we never see your password
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Included Feeds */}
-          {selectedPack.feeds && selectedPack.feeds.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3">Included Feeds</h3>
-              <div className="space-y-2">
-                {selectedPack.feeds.map((feed) => (
-                  <Card key={feed.uri}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={feed.avatar || "/placeholder.svg"} />
-                          <AvatarFallback>
-                            <Rss className="h-5 w-5" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold">{feed.displayName}</p>
-                          {feed.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">{feed.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+          <div className="mt-8 text-center">
+            <p className="text-muted-foreground mb-4">Want to browse without signing in?</p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Button variant="outline" asChild>
+                <Link href="/discover">Discover Feed</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/search">Search</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/feeds">Browse Feeds</Link>
+              </Button>
             </div>
-          )}
-
-          {/* Members */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Members ({packMembers.length})</h3>
-            {membersLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : packMembers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <p className="text-muted-foreground">No members yet</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Add people to your starter pack to help others discover great accounts.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {packMembers.map((item) => (
-                  <Card key={item.uri}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <Link href={`/profile/${item.subject.handle}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={item.subject.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>
-                              {(item.subject.displayName || item.subject.handle).slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold flex items-center gap-1">{item.subject.displayName || item.subject.handle} <VerifiedBadge handle={item.subject.handle} /></p>
-                            <HandleLink handle={item.subject.handle} className="text-sm" />
-                            {item.subject.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
-                                {item.subject.description}
-                              </p>
-                            )}
-                          </div>
-                        </Link>
-                        {selectedPack.creator.did === user?.did && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleRemoveFromPack(item.subject.did)}
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
           </div>
         </main>
-
-        {/* Edit Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Starter Pack</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-name">Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-description">Description (optional)</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEditPack} disabled={isEditing || !editName.trim()}>
-                {isEditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     )
   }
 
+  // Signed in - show profile and timeline
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
+          {/* User avatar and handle */}
+          {user && (
+            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
+                <AvatarFallback className="text-xs">
+                  {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-sm hidden sm:inline">@{user.handle}</span>
+            </Link>
+          )}
           <div className="flex items-center gap-2">
-            <UsersRound className="h-5 w-5" />
-            <h1 className="text-xl font-bold">Starter Packs</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create Starter Pack</DialogTitle>
-                  <DialogDescription>
-                    Create a starter pack to help new users discover great accounts and feeds.
-                    You can add people after creating it.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      placeholder="My Starter Pack"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description (optional)</Label>
-                    <Textarea
-                      id="description"
-                      value={newDescription}
-                      onChange={(e) => setNewDescription(e.target.value)}
-                      placeholder="What is this starter pack for?"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreatePack} disabled={isCreating || !newName.trim()}>
-                    {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Create Starter Pack
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button onClick={loadStarterPacks} variant="ghost" size="icon" disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <Button onClick={() => handleTabChange(activeTab)} variant="ghost" size="icon" disabled={feedLoading}>
+              <RefreshCw className={`h-4 w-4 ${feedLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button asChild variant="default" size="sm">
+              <Link href="/compose">
+                <PenSquare className="h-4 w-4 mr-2" />
+                Post
+              </Link>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
+      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
+        {/* User Profile Card */}
+        {user && (
+          <Card className="mb-6 overflow-hidden">
+            {/* Banner */}
+            <div className="relative">
+              {(fullProfile?.banner || user.banner) ? (
+                <div 
+                  className="h-24 sm:h-32 w-full bg-cover bg-center" 
+                  style={{ backgroundImage: `url(${fullProfile?.banner || user.banner})` }} 
+                />
+              ) : (
+                <div className="h-24 sm:h-32 w-full bg-gradient-to-r from-primary/30 to-primary/10" />
+              )}
+              {/* Avatar overlapping banner */}
+              <div className="absolute -bottom-8 left-4">
+                <Avatar className="h-16 w-16 border-4 border-card">
+                  <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
+                  <AvatarFallback className="text-lg">
+                    {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              {/* Edit button on banner */}
+              <div className="absolute top-2 right-2">
+                <Button variant="secondary" size="sm" asChild className="bg-background/80 hover:bg-background">
+                  <Link href="/profile">
+                    <Settings className="h-4 w-4 mr-1" />
+                    Edit
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <CardContent className="pt-10 p-4">
+              <div className="flex-1 min-w-0">
+                <div>
+                  <h2 className="font-bold text-lg truncate inline-flex items-center gap-1.5">
+                    {user.displayName || user.handle}
+                    <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
+                  </h2>
+                  <HandleLink handle={user.handle} className="text-sm" />
+                </div>
+                {user.description && (
+                  <p className="mt-2 text-sm line-clamp-2">{user.description}</p>
+                )}
+                <div className="flex gap-4 mt-3 text-sm">
+                  <Link href="/profile?tab=followers" className="hover:underline">
+                    <strong>{user.followersCount ?? 0}</strong> followers
+                  </Link>
+                  <Link href="/profile?tab=following" className="hover:underline">
+                    <strong>{user.followsCount ?? 0}</strong> following
+                  </Link>
+                  <Link href="/profile" className="hover:underline">
+                    <strong>{user.postsCount ?? 0}</strong> posts
+                  </Link>
+                </div>
+                <VerificationPrompt className="mt-2" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Feed Tabs */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="w-full justify-start mb-4 overflow-x-auto flex-nowrap">
+            <TabsTrigger value="following" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Following</span>
+            </TabsTrigger>
+            <TabsTrigger value="all" className="gap-1.5">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">All</span>
+            </TabsTrigger>
+            <TabsTrigger value="popular" className="gap-1.5">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">Popular</span>
+            </TabsTrigger>
+            <TabsTrigger value="with_friends" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">With Friends</span>
+            </TabsTrigger>
+            <TabsTrigger value="mutuals" className="gap-1.5">
+              <Heart className="h-4 w-4" />
+              <span className="hidden sm:inline">Mutuals</span>
+            </TabsTrigger>
+            <TabsTrigger value="best_of_follows" className="gap-1.5">
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Best of Follows</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* New Posts Indicator */}
+        {newPostsAvailable && (
+          <div className="sticky top-16 z-20 flex justify-center mb-4">
+            <Button 
+              onClick={handleShowNewPosts}
+              className="rounded-full shadow-lg animate-bounce"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              New posts available
+            </Button>
+          </div>
+        )}
+
+        {/* Feed Content */}
+        {feedLoading && posts.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={loadStarterPacks} variant="outline">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Try Again
-            </Button>
+          <div className="text-center py-12">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={() => handleTabChange(activeTab)}>Try Again</Button>
           </div>
-        ) : starterPacks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="p-4 rounded-full bg-primary/10 mb-4">
-              <UsersRound className="h-12 w-12 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">No Starter Packs Yet</h2>
-            <p className="text-muted-foreground max-w-sm">
-              Create a starter pack to help new users discover great accounts and feeds on Bluesky.
-            </p>
-            <Button 
-              onClick={() => setCreateDialogOpen(true)} 
-              className="mt-4"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Starter Pack
+        ) : posts.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">No posts to show</p>
+            <Button asChild>
+              <Link href="/compose">Create your first post</Link>
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {starterPacks.map((pack) => (
-              <Card 
-                key={pack.uri}
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => handleSelectPack(pack)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-full bg-primary/10">
-                        <UsersRound className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{pack.record.name}</h3>
-                        {pack.record.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {pack.record.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          <span>{pack.list?.listItemCount || 0} members</span>
-                          {pack.joinedAllTimeCount && (
-                            <span>{pack.joinedAllTimeCount} joined</span>
-                          )}
-                        </div>
-                        {/* Sample members */}
-                        {pack.listItemsSample && pack.listItemsSample.length > 0 && (
-                          <div className="flex -space-x-2 mt-3">
-                            {pack.listItemsSample.slice(0, 5).map((item) => (
-                              <Avatar key={item.uri} className="h-8 w-8 border-2 border-background">
-                                <AvatarImage src={item.subject.avatar || "/placeholder.svg"} />
-                                <AvatarFallback className="text-xs">
-                                  {(item.subject.displayName || item.subject.handle).slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                            ))}
-                            {(pack.list?.listItemCount || 0) > 5 && (
-                              <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium">
-                                +{(pack.list?.listItemCount || 0) - 5}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {pack.creator.did === user?.did && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation()
-                            handleSelectPack(pack)
-                            setEditDialogOpen(true)
-                          }}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeletePack(pack)
-                            }}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <PostCard 
+                key={post.uri} 
+                post={post} 
+                isOwnPost={user?.did === post.author.did}
+                onPostUpdated={() => handleTabChange(activeTab)}
+              />
             ))}
           </div>
         )}
