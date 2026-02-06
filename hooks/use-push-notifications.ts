@@ -9,8 +9,21 @@ interface PushNotificationState {
   subscription: PushSubscription | null
 }
 
-// Sound settings stored in localStorage
+// Notification preference stored in localStorage
+const NOTIFICATIONS_ENABLED_KEY = "sociallydead_notifications_enabled"
 const SOUND_ENABLED_KEY = "sociallydead_notification_sound"
+
+function getNotificationsEnabled(): boolean {
+  if (typeof window === "undefined") return true
+  const stored = localStorage.getItem(NOTIFICATIONS_ENABLED_KEY)
+  // Default to true (on by default)
+  return stored === null ? true : stored === "true"
+}
+
+function setNotificationsEnabled(enabled: boolean) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled))
+}
 
 export function getNotificationSoundEnabled(): boolean {
   if (typeof window === "undefined") return false
@@ -32,10 +45,12 @@ export function usePushNotifications() {
   })
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
   const [soundEnabled, setSoundEnabledState] = useState(false)
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true)
 
-  // Load sound preference
+  // Load preferences from localStorage
   useEffect(() => {
     setSoundEnabledState(getNotificationSoundEnabled())
+    setNotificationsEnabledState(getNotificationsEnabled())
   }, [])
 
   // Check if push notifications are supported
@@ -232,8 +247,24 @@ export function usePushNotifications() {
     setNotificationSoundEnabled(enabled)
   }, [])
 
+  // Toggle notifications on/off (localStorage preference + actual push subscribe/unsubscribe)
+  const toggleNotifications = useCallback(async (enabled: boolean) => {
+    setNotificationsEnabledState(enabled)
+    setNotificationsEnabled(enabled)
+    
+    if (enabled) {
+      // Try to subscribe to push when turning on
+      await subscribe()
+    } else {
+      // Unsubscribe from push when turning off
+      await unsubscribe()
+    }
+  }, [subscribe, unsubscribe])
+
   return {
     ...state,
+    notificationsEnabled,
+    toggleNotifications,
     requestPermission,
     subscribe,
     unsubscribe,
