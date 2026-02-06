@@ -1295,10 +1295,12 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   // Lists
   const getLists = async (actor?: string): Promise<BlueskyList[]> => {
-    if (!agent || !user) throw new Error("Not authenticated")
-    
-    const response = await agent.app.bsky.graph.getLists({
-      actor: actor || user.did,
+  const agentToUse = agent || publicAgent
+  const actorId = actor || user?.did
+  if (!actorId) throw new Error("No actor specified")
+  
+  const response = await agentToUse.app.bsky.graph.getLists({
+  actor: actorId,
       limit: 50,
     })
     
@@ -1611,10 +1613,12 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
   // Starter Packs
   const getStarterPacks = async (actor?: string): Promise<BlueskyStarterPack[]> => {
-    if (!agent || !user) throw new Error("Not authenticated")
+    const agentToUse = agent || publicAgent
+    const actorId = actor || user?.did
+    if (!actorId) throw new Error("No actor specified")
     
-    const response = await agent.app.bsky.graph.getActorStarterPacks({
-      actor: actor || user.did,
+    const response = await agentToUse.app.bsky.graph.getActorStarterPacks({
+      actor: actorId,
       limit: 50,
     })
     

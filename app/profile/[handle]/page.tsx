@@ -642,34 +642,36 @@ const handleTabChange = (tab: string) => {
 
         {/* Profile Tabs - X/Twitter Style */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="px-2 sm:px-4">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="replies">Replies</TabsTrigger>
-            <TabsTrigger value="highlights" className="flex items-center gap-1">
-              <Star className="h-3 w-3" />
-              Highlights
-            </TabsTrigger>
-            <TabsTrigger value="articles" className="flex items-center gap-1">
-              <FileText className="h-3 w-3" />
-              Articles
-            </TabsTrigger>
-            <TabsTrigger value="media" className="flex items-center gap-1">
-              <Image className="h-3 w-3" />
-              Media
-            </TabsTrigger>
-            <TabsTrigger value="feeds" className="flex items-center gap-1">
-              <Rss className="h-3 w-3" />
-              Feeds
-            </TabsTrigger>
-            <TabsTrigger value="lists" className="flex items-center gap-1">
-              <ListIcon className="h-3 w-3" />
-              Lists
-            </TabsTrigger>
-            <TabsTrigger value="starterpacks" className="flex items-center gap-1">
-              <Package className="h-3 w-3" />
-              Packs
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-2 sm:-mx-4 px-2 sm:px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <TabsList className="inline-flex w-max gap-0">
+              <TabsTrigger value="posts" className="flex-none text-xs sm:text-sm px-2.5 sm:px-3">Posts</TabsTrigger>
+              <TabsTrigger value="replies" className="flex-none text-xs sm:text-sm px-2.5 sm:px-3">Replies</TabsTrigger>
+              <TabsTrigger value="highlights" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <Star className="h-3 w-3 shrink-0" />
+                Hlts
+              </TabsTrigger>
+              <TabsTrigger value="articles" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <FileText className="h-3 w-3 shrink-0" />
+                Art.
+              </TabsTrigger>
+              <TabsTrigger value="media" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <Image className="h-3 w-3 shrink-0" />
+                Media
+              </TabsTrigger>
+              <TabsTrigger value="feeds" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <Rss className="h-3 w-3 shrink-0" />
+                Feeds
+              </TabsTrigger>
+              <TabsTrigger value="lists" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <ListIcon className="h-3 w-3 shrink-0" />
+                Lists
+              </TabsTrigger>
+              <TabsTrigger value="starterpacks" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <Package className="h-3 w-3 shrink-0" />
+                Packs
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="posts" className="mt-4">
             {/* Pinned Post */}
