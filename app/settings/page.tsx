@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing } from "lucide-react"
+import { Loader2, LogOut, Moon, Sun, Smartphone, Bell, BellOff, BellRing, Settings } from "lucide-react"
 import { useTheme } from "next-themes"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { Switch } from "@/components/ui/switch"
@@ -40,7 +40,10 @@ export default function SettingsPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center px-4">
-          <h1 className="text-xl font-bold">Settings</h1>
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            <h1 className="text-xl font-bold">Settings</h1>
+          </div>
         </div>
       </header>
 

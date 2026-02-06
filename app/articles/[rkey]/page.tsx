@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { RichMarkdownRenderer } from "@/components/markdown-renderer"
 import {
   Dialog,
   DialogContent,
@@ -260,7 +260,7 @@ export default function ArticlePage({ params }: { params: Promise<{ rkey: string
                 <Card className="min-h-[400px] p-4">
                   {editTitle && <h1 className="text-2xl font-bold mb-4">{editTitle}</h1>}
                   {editContent ? (
-                    <MarkdownRenderer content={editContent} />
+                    <RichMarkdownRenderer content={editContent} />
                   ) : (
                     <p className="text-muted-foreground">Nothing to preview...</p>
                   )}
@@ -283,7 +283,7 @@ export default function ArticlePage({ params }: { params: Promise<{ rkey: string
               </span>
             )}
           </div>
-          <MarkdownRenderer content={article.content} />
+          <RichMarkdownRenderer content={article.content} />
         </article>
       )}
 

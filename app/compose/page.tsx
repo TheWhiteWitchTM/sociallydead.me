@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, Send, ImagePlus, X, AtSign, Hash } from "lucide-react"
+import { Loader2, Send, ImagePlus, X, AtSign, Hash, PenSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Popular hashtags for suggestions
@@ -284,7 +284,10 @@ export default function ComposePage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">Compose</h1>
+          <div className="flex items-center gap-2">
+            <PenSquare className="h-5 w-5" />
+            <h1 className="text-xl font-bold">Compose</h1>
+          </div>
           <Button 
             onClick={handleSubmit} 
             disabled={isPosting || !text.trim() || isOverLimit}
