@@ -1,9 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
@@ -34,7 +41,9 @@ interface PublicPostCardProps {
 }
 
 export function PublicPostCard({ post }: PublicPostCardProps) {
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false)
   const timeAgo = formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })
+  const totalEngagement = post.replyCount + post.repostCount + post.likeCount
 
   return (
     <Card className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
@@ -97,26 +106,104 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                   <span className="text-xs sm:text-sm tabular-nums">{post.likeCount}</span>
                 </span>
                 
-                {(post.replyCount + post.repostCount + post.likeCount) > 0 && (
-                  <span
-                    className="flex items-center gap-1 px-2 py-1 text-muted-foreground ml-auto"
-                    title={`${post.replyCount + post.repostCount + post.likeCount} engagements`}
+                {totalEngagement > 0 && (
+                  <button
+                    onClick={() => setIsAnalyticsOpen(true)}
+                    className="flex items-center gap-1 px-2 py-1 text-muted-foreground ml-auto hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors"
+                    title="View post analytics"
                   >
                     <BarChart3 className="h-3.5 w-3.5" />
                     <span className="text-xs tabular-nums">
-                      {(() => {
-                        const count = post.replyCount + post.repostCount + post.likeCount
-                        if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
-                        if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
-                        return count.toString()
-                      })()}
+                      {totalEngagement >= 1000000 ? `${(totalEngagement / 1000000).toFixed(1)}M` : totalEngagement >= 1000 ? `${(totalEngagement / 1000).toFixed(1)}K` : totalEngagement}
                     </span>
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Post Analytics Dialog */}
+      <Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Post Analytics
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
+                    <MessageCircle className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span className="text-sm font-medium">Replies</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{post.replyCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
+                    <Repeat2 className="h-4 w-4 text-green-500" />
+                  </div>
+                  <span className="text-sm font-medium">Reposts</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{post.repostCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
+                    <Heart className="h-4 w-4 text-red-500" />
+                  </div>
+                  <span className="text-sm font-medium">Likes</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{post.likeCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
+                    <BarChart3 className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <span className="text-sm font-medium">Total Engagements</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{totalEngagement.toLocaleString()}</span>
+              </div>
+            </div>
+            {totalEngagement > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
+                <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+                  {post.replyCount > 0 && (
+                    <div className="h-full bg-blue-500" style={{ width: `${(post.replyCount / totalEngagement) * 100}%` }} />
+                  )}
+                  {post.repostCount > 0 && (
+                    <div className="h-full bg-green-500" style={{ width: `${(post.repostCount / totalEngagement) * 100}%` }} />
+                  )}
+                  {post.likeCount > 0 && (
+                    <div className="h-full bg-red-500" style={{ width: `${(post.likeCount / totalEngagement) * 100}%` }} />
+                  )}
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    Replies
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Reposts
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Likes
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
   )
 }

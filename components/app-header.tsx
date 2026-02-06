@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X, CreditCard, HelpCircle, BadgeCheck, FileText } from "lucide-react"
+import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X, CreditCard, HelpCircle, BadgeCheck, FileText, Code } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,6 +39,7 @@ export function AppHeader() {
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [markdownHelpOpen, setMarkdownHelpOpen] = React.useState(false)
+  const [markdownSyntaxOpen, setMarkdownSyntaxOpen] = React.useState(false)
   const [verifiedHelpOpen, setVerifiedHelpOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -140,6 +141,11 @@ export function AppHeader() {
                 <FileText className="h-4 w-4 mr-2" />
                 Formatting Guide
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMarkdownSyntaxOpen(true)}>
+                <Code className="h-4 w-4 mr-2" />
+                Markdown Syntax (Articles)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setVerifiedHelpOpen(true)}>
                 <BadgeCheck className="h-4 w-4 mr-2" />
                 Verification Levels
@@ -250,6 +256,57 @@ export function AppHeader() {
               <div className="p-3 rounded-lg bg-muted/50">
                 <p className="font-semibold mb-1">Character Limit</p>
                 <p className="text-muted-foreground">Posts have a 300 character limit. The counter turns yellow at 280 and red at 300.</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Markdown Syntax Dialog (for Articles) */}
+      <Dialog open={markdownSyntaxOpen} onOpenChange={setMarkdownSyntaxOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Code className="h-5 w-5" />
+              Markdown Syntax
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              Articles support full Markdown syntax for rich formatting. Here is a reference:
+            </p>
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Headings</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'# Heading 1\n## Heading 2\n### Heading 3'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Text Styling</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'**bold text**\n*italic text*\n~~strikethrough~~'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Links</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'[link text](https://example.com)'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Lists</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'- Unordered item\n- Another item\n\n1. Ordered item\n2. Another item'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Blockquotes</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'> This is a quote\n> It can span multiple lines'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Code</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'Inline `code` here\n\n```\nCode block\nMultiple lines\n```'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Horizontal Rule</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'---'}</pre>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="font-semibold">Tables</p>
+                <pre className="text-xs bg-background/80 p-2 rounded font-mono">{'| Column 1 | Column 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |'}</pre>
               </div>
             </div>
           </div>
