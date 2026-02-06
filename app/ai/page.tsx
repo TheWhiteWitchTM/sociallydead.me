@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { RichMarkdownRenderer } from "@/components/markdown-renderer"
 import { Loader2, Sparkles, Send, Copy, RotateCcw } from "lucide-react"
 
 const AI_ACTIONS = [
@@ -100,8 +100,10 @@ export default function AIPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center px-4">
-          <Sparkles className="mr-2 h-5 w-5" />
-          <h1 className="text-xl font-bold">AI Assistant</h1>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            <h1 className="text-xl font-bold">AI Assistant</h1>
+          </div>
         </div>
       </header>
 
@@ -178,7 +180,7 @@ export default function AIPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg border bg-muted/50 p-4">
-                <MarkdownRenderer content={output} />
+                <RichMarkdownRenderer content={output} />
               </div>
 
               <div className="flex gap-2">

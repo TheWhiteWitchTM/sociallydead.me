@@ -9,6 +9,20 @@ interface PushNotificationState {
   subscription: PushSubscription | null
 }
 
+// Sound settings stored in localStorage
+const SOUND_ENABLED_KEY = "sociallydead_notification_sound"
+
+export function getNotificationSoundEnabled(): boolean {
+  if (typeof window === "undefined") return true
+  const stored = localStorage.getItem(SOUND_ENABLED_KEY)
+  return stored === null ? true : stored === "true"
+}
+
+export function setNotificationSoundEnabled(enabled: boolean) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(SOUND_ENABLED_KEY, String(enabled))
+}
+
 export function usePushNotifications() {
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
@@ -17,6 +31,12 @@ export function usePushNotifications() {
     subscription: null,
   })
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
+  const [soundEnabled, setSoundEnabledState] = useState(true)
+
+  // Load sound preference
+  useEffect(() => {
+    setSoundEnabledState(getNotificationSoundEnabled())
+  }, [])
 
   // Check if push notifications are supported
   useEffect(() => {
@@ -52,13 +72,11 @@ export function usePushNotifications() {
         }))
       }
 
-      // Update on service worker state changes
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
             if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              // New service worker available
               console.log("[Push] New service worker available")
             }
           })
@@ -85,18 +103,14 @@ export function usePushNotifications() {
   const subscribe = useCallback(async (): Promise<PushSubscription | null> => {
     if (!registration || !state.isSupported) return null
 
-    // First, ensure we have permission
     if (Notification.permission !== "granted") {
       const granted = await requestPermission()
       if (!granted) return null
     }
 
     try {
-      // For demo purposes, we use a placeholder VAPID key
-      // In production, you'd use real VAPID keys from your server
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        // Note: In production, this applicationServerKey should come from your server
         applicationServerKey: urlBase64ToUint8Array(
           "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U"
         ),
@@ -108,7 +122,6 @@ export function usePushNotifications() {
         subscription,
       }))
 
-      // In production, send subscription to your server
       console.log("[Push] Subscription:", JSON.stringify(subscription))
 
       return subscription
@@ -135,12 +148,42 @@ export function usePushNotifications() {
     }
   }, [state.subscription])
 
-  // Show a local notification (doesn't require push subscription)
+  // Play notification sound locally
+  const playNotificationSound = useCallback(() => {
+    if (!soundEnabled) return
+    try {
+      const audioCtx = new AudioContext()
+      // Play a pleasant two-tone notification sound
+      const playTone = (freq: number, start: number, duration: number) => {
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.frequency.value = freq
+        osc.type = 'sine'
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime + start)
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration)
+        osc.start(audioCtx.currentTime + start)
+        osc.stop(audioCtx.currentTime + start + duration)
+      }
+      playTone(587.33, 0, 0.15) // D5
+      playTone(880, 0.12, 0.2) // A5
+    } catch {
+      // Audio not supported
+    }
+  }, [soundEnabled])
+
+  // Show a local notification
   const showNotification = useCallback(
     async (title: string, options?: NotificationOptions & { url?: string }) => {
       if (!state.isSupported || Notification.permission !== "granted") {
         const granted = await requestPermission()
         if (!granted) return
+      }
+
+      // Play sound if enabled
+      if (soundEnabled) {
+        playNotificationSound()
       }
 
       // Use service worker to show notification
@@ -151,14 +194,43 @@ export function usePushNotifications() {
           body: options?.body,
           url: options?.url,
           tag: options?.tag,
+          playSound: false, // We play sound locally for more control
         })
       } else {
-        // Fallback to regular notification
         new Notification(title, options)
       }
     },
-    [state.isSupported, registration, requestPermission]
+    [state.isSupported, registration, requestPermission, soundEnabled, playNotificationSound]
   )
+
+  // Set app badge count
+  const setAppBadge = useCallback((count: number) => {
+    // Direct badge API (works on some platforms)
+    if ('setAppBadge' in navigator) {
+      try {
+        if (count > 0) {
+          (navigator as any).setAppBadge(count)
+        } else {
+          (navigator as any).clearAppBadge()
+        }
+      } catch {
+        // Not supported
+      }
+    }
+    // Also tell the service worker
+    if (registration?.active) {
+      registration.active.postMessage({
+        type: count > 0 ? 'SET_BADGE' : 'CLEAR_BADGE',
+        count,
+      })
+    }
+  }, [registration])
+
+  // Toggle sound
+  const setSoundEnabled = useCallback((enabled: boolean) => {
+    setSoundEnabledState(enabled)
+    setNotificationSoundEnabled(enabled)
+  }, [])
 
   return {
     ...state,
@@ -166,6 +238,10 @@ export function usePushNotifications() {
     subscribe,
     unsubscribe,
     showNotification,
+    setAppBadge,
+    soundEnabled,
+    setSoundEnabled,
+    playNotificationSound,
   }
 }
 

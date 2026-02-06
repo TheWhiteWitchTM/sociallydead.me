@@ -230,7 +230,7 @@ interface BlueskyContextType {
   login: (handle?: string) => Promise<void>
   logout: () => Promise<void>
   // Posts
-  createPost: (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[] }) => Promise<{ uri: string; cid: string }>
+  createPost: (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[]; video?: File; linkCard?: { url: string; title: string; description: string; image: string } }) => Promise<{ uri: string; cid: string }>
   deletePost: (uri: string) => Promise<void>
   editPost: (uri: string, newText: string) => Promise<{ uri: string; cid: string }>
   getPostThread: (uri: string) => Promise<{ post: BlueskyPost; replies: BlueskyPost[]; parent?: { post: BlueskyPost } }>
@@ -457,7 +457,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
   }, [user])
 
   // Posts
-  const createPost = async (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[] }) => {
+  const createPost = async (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[]; video?: File; linkCard?: { url: string; title: string; description: string; image: string } }) => {
     if (!agent) throw new Error("Not authenticated")
     
     const rt = new RichText({ text })
@@ -479,6 +479,48 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
       embed = {
         $type: 'app.bsky.embed.images',
         images: imageBlobs,
+      }
+    }
+
+    // Handle video
+    if (options?.video && !embed) {
+      try {
+        const response = await agent.uploadBlob(options.video, { encoding: options.video.type })
+        embed = {
+          $type: 'app.bsky.embed.video',
+          video: response.data.blob,
+          alt: '',
+        }
+      } catch (err) {
+        console.error("Video upload failed:", err)
+        throw new Error("Failed to upload video. It may be too large or in an unsupported format.")
+      }
+    }
+
+    // Handle link card (external embed) - only if no media embed
+    if (options?.linkCard && !embed) {
+      let thumbBlob = undefined
+      // Try to upload the OG image as a thumbnail
+      if (options.linkCard.image) {
+        try {
+          const imgResponse = await fetch(options.linkCard.image)
+          if (imgResponse.ok) {
+            const imgBlob = await imgResponse.blob()
+            const uploadResponse = await agent.uploadBlob(imgBlob, { encoding: imgBlob.type || 'image/jpeg' })
+            thumbBlob = uploadResponse.data.blob
+          }
+        } catch {
+          // Proceed without thumbnail
+        }
+      }
+      embed = {
+        $type: 'app.bsky.embed.external',
+        external: {
+          uri: options.linkCard.url,
+          title: options.linkCard.title || '',
+          description: options.linkCard.description || '',
+          ...(thumbBlob ? { thumb: thumbBlob } : {}),
+        },
       }
     }
 

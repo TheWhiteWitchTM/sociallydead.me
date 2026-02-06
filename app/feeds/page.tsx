@@ -308,7 +308,10 @@ export default function FeedsPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">Feeds</h1>
+          <div className="flex items-center gap-2">
+            <Rss className="h-5 w-5" />
+            <h1 className="text-xl font-bold">Feeds</h1>
+          </div>
           <Button onClick={loadAll} variant="ghost" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>

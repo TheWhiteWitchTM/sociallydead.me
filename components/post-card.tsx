@@ -25,7 +25,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { MarkdownRenderer, RichMarkdownRenderer } from "@/components/markdown-renderer"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { useBluesky } from "@/lib/bluesky-context"
@@ -962,7 +962,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               </div>
             ) : factCheckResult ? (
               <div className="p-4 rounded-lg border bg-background">
-                <MarkdownRenderer content={factCheckResult} />
+                <RichMarkdownRenderer content={factCheckResult} />
               </div>
             ) : null}
           </div>

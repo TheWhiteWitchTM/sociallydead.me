@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare } from "lucide-react"
+import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -320,7 +320,10 @@ export default function MessagesPage() {
             </>
           ) : (
             <>
-              <h1 className="text-xl font-bold">Messages</h1>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                <h1 className="text-xl font-bold">Messages</h1>
+              </div>
               <div className="flex items-center gap-2">
                 <Dialog open={newConvoOpen} onOpenChange={setNewConvoOpen}>
                   <DialogTrigger asChild>

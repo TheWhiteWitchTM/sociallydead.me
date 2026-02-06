@@ -1,6 +1,6 @@
 // SociallyDead Service Worker for Push Notifications
 
-const CACHE_NAME = 'sociallydead-v1';
+const CACHE_NAME = 'sociallydead-v2';
 const NOTIFICATION_ICON = '/icon-192x192.png';
 
 // Install event - cache essential assets
@@ -49,12 +49,43 @@ self.addEventListener('push', (event) => {
       { action: 'dismiss', title: 'Dismiss' },
     ],
     requireInteraction: false,
+    silent: false,
   };
 
   event.waitUntil(
-    self.registration.showNotification(title || 'SociallyDead', options)
+    Promise.all([
+      self.registration.showNotification(title || 'SociallyDead', options),
+      // Set app badge count if supported
+      updateAppBadge(notifData?.unreadCount),
+    ])
   );
 });
+
+// Update the app badge (works on Windows, macOS, Android PWAs)
+async function updateAppBadge(count) {
+  if ('setAppBadge' in navigator) {
+    try {
+      if (count && count > 0) {
+        await navigator.setAppBadge(count);
+      } else {
+        // Set a generic badge without a count
+        await navigator.setAppBadge();
+      }
+    } catch (err) {
+      // Badge API not available, silently fail
+    }
+  }
+}
+
+async function clearAppBadge() {
+  if ('clearAppBadge' in navigator) {
+    try {
+      await navigator.clearAppBadge();
+    } catch {
+      // Silently fail
+    }
+  }
+}
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
@@ -91,8 +122,6 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncPosts() {
-  // Get queued posts from IndexedDB and send them
-  // This is a placeholder for future offline support
   console.log('[SW] Syncing queued posts...');
 }
 
@@ -104,8 +133,6 @@ self.addEventListener('periodicsync', (event) => {
 });
 
 async function checkForNewNotifications() {
-  // Check for new notifications in the background
-  // This requires the app to have a way to check notifications server-side
   console.log('[SW] Checking for new notifications...');
 }
 
@@ -116,13 +143,29 @@ self.addEventListener('message', (event) => {
   }
   
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
-    const { title, body, url, tag } = event.data;
+    const { title, body, url, tag, playSound } = event.data;
     self.registration.showNotification(title, {
       body,
       icon: NOTIFICATION_ICON,
       tag: tag || 'sociallydead-notification',
       data: { url },
       requireInteraction: false,
+      silent: !playSound,
     });
+  }
+
+  // Update the app badge from the main thread
+  if (event.data && event.data.type === 'SET_BADGE') {
+    const count = event.data.count;
+    if (count > 0) {
+      updateAppBadge(count);
+    } else {
+      clearAppBadge();
+    }
+  }
+
+  // Clear the app badge
+  if (event.data && event.data.type === 'CLEAR_BADGE') {
+    clearAppBadge();
   }
 });

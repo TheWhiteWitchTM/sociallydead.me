@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { RichMarkdownRenderer } from "@/components/markdown-renderer"
 import { Loader2, ArrowLeft, Save } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -180,7 +180,7 @@ export default function NewArticlePage() {
               <Card className="min-h-[400px] p-4">
                 {title && <h1 className="text-2xl font-bold mb-4">{title}</h1>}
                 {content ? (
-                  <MarkdownRenderer content={content} />
+                  <RichMarkdownRenderer content={content} />
                 ) : (
                   <p className="text-muted-foreground">Nothing to preview yet...</p>
                 )}

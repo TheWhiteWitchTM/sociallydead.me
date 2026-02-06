@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users } from "lucide-react"
+import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
 
 interface Notification {
   uri: string
@@ -295,6 +295,7 @@ export default function NotificationsPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-3 sm:px-4">
           <div className="flex items-center gap-2 sm:gap-4">
+            <Bell className="h-5 w-5" />
             <h1 className="text-lg sm:text-xl font-bold">Notifications</h1>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'mentions')}>
               <TabsList className="h-8">
