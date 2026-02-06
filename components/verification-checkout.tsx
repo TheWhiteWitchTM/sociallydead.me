@@ -153,19 +153,28 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <BadgeCheck className="h-5 w-5 text-blue-500" />
-                Get Verified
+                Support SociallyDead
               </DialogTitle>
               <DialogDescription>
-                Support SociallyDead and get a blue verification badge next to your name. Minimum $1.00 via PayPal.
+                Help fund development and keep SociallyDead free for everyone.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
+              <div className="flex gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">Support development</p>
+                  <p className="text-muted-foreground mt-1">
+                    Your contribution goes directly toward hosting, development, and keeping SociallyDead running as a free, open client for Bluesky.
+                  </p>
+                </div>
+              </div>
               <div className="flex gap-3 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5">
                 <BadgeCheck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium">What you get</p>
+                  <p className="font-medium">As a thank you</p>
                   <p className="text-muted-foreground mt-1">
-                    A blue verified badge that appears next to your name across SociallyDead, showing you are a supporter.
+                    You will receive a blue verified badge next to your name across SociallyDead as our way of saying thanks.
                   </p>
                 </div>
               </div>
@@ -185,7 +194,7 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
                     placeholder="1.00"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">Minimum $1.00. Any extra goes toward keeping SociallyDead running.</p>
+                <p className="text-xs text-muted-foreground">Minimum $1.00. Every dollar helps keep SociallyDead alive and improving.</p>
               </div>
 
               {error && (
@@ -218,9 +227,9 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
               <CheckCircle className="h-8 w-8 text-blue-500" />
             </div>
             <div className="text-center">
-              <p className="font-semibold text-lg">You are now verified!</p>
+              <p className="font-semibold text-lg">Thank you for your support!</p>
               <p className="text-sm text-muted-foreground mt-1">
-                The blue checkmark will appear next to your name. Thank you for supporting SociallyDead!
+                Your contribution helps keep SociallyDead running. A blue checkmark will now appear next to your name as our thanks.
               </p>
             </div>
             <Button onClick={() => handleOpen(false)} className="mt-2">
