@@ -15,6 +15,12 @@ interface VerifiedBadgeProps {
 
 type VerificationType = "gold" | "green" | "blue" | null
 
+// Handles of PayPal supporters who get the blue badge
+// Add handles here (without @) when someone donates
+const BLUE_VERIFIED_HANDLES = new Set<string>([
+  // "supporter.bsky.social",
+])
+
 export function getVerificationType(handle: string): VerificationType {
   // Gold checkmark for SociallyDead users
   if (handle.endsWith(".sociallydead.me") || handle === "sociallydead.me") {
@@ -24,6 +30,11 @@ export function getVerificationType(handle: string): VerificationType {
   // Green checkmark for domain-verified users (not using bsky.social)
   if (!handle.endsWith(".bsky.social")) {
     return "green"
+  }
+  
+  // Blue checkmark for PayPal supporters
+  if (BLUE_VERIFIED_HANDLES.has(handle.toLowerCase())) {
+    return "blue"
   }
   
   // No checkmark for regular bsky.social users

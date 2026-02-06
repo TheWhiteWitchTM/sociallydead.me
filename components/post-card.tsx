@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus, BarChart3 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -31,6 +31,12 @@ import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
+
+function formatEngagement(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+  return count.toString()
+}
 
 interface PostCardProps {
   post: {
@@ -712,6 +718,19 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
                   <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
                 </Button>
+                
+                {/* Engagement / Views metric */}
+                {(replyCount + repostCount + likeCount) > 0 && (
+                  <span
+                    className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto"
+                    title={`${replyCount + repostCount + likeCount} engagements`}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="text-xs tabular-nums">
+                      {formatEngagement(replyCount + repostCount + likeCount)}
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
