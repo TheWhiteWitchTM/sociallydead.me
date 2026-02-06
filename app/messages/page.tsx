@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare, MoreVertical, Trash2, BellOff, Bell, Ban, LogOut, X } from "lucide-react"
 import {
   DropdownMenu,
@@ -101,6 +100,8 @@ export default function MessagesPage() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [showBlockDialog, setShowBlockDialog] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [convoToDelete, setConvoToDelete] = useState<Convo | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadConversations = useCallback(async () => {
@@ -206,6 +207,47 @@ export default function MessagesPage() {
       }
     } catch (error) {
       console.error("Failed to mute/unmute conversation:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleMuteFromList = async (convo: Convo) => {
+    try {
+      if (convo.muted) {
+        await unmuteConvo(convo.id)
+        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, muted: false } : c))
+        if (selectedConvo?.id === convo.id) {
+          setSelectedConvo(prev => prev ? { ...prev, muted: false } : null)
+        }
+      } else {
+        await muteConvo(convo.id)
+        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, muted: true } : c))
+        if (selectedConvo?.id === convo.id) {
+          setSelectedConvo(prev => prev ? { ...prev, muted: true } : null)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to mute/unmute:", error)
+    }
+  }
+
+  const handleDeleteFromList = async () => {
+    const convo = convoToDelete
+    if (!convo) return
+    setActionLoading(true)
+    try {
+      await leaveConvo(convo.id)
+      setConversations(prev => prev.filter(c => c.id !== convo.id))
+      // If this was the selected convo, close it
+      if (selectedConvo?.id === convo.id) {
+        setSelectedConvo(null)
+        setMessages([])
+      }
+      setShowDeleteDialog(false)
+      setConvoToDelete(null)
+    } catch (error) {
+      console.error("Failed to remove conversation:", error)
     } finally {
       setActionLoading(false)
     }
@@ -670,11 +712,49 @@ export default function MessagesPage() {
                               </p>
                             )}
                           </div>
-                          {convo.lastMessage && (
-                            <span className={`text-xs shrink-0 ${hasUnread ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                              {formatDistanceToNow(new Date(convo.lastMessage.sentAt), { addSuffix: false })}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {convo.lastMessage && (
+                              <span className={`text-xs ${hasUnread ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                                {formatDistanceToNow(new Date(convo.lastMessage.sentAt), { addSuffix: false })}
+                              </span>
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleMuteFromList(convo)
+                                }}>
+                                  {convo.muted ? (
+                                    <><Bell className="mr-2 h-4 w-4" />Unmute</>
+                                  ) : (
+                                    <><BellOff className="mr-2 h-4 w-4" />Mute</>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setConvoToDelete(convo)
+                                    setShowDeleteDialog(true)
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Remove Conversation
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -749,23 +829,22 @@ export default function MessagesPage() {
 
                 {/* Message Input - pinned to bottom */}
                 <div className="shrink-0 border-t border-border bg-background pt-3 pb-2">
-                  <div className="flex gap-2 items-end">
-                    <Textarea
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      handleSendMessage()
+                    }}
+                    className="flex gap-2 items-center"
+                  >
+                    <Input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message... (Markdown supported)"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          handleSendMessage()
-                        }
-                      }}
+                      placeholder="Type a message..."
                       disabled={isSending}
-                      rows={1}
-                      className="min-h-[40px] max-h-[120px] resize-none"
+                      className="flex-1"
                     />
                     <Button 
-                      onClick={handleSendMessage} 
+                      type="submit"
                       disabled={isSending || !newMessage.trim()} 
                       size="icon"
                       className="shrink-0 h-10 w-10"
@@ -776,14 +855,45 @@ export default function MessagesPage() {
                         <Send className="h-4 w-4" />
                       )}
                     </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Shift+Enter for new line</p>
+                  </form>
                 </div>
               </div>
             )}
           </div>
         </div>
       </main>
+
+      {/* Remove Conversation from List Confirmation */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              {convoToDelete && (() => {
+                const otherMember = convoToDelete.members.find(m => m.did !== user?.did)
+                return `Remove your conversation with ${otherMember?.displayName || otherMember?.handle || 'this user'}? This will leave the conversation and it will no longer appear in your messages.`
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteFromList} 
+              disabled={actionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                "Remove"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Leave Conversation Confirmation */}
       <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
