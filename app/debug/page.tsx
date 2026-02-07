@@ -23,6 +23,9 @@ export default function Debug() {
 						lexicon: 1,
 					}
 					createSociallyDeadRecord(agent, data)
+						.then((rec) => {
+							setRecord("Set")
+						})
 				})
 
 		}
