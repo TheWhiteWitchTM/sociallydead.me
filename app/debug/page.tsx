@@ -7,13 +7,13 @@ import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const [state, setState] = useState("Loading!");
+	const [agent, setAgent] = useState(null)
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
 	const blueSky = useBluesky()
 
 	useEffect(() => {
-		const agent = blueSky.agent;
-
+	blueSky.get
 		if (agent) {
 			getSociallyDeadRecord(agent)
 				.then((record) => {
