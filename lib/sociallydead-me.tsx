@@ -10,7 +10,7 @@ export async function createSociallyDeadRecord(
 ): Promise<{ uri: string; cid: string }> {
 	const response = await agent.com.atproto.repo.createRecord({
 		repo: agent.assertDid,
-		collection: 'me.sociallydead.status',  // ← FIXED: valid NSID
+		collection: 'me.sociallydead',  // ← FIXED: valid NSID
 		rkey: 'self',
 		record: {
 			$type: 'me.sociallydead.status',     // ← must match collection exactly
@@ -39,7 +39,7 @@ export async function getSociallyDeadRecord(
 	try {
 		const response = await agent.com.atproto.repo.getRecord({
 			repo: agent.assertDid,
-			collection: 'me.sociallydead.status',  // ← FIXED
+			collection: 'me.sociallydead',  // ← FIXED
 			rkey: 'self',
 		});
 
@@ -68,7 +68,7 @@ export async function updateSociallyDeadRecord(
 	const existing = await getSociallyDeadRecord(agent).catch(() => null);
 
 	const newRecord = {
-		$type: 'me.sociallydead.status',
+		$type: 'me.sociallydead',
 		createdAt: existing?.value?.createdAt || new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 		...updates,  // ← only fresh fields — nothing old survives
@@ -78,7 +78,7 @@ export async function updateSociallyDeadRecord(
 
 	const response = await agent.com.atproto.repo.putRecord({
 		repo: agent.assertDid,
-		collection: 'me.sociallydead.status',
+		collection: 'me.sociallydead',
 		rkey: 'self',
 		record: newRecord,
 		validate: false,
@@ -88,4 +88,26 @@ export async function updateSociallyDeadRecord(
 		uri: response.data.uri,
 		cid: response.data.cid,
 	};
+}
+
+/**
+ * Deletes the "sociallydead.me" record if it exists.
+ * Safe to call even if missing (ignores 404 errors).
+ */
+export async function deleteSociallyDeadRecord(agent: Agent): Promise<void> {
+	try {
+		await agent.com.atproto.repo.deleteRecord({
+			repo: agent.assertDid,
+			collection: 'me.sociallydead',  // ← use YOUR exact collection name
+			rkey: 'self',
+		});
+		console.log("Record deleted successfully");
+	} catch (err: any) {
+		if (err?.status === 404 || err?.error === 'RecordNotFound') {
+			console.log("No record existed → nothing to delete");
+			return;
+		}
+		console.error("Delete failed:", err.message, err.error, err.status);
+		throw err; // let caller handle real errors
+	}
 }
