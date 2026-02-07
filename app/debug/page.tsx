@@ -10,6 +10,10 @@ export default function Debug() {
 	const [record, setRecord] = useState("No record!");
 	const {getAgent} = useBluesky()
 
+	useEffect(() => {
+
+	}, []);
+
 	async function debugInfo () {
 		const agent =  getAgent();
 		if (agent) {
@@ -22,12 +26,7 @@ export default function Debug() {
 					<h2>Agent: {agent?.did}</h2>
 				</p>
 				<p>
-					<h3>Record:</h3>
-					{record &&
-						<>
-							OK!
-						</>
-					}
+
 				</p>
 			</div>
 		)
