@@ -8,13 +8,12 @@ import {Agent} from "@atproto/api";
 
 export default function Debug() {
 	const [record, setRecord] = useState("No record!");
-	const [created, setCreated] = useState("Not created!");
 	const {getAgent} = useBluesky()
 
 	async function debugInfo () {
 		const agent =  getAgent();
 		if (agent) {
-			setCreated("OK")
+			setRecord("OK")
 		}
 
 		return(
