@@ -16,8 +16,8 @@ export default function Debug() {
 			setAgent(agent);
 			getSociallyDeadRecord(agent)
 				.then((record) => {
-					if (record?.cid) {
-						setRecord(record.cid)
+					if (record?.value) {
+						setRecord("DATA!")
 					} else {
 						setRecord("No data!");
 					}
