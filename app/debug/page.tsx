@@ -37,8 +37,10 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-				{agent &&
-					test(agent)
+				{getAgent() &&
+					<>
+						Got agent!
+					</>
 				}
 			</main>
 		</div>
