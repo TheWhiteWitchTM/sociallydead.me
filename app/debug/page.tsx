@@ -1,16 +1,14 @@
-"use client"
-
 import {Bug } from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
-export default function Debug() {
+export default async function Debug() {
 	const blueSky = useBluesky();
 	const agent = blueSky.agent;
 	const user = blueSky.user
 	let record = null;
 	if (agent) {
-		record = getSociallyDeadRecord(agent)
+		record = await getSociallyDeadRecord(agent)
 	}
 	const out = JSON.stringify(record)
 	return(
@@ -29,7 +27,8 @@ export default function Debug() {
 					{record ? "Record found" : "No record found!"}
 					{record &&
 						<>
-							{out}
+						<h2>sociallydead.me record:</h2>
+						{out}
 						</>
 					}
 				</p>
