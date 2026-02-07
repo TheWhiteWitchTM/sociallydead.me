@@ -1,3 +1,5 @@
+"use client"
+
 import {Bug } from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
