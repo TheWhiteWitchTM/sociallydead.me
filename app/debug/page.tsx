@@ -9,6 +9,7 @@ export default function Debug() {
 	const agent = blueSky.agent;
 	const user = blueSky.user
 	let record = null;
+	let create = null;
 	if (agent) {
 		const json = {
 			lexicon: 1,
@@ -20,8 +21,12 @@ export default function Debug() {
 			highlights: [],
 			articles: [],
 		}
-		createSociallyDeadRecord(agent,json)
-		record = getSociallyDeadRecord(agent).then((res) => {return res?.value})
+		create = createSociallyDeadRecord(agent,json)
+			.then((res) => {return res?.cid})
+			.catch((err) => {return "Error setting record!"})
+		record = getSociallyDeadRecord(agent)
+			.then((res) => {return res?.value})
+			.catch((err) => {return "Error getting record!"})
 	}
 	const out = JSON.stringify(record)
 	return(
