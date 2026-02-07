@@ -67,19 +67,18 @@ export async function updateSociallyDeadRecord(
 	const existing = await getSociallyDeadRecord(agent);
 
 	const newRecord = {
-		$type: 'me.sociallydead.status',  // ← FIXED
-		createdAt: existing?.value.createdAt || new Date().toISOString(),
+		$type: 'me.sociallydead.status',  // your collection
+		createdAt: existing?.value?.createdAt || new Date().toISOString(), // preserve original create time
 		updatedAt: new Date().toISOString(),
-		...(existing?.value || {}),
-		...updates,
+		...updates,  // only your new fields — NO spreading old value!
 	};
 
 	const response = await agent.com.atproto.repo.putRecord({
 		repo: agent.assertDid,
-		collection: 'me.sociallydead.status',  // ← FIXED
+		collection: 'me.sociallydead.status',
 		rkey: 'self',
 		record: newRecord,
-		// validate: false,  // Optional: bypass if you later add complex schema
+		validate: false,  // keep this
 	});
 
 	return {
