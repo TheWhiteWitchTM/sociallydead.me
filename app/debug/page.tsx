@@ -6,6 +6,7 @@ import {useBluesky} from "@/lib/bluesky-context";
 import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
+	const [state, setState] = useState("Loading!");
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
 	const blueSky = useBluesky()
@@ -32,6 +33,7 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
+				{state}
 				{agent &&
 					<div>
 						Agent: {agent.did}
