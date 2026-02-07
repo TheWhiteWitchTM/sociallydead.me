@@ -5,13 +5,17 @@ import {Bug} from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 import {Agent} from "@atproto/api";
+import {setHttpClientAndAgentOptions} from "next/dist/server/setup-http-agent-env";
 
 export default function Debug() {
 	const {getAgent} = useBluesky()
+	const [agent, setAgent] = useState<Agent | undefined>(undefined);
 
 	useEffect(() => {
-
-	}, []);
+		const agent = getAgent();
+		if (agent)
+			setAgent(agent);
+	}, [agent]);
 
 	// @ts-ignore
 	return(
