@@ -23,7 +23,11 @@ export default function Debug() {
 				</p>
 				<p>
 					<h3>Record:</h3>
-					{record}
+					{record &&
+						<>
+							OK!
+						</>
+					}
 				</p>
 			</div>
 		)
