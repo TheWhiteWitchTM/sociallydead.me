@@ -14,61 +14,65 @@ export default function Debug() {
 	useEffect(() => {
 		let isMounted = true;
 
-		const loadAgentAndRecord = async () => {
+		const loadAndUpdateRecord = async () => {
 			try {
-				const currentAgent = getAgent();
+				let currentAgent = getAgent();
 				if (!currentAgent) {
-					// Agent not ready yet → retry after delay (or listen for context change if possible)
-					setRecordStatus("Waiting for agent...");
+					setRecordStatus("Waiting for agent (retrying...)");
 					const timer = setTimeout(() => {
-						if (isMounted) loadAgentAndRecord(); // retry
-					}, 1000); // adjust delay as needed (or use a context event if your provider emits one)
+						if (isMounted) loadAndUpdateRecord();
+					}, 1000);
 					return () => clearTimeout(timer);
 				}
 
 				if (isMounted) {
 					setAgent(currentAgent);
-					setRecordStatus("Agent loaded. Checking record...");
+					setRecordStatus("Agent loaded (DID: " + currentAgent.assertDid + "). Checking/Updating record...");
 
-					const rec = await getSociallyDeadRecord(currentAgent);
-					console.log("GET RECORD RESPONSE:", rec); // Check console for uri / cid / value!
+					let rec = await getSociallyDeadRecord(currentAgent);
+					console.log("INITIAL GET RECORD:", rec);
+
+					const freshData = {
+						createdAt: rec?.value?.createdAt || new Date().toISOString(),  // preserve if exists
+						updatedAt: new Date().toISOString(),
+						mood: "joined sociallydead.me! (updated " + new Date().toLocaleTimeString() + ")",
+						verification: false,
+						test: "this update should appear now",
+					};
 
 					if (rec?.value && Object.keys(rec.value).length > 0) {
-						setRecordStatus(`DATA FOUND! ${JSON.stringify(rec.value, null, 2)}`);
-						const freshData = {
-							createdAt: new Date().toISOString(),
-							mood: "joined sociallydead.me!",
-							verification: false,
-						};
-						await updateSociallyDeadRecord(currentAgent, freshData);
-
-
+						// Update existing
+						setRecordStatus("Existing record found → updating...");
+						const updated = await updateSociallyDeadRecord(currentAgent, freshData);
+						console.log("UPDATE SUCCESS:", updated);
 					} else {
-						setRecordStatus("No useful data in record → creating new one...");
-						const freshData = {
-							createdAt: new Date().toISOString(),
-							mood: "joined sociallydead.me!",
-							verification: false,
-						};
-
+						// Create new
+						setRecordStatus("No useful record → creating...");
 						const created = await createSociallyDeadRecord(currentAgent, freshData);
 						console.log("CREATE SUCCESS:", created);
+					}
 
-						// Re-fetch to verify
-						const freshRec = await getSociallyDeadRecord(currentAgent);
-						setRecordStatus(`Record created/set! Value: ${JSON.stringify(freshRec?.value, null, 2)}`);
+					// ALWAYS re-fetch after write to confirm
+					await new Promise(r => setTimeout(r, 1500)); // small delay for PDS consistency
+					rec = await getSociallyDeadRecord(currentAgent);
+					console.log("FINAL GET AFTER WRITE:", rec);
+
+					if (rec?.value && Object.keys(rec.value).length > 0) {
+						setRecordStatus(`SUCCESS! Current value:\n${JSON.stringify(rec.value, null, 2)}`);
+					} else {
+						setRecordStatus("Update ran but value still empty/missing. Check console for logs.");
 					}
 				}
 			} catch (err: any) {
-				console.error("ERROR IN LOAD:", err);
-				setRecordStatus(`Error: ${err.message || "Failed to load/record"}`);
+				console.error("FULL ERROR:", err);
+				setRecordStatus(`Error: ${err.message || "Failed (check console)"}`);
 			}
 		};
 
-		loadAgentAndRecord();
+		loadAndUpdateRecord();
 
 		return () => { isMounted = false; };
-	}, []); // Still empty deps – or add getAgent if it's stable
+	}, []);
 
 	return (
 		<div className="min-h-screen">
@@ -82,9 +86,9 @@ export default function Debug() {
 			</header>
 			<main className="p-4">
 				<h2>Agent DID: {agent?.assertDid || "Not loaded yet"}</h2>
-				<p className="font-mono whitespace-pre-wrap break-words">{recordStatus}</p>
+				<p className="font-mono whitespace-pre-wrap break-words max-w-full">{recordStatus}</p>
 				<p className="text-sm text-muted-foreground mt-4">
-					Check browser console (F12) for full response logs. If agent never loads, check your Bluesky context/provider setup (login/session resume).
+					Refresh page after first run to test read-only. Check browser console (F12) for "GET RECORD", "UPDATE/CREATE SUCCESS", and "FINAL GET" logs — paste them here if value still empty.
 				</p>
 			</main>
 		</div>
