@@ -17,7 +17,11 @@ export default function Debug() {
 			getSociallyDeadRecord(agent)
 				.then((record) => {
 					if (record) {
-						return (record.cid);
+						return (
+							<>
+								{record}
+							</>
+						);
 					}
 					else {
 						return ("WTF!")
