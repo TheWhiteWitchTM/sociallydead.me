@@ -16,6 +16,7 @@ export default function Debug() {
 			.then((record) => {
 				setRecord(JSON.stringify(record?.value))
 			})
+			.catch((err) => {return "Record fetch failed!"})
 	}
 	return(
 		<div className="min-h-screen">
