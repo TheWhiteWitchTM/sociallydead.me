@@ -49,6 +49,11 @@ export default function Debug() {
 						{out}
 						</>
 					}
+					{create &&
+						<>
+							Created: {create}
+						</>
+					}
 				</p>
 			</div>
 		</div>
