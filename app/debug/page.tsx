@@ -18,6 +18,10 @@ export default function Debug() {
 				.then((record) => {
 					setRecord("Well")
 				})
+				.catch((record) => {
+					setRecord("WTF")
+				})
+
 		}
 	});
 
