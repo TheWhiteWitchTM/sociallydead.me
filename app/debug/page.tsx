@@ -12,8 +12,7 @@ export default function Debug() {
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
 
-	const x = useBluesky()
-	// @ts-ignore
+	const {getAgent} = useBluesky()
 
 	return(
 		<div className="min-h-screen">
@@ -26,11 +25,7 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-				{x &&
-					<>
-						Agent!
-					</>
-				}
+					{getAgent()?.did}
 			</main>
 		</div>
 	)
