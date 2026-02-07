@@ -10,9 +10,10 @@ export default function Debug() {
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
 	const blueSky = useBluesky()
-	const agent = blueSky.agent;
 
 	useEffect(() => {
+		const agent = blueSky.agent;
+
 		if (agent) {
 			getSociallyDeadRecord(agent)
 				.then((record) => {
@@ -37,11 +38,6 @@ export default function Debug() {
 			</header>
 			<main>
 				{state}
-				{agent &&
-					<div>
-						Agent: {agent.did}
-					</div>
-				}
 				{record &&
 					<div>
 						Record:
