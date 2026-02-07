@@ -18,7 +18,7 @@ export default function Debug() {
 				.then((record) => {
 					setRecord("Well")
 				})
-				.catch((record) => {
+				.catch((err) => {
 					const data = {
 						crested: new Date(),
 					}
@@ -27,7 +27,7 @@ export default function Debug() {
 							setRecord("Set")
 						})
 						.catch((err) => {
-							setRecord(err)
+							setRecord(err.message);
 						})
 				})
 
