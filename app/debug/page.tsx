@@ -19,6 +19,9 @@ export default function Debug() {
 					setRecord(JSON.stringify(record?.value))
 				})
 				.catch((err) => {return "Record fetch failed!"})
+				.finally(()=> {})
+		} else {
+			setState("No agent!")
 		}
 	})
 
