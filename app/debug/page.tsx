@@ -18,6 +18,8 @@ export default function Debug() {
 				.then((record) => {
 					if (record?.cid) {
 						setRecord(record.cid)
+					} else {
+						setRecord("No data!");
 					}
 				})
 				.catch((err) => {
