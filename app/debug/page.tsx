@@ -15,8 +15,7 @@ export default function Debug() {
 			setAgent(agent);
 			setRecord("I am here!");
 		}
-
-	}, [agent]);
+	});
 
 	// @ts-ignore
 	return(
