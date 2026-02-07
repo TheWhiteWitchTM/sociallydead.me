@@ -64,21 +64,24 @@ export async function updateSociallyDeadRecord(
 	agent: Agent,
 	updates: Record<string, unknown>
 ): Promise<{ uri: string; cid: string }> {
-	const existing = await getSociallyDeadRecord(agent);
+	// Optional: get existing just to preserve createdAt
+	const existing = await getSociallyDeadRecord(agent).catch(() => null);
 
 	const newRecord = {
-		$type: 'me.sociallydead.status',  // your collection
-		createdAt: existing?.value?.createdAt || new Date().toISOString(), // preserve original create time
+		$type: 'me.sociallydead.status',
+		createdAt: existing?.value?.createdAt || new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
-		...updates,  // only your new fields — NO spreading old value!
+		...updates,  // ← only fresh fields — nothing old survives
 	};
+
+	console.log("Writing clean record (no old junk):", newRecord);
 
 	const response = await agent.com.atproto.repo.putRecord({
 		repo: agent.assertDid,
 		collection: 'me.sociallydead.status',
 		rkey: 'self',
 		record: newRecord,
-		validate: false,  // keep this
+		validate: false,
 	});
 
 	return {
