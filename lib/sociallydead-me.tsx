@@ -1,4 +1,4 @@
-}import { Agent } from '@atproto/api';
+import { Agent } from '@atproto/api';
 
 /**
  * Creates a new "sociallydead" record if it doesn't exist.
