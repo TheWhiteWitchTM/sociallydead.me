@@ -16,9 +16,7 @@ export default function Debug() {
 			setAgent(agent);
 			getSociallyDeadRecord(agent)
 				.then((record) => {
-					return (
-						"WHAT EVER!"
-					);
+					setRecord("Record")
 				})
 				.catch((err) => {
 					const data = {
