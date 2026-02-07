@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {Bug} from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
+import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const [record, setRecord] = useState("No record!");
@@ -10,6 +11,12 @@ export default function Debug() {
 	const blueSky = useBluesky()
 	const agent = blueSky.agent;
 
+	if (agent) {
+		getSociallyDeadRecord(agent)
+			.then((record) => {
+				setRecord(JSON.stringify(record?.value))
+			})
+	}
 	return(
 		<div className="min-h-screen">
 			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
