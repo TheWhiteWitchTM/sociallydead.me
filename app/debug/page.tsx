@@ -15,11 +15,7 @@ export default function Debug() {
 	// @ts-ignore
 	useEffect(() => {
 		if (!agent) {
-			return (
-				<div>
-					No agent found!
-				</div>
-			)
+			return ("FUCK!")
 		}
 		if (agent) {
 			getSociallyDeadRecord(agent)
@@ -44,6 +40,7 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
+				<h3>For fucks sake!</h3>
 				{state}
 				{record &&
 					<div>
