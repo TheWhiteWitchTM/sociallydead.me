@@ -13,18 +13,6 @@ export default function Debug() {
 
 	}, []);
 
-	async function debugInfo () {
-		const agent =  getAgent();
-
-		return(
-			<div>
-				<p>
-					<h2>Agent: {agent?.did}</h2>
-				</p>
-			</div>
-		)
-	}
-
 	// @ts-ignore
 	return(
 		<div className="min-h-screen">
@@ -37,10 +25,6 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-				{getAgent()
-					? debugInfo()
-					: <div>No Agent!</div>
-				}
 			</main>
 		</div>
 	)
