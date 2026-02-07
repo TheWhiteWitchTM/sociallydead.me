@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
@@ -230,8 +229,7 @@ interface BlueskyContextType {
 	isLoading: boolean
 	login: (handle?: string) => Promise<void>
 	logout: () => Promise<void>
-	// ← added this one line
-	getAgent: () => Agent | null
+	getAgent: () => Agent | null     // ← only this one new line
 	// Posts
 	createPost: (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[]; video?: File; linkCard?: { url: string; title: string; description: string; image: string } }) => Promise<{ uri: string; cid: string }>
 	deletePost: (uri: string) => Promise<void>
@@ -417,6 +415,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 			oauthClient = null
 
 			// Nuke ALL IndexedDB databases used by @atproto/oauth-client-browser
+			// The SDK uses '@atproto-oauth-client' as the DB name (with @ prefix!)
 			const knownDBs = [
 				'@atproto-oauth-client',
 				'atproto-oauth-client',
@@ -431,6 +430,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				try { window.indexedDB.deleteDatabase(name) } catch {}
 			})
 
+			// Also try the databases() API to catch any others
 			try {
 				if ('databases' in window.indexedDB) {
 					const databases = await window.indexedDB.databases()
@@ -440,24 +440,29 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 						}
 					}
 				}
-			} catch {}
+			} catch {
+				// Not available in all browsers
+			}
 
+			// Clear all localStorage
 			try {
 				localStorage.clear()
-			} catch {}
+			} catch {
+				// localStorage cleanup failed
+			}
 
+			// Clear all sessionStorage
 			try {
 				sessionStorage.clear()
-			} catch {}
+			} catch {
+				// sessionStorage cleanup failed
+			}
 
 			window.location.href = "/"
 		}
 	}, [user])
 
-	// ← added this small function
-	const getAgent = useCallback((): Agent | null => {
-		return agent
-	}, [agent])
+	const getAgent = useCallback(() => agent, [agent])
 
 	// Posts
 	const createPost = async (text: string, options?: { reply?: { uri: string; cid: string }; embed?: unknown; images?: File[]; video?: File; linkCard?: { url: string; title: string; description: string; image: string } }) => {
@@ -468,6 +473,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 		let embed = options?.embed
 
+		// Handle images
 		if (options?.images && options.images.length > 0) {
 			const imageBlobs = await Promise.all(
 				options.images.map(async (file) => {
@@ -484,6 +490,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 			}
 		}
 
+		// Handle video
 		if (options?.video && !embed) {
 			try {
 				const response = await agent.uploadBlob(options.video, { encoding: options.video.type })
@@ -498,8 +505,10 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 			}
 		}
 
+		// Handle link card (external embed) - only if no media embed
 		if (options?.linkCard && !embed) {
 			let thumbBlob = undefined
+			// Try to upload the OG image as a thumbnail
 			if (options.linkCard.image) {
 				try {
 					const imgResponse = await fetch(options.linkCard.image)
@@ -508,7 +517,9 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 						const uploadResponse = await agent.uploadBlob(imgBlob, { encoding: imgBlob.type || 'image/jpeg' })
 						thumbBlob = uploadResponse.data.blob
 					}
-				} catch {}
+				} catch {
+					// Proceed without thumbnail
+				}
 			}
 			embed = {
 				$type: 'app.bsky.embed.external',
@@ -528,6 +539,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		if (options?.reply) {
+			// Get the thread to find the root
 			const thread = await agent.getPostThread({ uri: options.reply.uri })
 			const threadPost = thread.data.thread
 
@@ -557,9 +569,1490 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		return { uri: response.uri, cid: response.cid }
 	}
 
-	// ... all the other functions remain 100% unchanged ...
-	// (deletePost, editPost, getPostThread, getPost, quotePost, getTimeline, etc.)
-	// I'm not repeating the whole 1000+ lines here — just keep everything below this point exactly as it was
+	const deletePost = async (uri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.deletePost(uri)
+	}
+
+	const editPost = async (uri: string, newText: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await deletePost(uri)
+		return await createPost(newText)
+	}
+
+	const getPostThread = async (uri: string): Promise<{ post: BlueskyPost; replies: BlueskyPost[]; parent?: { post: BlueskyPost } }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.getPostThread({ uri, depth: 10 })
+
+		const thread = response.data.thread
+		if (!('post' in thread)) throw new Error("Post not found")
+
+		const post = thread.post
+		const replies: BlueskyPost[] = []
+		let parent: { post: BlueskyPost } | undefined = undefined
+
+		// Get parent post if exists
+		if ('parent' in thread && thread.parent && 'post' in thread.parent) {
+			const parentPost = thread.parent.post
+			parent = {
+				post: {
+					uri: parentPost.uri,
+					cid: parentPost.cid,
+					author: {
+						did: parentPost.author.did,
+						handle: parentPost.author.handle,
+						displayName: parentPost.author.displayName,
+						avatar: parentPost.author.avatar,
+					},
+					record: parentPost.record as BlueskyPost["record"],
+					embed: parentPost.embed as BlueskyPost["embed"],
+					replyCount: parentPost.replyCount ?? 0,
+					repostCount: parentPost.repostCount ?? 0,
+					likeCount: parentPost.likeCount ?? 0,
+					indexedAt: parentPost.indexedAt,
+					viewer: parentPost.viewer,
+				}
+			}
+		}
+
+		if ('replies' in thread && Array.isArray(thread.replies)) {
+			for (const reply of thread.replies) {
+				if ('post' in reply) {
+					replies.push({
+						uri: reply.post.uri,
+						cid: reply.post.cid,
+						author: {
+							did: reply.post.author.did,
+							handle: reply.post.author.handle,
+							displayName: reply.post.author.displayName,
+							avatar: reply.post.author.avatar,
+						},
+						record: reply.post.record as BlueskyPost["record"],
+						replyCount: reply.post.replyCount ?? 0,
+						repostCount: reply.post.repostCount ?? 0,
+						likeCount: reply.post.likeCount ?? 0,
+						indexedAt: reply.post.indexedAt,
+						viewer: reply.post.viewer,
+					})
+				}
+			}
+		}
+
+		return {
+			post: {
+				uri: post.uri,
+				cid: post.cid,
+				author: {
+					did: post.author.did,
+					handle: post.author.handle,
+					displayName: post.author.displayName,
+					avatar: post.author.avatar,
+				},
+				record: post.record as BlueskyPost["record"],
+				embed: post.embed as BlueskyPost["embed"],
+				replyCount: post.replyCount ?? 0,
+				repostCount: post.repostCount ?? 0,
+				likeCount: post.likeCount ?? 0,
+				indexedAt: post.indexedAt,
+				viewer: post.viewer,
+			},
+			replies,
+			parent,
+		}
+	}
+
+	const getPost = async (uri: string): Promise<BlueskyPost | null> => {
+		try {
+			const agentToUse = agent || publicAgent
+			const response = await agentToUse.getPostThread({ uri, depth: 0 })
+
+			const thread = response.data.thread
+			if (!('post' in thread)) return null
+
+			const post = thread.post
+			return {
+				uri: post.uri,
+				cid: post.cid,
+				author: {
+					did: post.author.did,
+					handle: post.author.handle,
+					displayName: post.author.displayName,
+					avatar: post.author.avatar,
+				},
+				record: post.record as BlueskyPost["record"],
+				embed: post.embed as BlueskyPost["embed"],
+				replyCount: post.replyCount ?? 0,
+				repostCount: post.repostCount ?? 0,
+				likeCount: post.likeCount ?? 0,
+				indexedAt: post.indexedAt,
+				viewer: post.viewer,
+			}
+		} catch {
+			return null
+		}
+	}
+
+	const quotePost = async (text: string, quotedPost: { uri: string; cid: string }) => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const rt = new RichText({ text })
+		await rt.detectFacets(agent)
+
+		const response = await agent.post({
+			text: rt.text,
+			facets: rt.facets,
+			embed: {
+				$type: 'app.bsky.embed.record',
+				record: {
+					uri: quotedPost.uri,
+					cid: quotedPost.cid,
+				},
+			},
+			createdAt: new Date().toISOString(),
+		})
+
+		return { uri: response.uri, cid: response.cid }
+	}
+
+	// Timelines & Feeds
+	const getTimeline = async (cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const response = await agent.getTimeline({ limit: 50, cursor })
+		return {
+			posts: response.data.feed.map((item) => ({
+				uri: item.post.uri,
+				cid: item.post.cid,
+				author: {
+					did: item.post.author.did,
+					handle: item.post.author.handle,
+					displayName: item.post.author.displayName,
+					avatar: item.post.author.avatar,
+				},
+				record: item.post.record as BlueskyPost["record"],
+				embed: item.post.embed as BlueskyPost["embed"],
+				replyCount: item.post.replyCount ?? 0,
+				repostCount: item.post.repostCount ?? 0,
+				likeCount: item.post.likeCount ?? 0,
+				indexedAt: item.post.indexedAt,
+				viewer: item.post.viewer,
+				reason: item.reason as BlueskyPost["reason"],
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const getPublicFeed = async (): Promise<BlueskyPost[]> => {
+		const response = await publicAgent.app.bsky.feed.getFeed({
+			feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
+			limit: 50,
+		})
+
+		return response.data.feed.map((item) => ({
+			uri: item.post.uri,
+			cid: item.post.cid,
+			author: {
+				did: item.post.author.did,
+				handle: item.post.author.handle,
+				displayName: item.post.author.displayName,
+				avatar: item.post.author.avatar,
+			},
+			record: item.post.record as BlueskyPost["record"],
+			embed: item.post.embed as BlueskyPost["embed"],
+			replyCount: item.post.replyCount ?? 0,
+			repostCount: item.post.repostCount ?? 0,
+			likeCount: item.post.likeCount ?? 0,
+			indexedAt: item.post.indexedAt,
+			viewer: item.post.viewer,
+		}))
+	}
+
+	const getUserPosts = async (actor?: string): Promise<BlueskyPost[]> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const response = await agent.getAuthorFeed({
+			actor: actor || user.did,
+			limit: 50,
+			filter: 'posts_no_replies',
+		})
+		return response.data.feed.map((item) => ({
+			uri: item.post.uri,
+			cid: item.post.cid,
+			author: {
+				did: item.post.author.did,
+				handle: item.post.author.handle,
+				displayName: item.post.author.displayName,
+				avatar: item.post.author.avatar,
+			},
+			record: item.post.record as BlueskyPost["record"],
+			embed: item.post.embed as BlueskyPost["embed"],
+			replyCount: item.post.replyCount ?? 0,
+			repostCount: item.post.repostCount ?? 0,
+			likeCount: item.post.likeCount ?? 0,
+			indexedAt: item.post.indexedAt,
+			viewer: item.post.viewer,
+			reason: item.reason as BlueskyPost["reason"],
+		}))
+	}
+
+	const getUserReplies = async (actor?: string): Promise<BlueskyPost[]> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const response = await agent.getAuthorFeed({
+			actor: actor || user.did,
+			limit: 50,
+			filter: 'posts_with_replies',
+		})
+		return response.data.feed.map((item) => ({
+			uri: item.post.uri,
+			cid: item.post.cid,
+			author: {
+				did: item.post.author.did,
+				handle: item.post.author.handle,
+				displayName: item.post.author.displayName,
+				avatar: item.post.author.avatar,
+			},
+			record: item.post.record as BlueskyPost["record"],
+			embed: item.post.embed as BlueskyPost["embed"],
+			replyCount: item.post.replyCount ?? 0,
+			repostCount: item.post.repostCount ?? 0,
+			likeCount: item.post.likeCount ?? 0,
+			indexedAt: item.post.indexedAt,
+			viewer: item.post.viewer,
+		}))
+	}
+
+	const getUserMedia = async (actor?: string): Promise<BlueskyPost[]> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const response = await agent.getAuthorFeed({
+			actor: actor || user.did,
+			limit: 50,
+			filter: 'posts_with_media',
+		})
+		return response.data.feed.map((item) => ({
+			uri: item.post.uri,
+			cid: item.post.cid,
+			author: {
+				did: item.post.author.did,
+				handle: item.post.author.handle,
+				displayName: item.post.author.displayName,
+				avatar: item.post.author.avatar,
+			},
+			record: item.post.record as BlueskyPost["record"],
+			embed: item.post.embed as BlueskyPost["embed"],
+			replyCount: item.post.replyCount ?? 0,
+			repostCount: item.post.repostCount ?? 0,
+			likeCount: item.post.likeCount ?? 0,
+			indexedAt: item.post.indexedAt,
+			viewer: item.post.viewer,
+		}))
+	}
+
+	const getUserLikes = async (actor?: string): Promise<BlueskyPost[]> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const response = await agent.getActorLikes({
+			actor: actor || user.did,
+			limit: 50,
+		})
+		return response.data.feed.map((item) => ({
+			uri: item.post.uri,
+			cid: item.post.cid,
+			author: {
+				did: item.post.author.did,
+				handle: item.post.author.handle,
+				displayName: item.post.author.displayName,
+				avatar: item.post.author.avatar,
+			},
+			record: item.post.record as BlueskyPost["record"],
+			embed: item.post.embed as BlueskyPost["embed"],
+			replyCount: item.post.replyCount ?? 0,
+			repostCount: item.post.repostCount ?? 0,
+			likeCount: item.post.likeCount ?? 0,
+			indexedAt: item.post.indexedAt,
+			viewer: item.post.viewer,
+		}))
+	}
+
+	const getCustomFeed = async (feedUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+		// Always try with publicAgent first for custom feeds to ensure they work without auth
+		try {
+			const response = await publicAgent.app.bsky.feed.getFeed({
+				feed: feedUri,
+				limit: 50,
+				cursor,
+			})
+
+			return {
+				posts: response.data.feed.map((item) => ({
+					uri: item.post.uri,
+					cid: item.post.cid,
+					author: {
+						did: item.post.author.did,
+						handle: item.post.author.handle,
+						displayName: item.post.author.displayName,
+						avatar: item.post.author.avatar,
+					},
+					record: item.post.record as BlueskyPost["record"],
+					embed: item.post.embed as BlueskyPost["embed"],
+					replyCount: item.post.replyCount ?? 0,
+					repostCount: item.post.repostCount ?? 0,
+					likeCount: item.post.likeCount ?? 0,
+					indexedAt: item.post.indexedAt,
+					viewer: item.post.viewer,
+				})),
+				cursor: response.data.cursor,
+			}
+		} catch (publicError) {
+			// If public API fails and we have an authenticated agent, try that
+			if (agent) {
+				const response = await agent.app.bsky.feed.getFeed({
+					feed: feedUri,
+					limit: 50,
+					cursor,
+				})
+
+				return {
+					posts: response.data.feed.map((item) => ({
+						uri: item.post.uri,
+						cid: item.post.cid,
+						author: {
+							did: item.post.author.did,
+							handle: item.post.author.handle,
+							displayName: item.post.author.displayName,
+							avatar: item.post.author.avatar,
+						},
+						record: item.post.record as BlueskyPost["record"],
+						embed: item.post.embed as BlueskyPost["embed"],
+						replyCount: item.post.replyCount ?? 0,
+						repostCount: item.post.repostCount ?? 0,
+						likeCount: item.post.likeCount ?? 0,
+						indexedAt: item.post.indexedAt,
+						viewer: item.post.viewer,
+					})),
+					cursor: response.data.cursor,
+				}
+			}
+			throw publicError
+		}
+	}
+
+	const getSavedFeeds = async (): Promise<BlueskyFeedGenerator[]> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const prefs = await agent.app.bsky.actor.getPreferences()
+		const savedFeedsPref = prefs.data.preferences.find(
+			(pref) => pref.$type === 'app.bsky.actor.defs#savedFeedsPrefV2'
+		) as { items?: Array<{ type: string; value: string; pinned: boolean }> } | undefined
+
+		if (!savedFeedsPref?.items) return []
+
+		const feedUris = savedFeedsPref.items
+			.filter((item) => item.type === 'feed')
+			.map((item) => item.value)
+
+		if (feedUris.length === 0) return []
+
+		const response = await agent.app.bsky.feed.getFeedGenerators({ feeds: feedUris })
+
+		return response.data.feeds.map((feed) => ({
+			uri: feed.uri,
+			cid: feed.cid,
+			did: feed.did,
+			creator: {
+				did: feed.creator.did,
+				handle: feed.creator.handle,
+				displayName: feed.creator.displayName,
+				avatar: feed.creator.avatar,
+			},
+			displayName: feed.displayName,
+			description: feed.description,
+			avatar: feed.avatar,
+			likeCount: feed.likeCount,
+			indexedAt: feed.indexedAt,
+			viewer: feed.viewer,
+		}))
+	}
+
+	const getActorFeeds = async (actor: string): Promise<BlueskyFeedGenerator[]> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.feed.getActorFeeds({
+			actor,
+			limit: 50,
+		})
+
+		return response.data.feeds.map((feed) => ({
+			uri: feed.uri,
+			cid: feed.cid,
+			did: feed.did,
+			creator: {
+				did: feed.creator.did,
+				handle: feed.creator.handle,
+				displayName: feed.creator.displayName,
+				avatar: feed.creator.avatar,
+			},
+			displayName: feed.displayName,
+			description: feed.description,
+			avatar: feed.avatar,
+			likeCount: feed.likeCount,
+			indexedAt: feed.indexedAt,
+			viewer: feed.viewer,
+		}))
+	}
+
+	const getPopularFeeds = async (cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.feed.getSuggestedFeeds({
+			limit: 50,
+			cursor,
+		})
+
+		return {
+			feeds: response.data.feeds.map((feed) => ({
+				uri: feed.uri,
+				cid: feed.cid,
+				did: feed.did,
+				creator: {
+					did: feed.creator.did,
+					handle: feed.creator.handle,
+					displayName: feed.creator.displayName,
+					avatar: feed.creator.avatar,
+				},
+				displayName: feed.displayName,
+				description: feed.description,
+				avatar: feed.avatar,
+				likeCount: feed.likeCount,
+				indexedAt: feed.indexedAt,
+				viewer: feed.viewer,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const searchFeedGenerators = async (query: string, cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.unspecced.getPopularFeedGenerators({
+			query,
+			limit: 50,
+			cursor,
+		})
+
+		return {
+			feeds: response.data.feeds.map((feed) => ({
+				uri: feed.uri,
+				cid: feed.cid,
+				did: feed.did,
+				creator: {
+					did: feed.creator.did,
+					handle: feed.creator.handle,
+					displayName: feed.creator.displayName,
+					avatar: feed.creator.avatar,
+				},
+				displayName: feed.displayName,
+				description: feed.description,
+				avatar: feed.avatar,
+				likeCount: feed.likeCount,
+				indexedAt: feed.indexedAt,
+				viewer: feed.viewer,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const saveFeed = async (uri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.addSavedFeed({ type: 'feed', value: uri, pinned: false })
+	}
+
+	const unsaveFeed = async (uri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.removeSavedFeed(uri)
+	}
+
+	// Interactions
+	const likePost = async (uri: string, cid: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		const response = await agent.like(uri, cid)
+		return response.uri
+	}
+
+	const unlikePost = async (likeUri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.deleteLike(likeUri)
+	}
+
+	const repost = async (uri: string, cid: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		const response = await agent.repost(uri, cid)
+		return response.uri
+	}
+
+	const unrepost = async (repostUri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.deleteRepost(repostUri)
+	}
+
+	const reportPost = async (uri: string, cid: string, reason: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.com.atproto.moderation.createReport({
+			reasonType: 'com.atproto.moderation.defs#reasonOther',
+			reason,
+			subject: {
+				$type: 'com.atproto.repo.strongRef',
+				uri,
+				cid,
+			},
+		})
+	}
+
+	// Profile
+	const getProfile = async (actor: string): Promise<BlueskyUser & {
+		viewer?: { muted?: boolean; blockedBy?: boolean; blocking?: string; following?: string; followedBy?: string };
+		pinnedPost?: { uri: string; cid: string };
+	}> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.getProfile({ actor })
+		return {
+			did: response.data.did,
+			handle: response.data.handle,
+			displayName: response.data.displayName,
+			avatar: response.data.avatar,
+			banner: response.data.banner,
+			description: response.data.description,
+			followersCount: response.data.followersCount,
+			followsCount: response.data.followsCount,
+			postsCount: response.data.postsCount,
+			viewer: response.data.viewer,
+			pinnedPost: response.data.pinnedPost as { uri: string; cid: string } | undefined,
+		}
+	}
+
+	const pinPost = async (uri: string, cid: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		await agent.upsertProfile((existing) => ({
+			...existing,
+			pinnedPost: { uri, cid },
+		}))
+	}
+
+	const unpinPost = async () => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		await agent.upsertProfile((existing) => {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			const { pinnedPost, ...rest } = existing as Record<string, unknown>
+			return rest as Parameters<typeof agent.upsertProfile>[0] extends (existing: infer T) => unknown ? T : never
+		})
+	}
+
+	const updateProfile = async (profile: { displayName?: string; description?: string; avatar?: Blob; banner?: Blob }) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const currentProfile = await agent.getProfile({ actor: user.did })
+
+		let avatarRef = currentProfile.data.avatar ? undefined : null
+		let bannerRef = currentProfile.data.banner ? undefined : null
+
+		if (profile.avatar) {
+			const avatarUpload = await agent.uploadBlob(profile.avatar, { encoding: profile.avatar.type })
+			avatarRef = avatarUpload.data.blob
+		}
+
+		if (profile.banner) {
+			const bannerUpload = await agent.uploadBlob(profile.banner, { encoding: profile.banner.type })
+			bannerRef = bannerUpload.data.blob
+		}
+
+		await agent.upsertProfile((existing) => ({
+			...existing,
+			displayName: profile.displayName ?? existing?.displayName,
+			description: profile.description ?? existing?.description,
+			avatar: avatarRef !== undefined ? avatarRef : existing?.avatar,
+			banner: bannerRef !== undefined ? bannerRef : existing?.banner,
+		}))
+
+		// Refresh user data
+		const updatedProfile = await agent.getProfile({ actor: user.did })
+		setUser({
+			did: user.did,
+			handle: updatedProfile.data.handle,
+			displayName: updatedProfile.data.displayName,
+			avatar: updatedProfile.data.avatar,
+			banner: updatedProfile.data.banner,
+			description: updatedProfile.data.description,
+			followersCount: updatedProfile.data.followersCount,
+			followsCount: updatedProfile.data.followsCount,
+			postsCount: updatedProfile.data.postsCount,
+		})
+	}
+
+	const followUser = async (did: string): Promise<string> => {
+		if (!agent) throw new Error("Not authenticated")
+		const response = await agent.follow(did)
+		return response.uri
+	}
+
+	const unfollowUser = async (followUri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.deleteFollow(followUri)
+	}
+
+	const blockUser = async (did: string): Promise<string> => {
+		if (!agent) throw new Error("Not authenticated")
+		const response = await agent.app.bsky.graph.block.create(
+			{ repo: agent.session?.did },
+			{ subject: did, createdAt: new Date().toISOString() }
+		)
+		return response.uri
+	}
+
+	const unblockUser = async (blockUri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		const { rkey } = new URL(blockUri).pathname.split('/').reduce(
+			(acc, part, i, arr) => (i === arr.length - 1 ? { rkey: part } : acc),
+			{ rkey: '' }
+		)
+		await agent.app.bsky.graph.block.delete({
+			repo: agent.session?.did,
+			rkey,
+		})
+	}
+
+	const muteUser = async (did: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.mute(did)
+	}
+
+	const unmuteUser = async (did: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.unmute(did)
+	}
+
+	const getFollowers = async (actor: string, cursor?: string): Promise<{ followers: BlueskyUser[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.getFollowers({ actor, limit: 50, cursor })
+		return {
+			followers: response.data.followers.map((f) => ({
+				did: f.did,
+				handle: f.handle,
+				displayName: f.displayName,
+				avatar: f.avatar,
+				description: f.description,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const getFollowing = async (actor: string, cursor?: string): Promise<{ following: BlueskyUser[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.getFollows({ actor, limit: 50, cursor })
+		return {
+			following: response.data.follows.map((f) => ({
+				did: f.did,
+				handle: f.handle,
+				displayName: f.displayName,
+				avatar: f.avatar,
+				description: f.description,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	// Notifications
+	const getNotifications = async (cursor?: string): Promise<{ notifications: BlueskyNotification[]; cursor?: string }> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const response = await agent.listNotifications({ limit: 50, cursor })
+		return {
+			notifications: response.data.notifications.map((n) => ({
+				uri: n.uri,
+				cid: n.cid,
+				author: {
+					did: n.author.did,
+					handle: n.author.handle,
+					displayName: n.author.displayName,
+					avatar: n.author.avatar,
+				},
+				reason: n.reason as BlueskyNotification['reason'],
+				reasonSubject: n.reasonSubject,
+				record: n.record,
+				isRead: n.isRead,
+				indexedAt: n.indexedAt,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const getUnreadCount = async (): Promise<number> => {
+		if (!agent) throw new Error("Not authenticated")
+		const response = await agent.countUnreadNotifications()
+		return response.data.count
+	}
+
+	const markNotificationsRead = async () => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.updateSeenNotifications()
+	}
+
+	// Lists
+	const getLists = async (actor?: string): Promise<BlueskyList[]> => {
+		const agentToUse = agent || publicAgent
+		const actorId = actor || user?.did
+		if (!actorId) throw new Error("No actor specified")
+
+		const response = await agentToUse.app.bsky.graph.getLists({
+			actor: actorId,
+			limit: 50,
+		})
+
+		return response.data.lists.map((list) => ({
+			uri: list.uri,
+			cid: list.cid,
+			name: list.name,
+			purpose: list.purpose as BlueskyList['purpose'],
+			description: list.description,
+			avatar: list.avatar,
+			creator: {
+				did: list.creator.did,
+				handle: list.creator.handle,
+				displayName: list.creator.displayName,
+				avatar: list.creator.avatar,
+			},
+			indexedAt: list.indexedAt,
+			viewer: list.viewer,
+		}))
+	}
+
+	const getList = async (uri: string): Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }> }> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const response = await agent.app.bsky.graph.getList({ list: uri, limit: 100 })
+
+		return {
+			list: {
+				uri: response.data.list.uri,
+				cid: response.data.list.cid,
+				name: response.data.list.name,
+				purpose: response.data.list.purpose as BlueskyList['purpose'],
+				description: response.data.list.description,
+				avatar: response.data.list.avatar,
+				creator: {
+					did: response.data.list.creator.did,
+					handle: response.data.list.creator.handle,
+					displayName: response.data.list.creator.displayName,
+					avatar: response.data.list.creator.avatar,
+				},
+				indexedAt: response.data.list.indexedAt,
+				viewer: response.data.list.viewer,
+			},
+			items: response.data.items.map((item) => ({
+				uri: item.uri,
+				subject: {
+					did: item.subject.did,
+					handle: item.subject.handle,
+					displayName: item.subject.displayName,
+					avatar: item.subject.avatar,
+					description: item.subject.description,
+				},
+			})),
+		}
+	}
+
+	const createList = async (name: string, purpose: 'modlist' | 'curatelist', description?: string): Promise<{ uri: string; cid: string }> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const response = await agent.app.bsky.graph.list.create(
+			{ repo: user.did },
+			{
+				name,
+				purpose: purpose === 'modlist' ? 'app.bsky.graph.defs#modlist' : 'app.bsky.graph.defs#curatelist',
+				description,
+				createdAt: new Date().toISOString(),
+			}
+		)
+
+		return { uri: response.uri, cid: response.cid }
+	}
+
+	const updateList = async (uri: string, name: string, description?: string) => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const { rkey } = parseAtUri(uri)
+		const existing = await agent.app.bsky.graph.list.get({
+			repo: agent.session?.did!,
+			rkey,
+		})
+
+		await agent.app.bsky.graph.list.put(
+			{ repo: agent.session?.did!, rkey },
+			{
+				...existing.value,
+				name,
+				description,
+			}
+		)
+	}
+
+	const deleteList = async (uri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		const { rkey } = parseAtUri(uri)
+		await agent.app.bsky.graph.list.delete({
+			repo: agent.session?.did!,
+			rkey,
+		})
+	}
+
+	const addToList = async (listUri: string, did: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		await agent.app.bsky.graph.listitem.create(
+			{ repo: agent.session?.did! },
+			{
+				list: listUri,
+				subject: did,
+				createdAt: new Date().toISOString(),
+			}
+		)
+	}
+
+	const removeFromList = async (itemUri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		const { rkey } = parseAtUri(itemUri)
+		await agent.app.bsky.graph.listitem.delete({
+			repo: agent.session?.did!,
+			rkey,
+		})
+	}
+
+	// Chat/Messages - use agent.withProxy() to create a chat-specific agent
+	const getChatAgent = () => {
+		if (!agent) throw new Error("Not authenticated")
+		return agent.withProxy('bsky_chat', 'did:web:api.bsky.chat')
+	}
+
+	// Check if agent session has chat scope before attempting chat calls
+	const hasChatScope = (): boolean => {
+		if (!agent) return false
+		try {
+			// Try to create a proxy agent - if scope is missing, this will be caught when calling
+			getChatAgent()
+			return true
+		} catch {
+			return false
+		}
+	}
+
+	const getConversations = async (): Promise<BlueskyConvo[]> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		try {
+			const chatAgent = getChatAgent()
+			const response = await chatAgent.chat.bsky.convo.listConvos({ limit: 100 })
+
+			return response.data.convos.map((convo) => ({
+				id: convo.id,
+				rev: convo.rev,
+				members: convo.members.map((m) => ({
+					did: m.did,
+					handle: m.handle,
+					displayName: m.displayName,
+					avatar: m.avatar,
+				})),
+				lastMessage: convo.lastMessage && '$type' in convo.lastMessage && convo.lastMessage.$type === 'chat.bsky.convo.defs#messageView' ? {
+					id: (convo.lastMessage as { id: string }).id,
+					text: (convo.lastMessage as { text: string }).text,
+					sender: (convo.lastMessage as { sender: { did: string } }).sender,
+					sentAt: (convo.lastMessage as { sentAt: string }).sentAt,
+				} : undefined,
+				unreadCount: convo.unreadCount,
+				muted: convo.muted,
+			}))
+		} catch (err) {
+			// Re-throw scope errors so the UI can show re-auth prompt
+			const errMsg = err instanceof Error ? err.message : String(err)
+			const errName = err instanceof Error ? err.name : ''
+			if (errName.includes('Scope') || errMsg.includes('scope') || errMsg.includes('Missing')) {
+				throw new Error('Chat permissions missing. Please log out and log back in.')
+			}
+			return []
+		}
+	}
+
+	const getMessages = async (convoId: string, cursor?: string): Promise<{ messages: BlueskyMessage[]; cursor?: string }> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const chatAgent = getChatAgent()
+
+		const response = await chatAgent.chat.bsky.convo.getMessages(
+			{ convoId, limit: 50, cursor }
+		)
+
+		return {
+			messages: response.data.messages
+				.filter((m): m is typeof m & { $type: 'chat.bsky.convo.defs#messageView' } =>
+					'$type' in m && m.$type === 'chat.bsky.convo.defs#messageView'
+				)
+				.map((m) => ({
+					id: m.id,
+					rev: m.rev,
+					text: m.text,
+					sender: m.sender,
+					sentAt: m.sentAt,
+				})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const sendMessage = async (convoId: string, text: string): Promise<BlueskyMessage> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const chatAgent = getChatAgent()
+
+		const response = await chatAgent.chat.bsky.convo.sendMessage(
+			{ convoId, message: { text } }
+		)
+
+		return {
+			id: response.data.id,
+			rev: response.data.rev,
+			text: response.data.text,
+			sender: response.data.sender,
+			sentAt: response.data.sentAt,
+		}
+	}
+
+	const startConversation = async (did: string): Promise<BlueskyConvo> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const chatAgent = getChatAgent()
+
+		const response = await chatAgent.chat.bsky.convo.getConvoForMembers(
+			{ members: [did] }
+		)
+
+		const convo = response.data.convo
+		return {
+			id: convo.id,
+			rev: convo.rev,
+			members: convo.members.map((m) => ({
+				did: m.did,
+				handle: m.handle,
+				displayName: m.displayName,
+				avatar: m.avatar,
+			})),
+			lastMessage: convo.lastMessage && '$type' in convo.lastMessage && convo.lastMessage.$type === 'chat.bsky.convo.defs#messageView' ? {
+				id: (convo.lastMessage as { id: string }).id,
+				text: (convo.lastMessage as { text: string }).text,
+				sender: (convo.lastMessage as { sender: { did: string } }).sender,
+				sentAt: (convo.lastMessage as { sentAt: string }).sentAt,
+			} : undefined,
+			unreadCount: convo.unreadCount,
+			muted: convo.muted,
+		}
+	}
+
+	const markConvoRead = async (convoId: string): Promise<void> => {
+		if (!agent) return
+		try {
+			const chatAgent = getChatAgent()
+			await chatAgent.chat.bsky.convo.updateRead({ convoId })
+		} catch {
+			// Non-critical
+		}
+	}
+
+	const leaveConvo = async (convoId: string): Promise<void> => {
+		if (!agent) throw new Error("Not authenticated")
+		try {
+			const chatAgent = getChatAgent()
+			await chatAgent.chat.bsky.convo.leaveConvo({ convoId })
+		} catch (err) {
+			console.error("Failed to leave conversation:", err)
+			throw err
+		}
+	}
+
+	const muteConvo = async (convoId: string): Promise<void> => {
+		if (!agent) throw new Error("Not authenticated")
+		try {
+			const chatAgent = getChatAgent()
+			await chatAgent.chat.bsky.convo.muteConvo({ convoId })
+		} catch (err) {
+			console.error("Failed to mute conversation:", err)
+			throw err
+		}
+	}
+
+	const unmuteConvo = async (convoId: string): Promise<void> => {
+		if (!agent) throw new Error("Not authenticated")
+		try {
+			const chatAgent = getChatAgent()
+			await chatAgent.chat.bsky.convo.unmuteConvo({ convoId })
+		} catch (err) {
+			console.error("Failed to unmute conversation:", err)
+			throw err
+		}
+	}
+
+	const getUnreadMessageCount = async (): Promise<number> => {
+		if (!agent || !user) return 0
+		try {
+			const convos = await getConversations()
+			// Only count unread if the last message was sent by someone else
+			// AND the other members are valid (not deleted accounts)
+			return convos.reduce((total, convo) => {
+				const otherMembers = convo.members.filter(m => m.did !== user.did)
+				const hasValidMembers = otherMembers.some(m =>
+					m.handle && !m.handle.endsWith('.invalid') && m.handle !== 'handle.invalid'
+				)
+				const lastFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user.did
+				return total + (lastFromOther && hasValidMembers ? (convo.unreadCount || 0) : 0)
+			}, 0)
+		} catch {
+			return 0
+		}
+	}
+
+	// Starter Packs
+	const getStarterPacks = async (actor?: string): Promise<BlueskyStarterPack[]> => {
+		const agentToUse = agent || publicAgent
+		const actorId = actor || user?.did
+		if (!actorId) throw new Error("No actor specified")
+
+		const response = await agentToUse.app.bsky.graph.getActorStarterPacks({
+			actor: actorId,
+			limit: 50,
+		})
+
+		return response.data.starterPacks.map((sp) => ({
+			uri: sp.uri,
+			cid: sp.cid,
+			record: sp.record as BlueskyStarterPack['record'],
+			creator: {
+				did: sp.creator.did,
+				handle: sp.creator.handle,
+				displayName: sp.creator.displayName,
+				avatar: sp.creator.avatar,
+			},
+			list: sp.list,
+			listItemsSample: sp.listItemsSample?.map((item) => ({
+				uri: item.uri,
+				subject: {
+					did: item.subject.did,
+					handle: item.subject.handle,
+					displayName: item.subject.displayName,
+					avatar: item.subject.avatar,
+					description: item.subject.description,
+				},
+			})),
+			feeds: sp.feeds,
+			joinedWeekCount: sp.joinedWeekCount,
+			joinedAllTimeCount: sp.joinedAllTimeCount,
+			indexedAt: sp.indexedAt,
+		}))
+	}
+
+	const getStarterPack = async (uri: string): Promise<BlueskyStarterPack> => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const response = await agent.app.bsky.graph.getStarterPack({ starterPack: uri })
+		const sp = response.data.starterPack
+
+		return {
+			uri: sp.uri,
+			cid: sp.cid,
+			record: sp.record as BlueskyStarterPack['record'],
+			creator: {
+				did: sp.creator.did,
+				handle: sp.creator.handle,
+				displayName: sp.creator.displayName,
+				avatar: sp.creator.avatar,
+			},
+			list: sp.list,
+			listItemsSample: sp.listItemsSample?.map((item) => ({
+				uri: item.uri,
+				subject: {
+					did: item.subject.did,
+					handle: item.subject.handle,
+					displayName: item.subject.displayName,
+					avatar: item.subject.avatar,
+					description: item.subject.description,
+				},
+			})),
+			feeds: sp.feeds,
+			joinedWeekCount: sp.joinedWeekCount,
+			joinedAllTimeCount: sp.joinedAllTimeCount,
+			indexedAt: sp.indexedAt,
+		}
+	}
+
+	const createStarterPack = async (name: string, description?: string, listItems?: string[], feedUris?: string[]): Promise<{ uri: string; cid: string }> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		// First create a curate list for the starter pack
+		const listResponse = await createList(`${name} List`, 'curatelist', `List for starter pack: ${name}`)
+
+		// Add members to the list if provided
+		if (listItems && listItems.length > 0) {
+			for (const did of listItems) {
+				await addToList(listResponse.uri, did)
+			}
+		}
+
+		// Create the starter pack record
+		const record: Record<string, unknown> = {
+			name,
+			list: listResponse.uri,
+			createdAt: new Date().toISOString(),
+		}
+
+		if (description) {
+			record.description = description
+		}
+
+		if (feedUris && feedUris.length > 0) {
+			record.feeds = feedUris.map((uri) => ({ uri }))
+		}
+
+		const response = await agent.app.bsky.graph.starterpack.create(
+			{ repo: user.did },
+			record as Parameters<typeof agent.app.bsky.graph.starterpack.create>[1]
+		)
+
+		return { uri: response.uri, cid: response.cid }
+	}
+
+	const updateStarterPack = async (uri: string, name: string, description?: string) => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const { rkey } = parseAtUri(uri)
+		const existing = await agent.app.bsky.graph.starterpack.get({
+			repo: agent.session?.did!,
+			rkey,
+		})
+
+		await agent.app.bsky.graph.starterpack.put(
+			{ repo: agent.session?.did!, rkey },
+			{
+				...existing.value,
+				name,
+				description,
+			}
+		)
+	}
+
+	const deleteStarterPack = async (uri: string) => {
+		if (!agent) throw new Error("Not authenticated")
+		const { rkey } = parseAtUri(uri)
+
+		// Get the starter pack to find its list
+		const sp = await getStarterPack(uri)
+
+		// Delete the associated list
+		if (sp.record.list) {
+			await deleteList(sp.record.list)
+		}
+
+		// Delete the starter pack
+		await agent.app.bsky.graph.starterpack.delete({
+			repo: agent.session?.did!,
+			rkey,
+		})
+	}
+
+	const addToStarterPack = async (starterPackUri: string, did: string) => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const sp = await getStarterPack(starterPackUri)
+		if (sp.record.list) {
+			await addToList(sp.record.list, did)
+		}
+	}
+
+	const removeFromStarterPack = async (starterPackUri: string, did: string) => {
+		if (!agent) throw new Error("Not authenticated")
+
+		const sp = await getStarterPack(starterPackUri)
+		if (sp.list) {
+			const listData = await getList(sp.list.uri)
+			const item = listData.items.find((i) => i.subject.did === did)
+			if (item) {
+				await removeFromList(item.uri)
+			}
+		}
+	}
+
+	// Search
+	const searchPosts = async (query: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.feed.searchPosts({ q: query, limit: 25, cursor })
+
+		return {
+			posts: response.data.posts.map((post) => ({
+				uri: post.uri,
+				cid: post.cid,
+				author: {
+					did: post.author.did,
+					handle: post.author.handle,
+					displayName: post.author.displayName,
+					avatar: post.author.avatar,
+				},
+				record: post.record as BlueskyPost["record"],
+				embed: post.embed as BlueskyPost["embed"],
+				replyCount: post.replyCount ?? 0,
+				repostCount: post.repostCount ?? 0,
+				likeCount: post.likeCount ?? 0,
+				indexedAt: post.indexedAt,
+				viewer: post.viewer,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const searchActors = async (query: string, cursor?: string): Promise<{ actors: BlueskyUser[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.actor.searchActors({ q: query, limit: 25, cursor })
+
+		return {
+			actors: response.data.actors.map((actor) => ({
+				did: actor.did,
+				handle: actor.handle,
+				displayName: actor.displayName,
+				avatar: actor.avatar,
+				description: actor.description,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	const searchByHashtag = async (hashtag: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+		// Remove # if present and search for the hashtag
+		const tag = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.feed.searchPosts({ q: `#${tag}`, limit: 50, cursor })
+
+		return {
+			posts: response.data.posts.map((post) => ({
+				uri: post.uri,
+				cid: post.cid,
+				author: {
+					did: post.author.did,
+					handle: post.author.handle,
+					displayName: post.author.displayName,
+					avatar: post.author.avatar,
+				},
+				record: post.record as BlueskyPost["record"],
+				embed: post.embed as BlueskyPost["embed"],
+				replyCount: post.replyCount ?? 0,
+				repostCount: post.repostCount ?? 0,
+				likeCount: post.likeCount ?? 0,
+				indexedAt: post.indexedAt,
+				viewer: post.viewer,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	// List Feed - Get posts from users in a list
+	const getListFeed = async (listUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.feed.getListFeed({ list: listUri, limit: 50, cursor })
+
+		return {
+			posts: response.data.feed.map((item) => ({
+				uri: item.post.uri,
+				cid: item.post.cid,
+				author: {
+					did: item.post.author.did,
+					handle: item.post.author.handle,
+					displayName: item.post.author.displayName,
+					avatar: item.post.author.avatar,
+				},
+				record: item.post.record as BlueskyPost["record"],
+				embed: item.post.embed as BlueskyPost["embed"],
+				replyCount: item.post.replyCount ?? 0,
+				repostCount: item.post.repostCount ?? 0,
+				likeCount: item.post.likeCount ?? 0,
+				indexedAt: item.post.indexedAt,
+				viewer: item.post.viewer,
+			})),
+			cursor: response.data.cursor,
+		}
+	}
+
+	// Utility
+	const uploadImage = async (file: File): Promise<{ blob: unknown }> => {
+		if (!agent) throw new Error("Not authenticated")
+		const response = await agent.uploadBlob(file, { encoding: file.type })
+		return { blob: response.data.blob }
+	}
+
+	const resolveHandle = async (handle: string): Promise<string> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.resolveHandle({ handle })
+		return response.data.did
+	}
+
+	// SociallyDead Custom Features - Highlights
+	const HIGHLIGHT_COLLECTION = "me.sociallydead.highlight"
+	const ARTICLE_COLLECTION = "me.sociallydead.article"
+
+	const getHighlights = async (did: string): Promise<SociallyDeadHighlight[]> => {
+		try {
+			const agentToUse = agent || publicAgent
+			const response = await agentToUse.com.atproto.repo.listRecords({
+				repo: did,
+				collection: HIGHLIGHT_COLLECTION,
+				limit: 6,
+			})
+
+			return response.data.records.map((record) => ({
+				uri: record.uri,
+				postUri: (record.value as { postUri: string }).postUri,
+				postCid: (record.value as { postCid: string }).postCid,
+				createdAt: (record.value as { createdAt: string }).createdAt,
+			}))
+		} catch {
+			// Collection doesn't exist yet or user has no highlights
+			return []
+		}
+	}
+
+	const addHighlight = async (postUri: string, postCid: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		// Check if we already have 6 highlights
+		const existing = await getHighlights(user.did)
+		if (existing.length >= 6) {
+			throw new Error("Maximum 6 highlights allowed. Remove one first.")
+		}
+
+		// Check if this post is already highlighted
+		if (existing.some(h => h.postUri === postUri)) {
+			throw new Error("This post is already highlighted")
+		}
+
+		const rkey = Date.now().toString()
+		await agent.com.atproto.repo.createRecord({
+			repo: user.did,
+			collection: HIGHLIGHT_COLLECTION,
+			rkey,
+			record: {
+				$type: HIGHLIGHT_COLLECTION,
+				postUri,
+				postCid,
+				createdAt: new Date().toISOString(),
+			},
+		})
+	}
+
+	const removeHighlight = async (highlightUri: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const rkey = highlightUri.split('/').pop()
+		if (!rkey) throw new Error("Invalid highlight URI")
+
+		await agent.com.atproto.repo.deleteRecord({
+			repo: user.did,
+			collection: HIGHLIGHT_COLLECTION,
+			rkey,
+		})
+	}
+
+	// SociallyDead Custom Features - Articles
+	const getArticles = async (did: string): Promise<SociallyDeadArticle[]> => {
+		try {
+			const agentToUse = agent || publicAgent
+			const response = await agentToUse.com.atproto.repo.listRecords({
+				repo: did,
+				collection: ARTICLE_COLLECTION,
+				limit: 50,
+			})
+
+			return response.data.records.map((record) => ({
+				uri: record.uri,
+				rkey: record.uri.split('/').pop() || '',
+				title: (record.value as { title: string }).title,
+				content: (record.value as { content: string }).content,
+				createdAt: (record.value as { createdAt: string }).createdAt,
+				updatedAt: (record.value as { updatedAt?: string }).updatedAt,
+			}))
+		} catch {
+			return []
+		}
+	}
+
+	const getArticle = async (did: string, rkey: string): Promise<SociallyDeadArticle | null> => {
+		try {
+			const agentToUse = agent || publicAgent
+			const response = await agentToUse.com.atproto.repo.getRecord({
+				repo: did,
+				collection: ARTICLE_COLLECTION,
+				rkey,
+			})
+
+			return {
+				uri: response.data.uri,
+				rkey,
+				title: (response.data.value as { title: string }).title,
+				content: (response.data.value as { content: string }).content,
+				createdAt: (response.data.value as { createdAt: string }).createdAt,
+				updatedAt: (response.data.value as { updatedAt?: string }).updatedAt,
+			}
+		} catch {
+			return null
+		}
+	}
+
+	const createArticle = async (title: string, content: string): Promise<{ uri: string; rkey: string }> => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		const rkey = Date.now().toString()
+		const response = await agent.com.atproto.repo.createRecord({
+			repo: user.did,
+			collection: ARTICLE_COLLECTION,
+			rkey,
+			record: {
+				$type: ARTICLE_COLLECTION,
+				title,
+				content,
+				createdAt: new Date().toISOString(),
+			},
+		})
+
+		return { uri: response.data.uri, rkey }
+	}
+
+	const updateArticle = async (rkey: string, title: string, content: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		// Get current record to preserve createdAt
+		const current = await getArticle(user.did, rkey)
+
+		await agent.com.atproto.repo.putRecord({
+			repo: user.did,
+			collection: ARTICLE_COLLECTION,
+			rkey,
+			record: {
+				$type: ARTICLE_COLLECTION,
+				title,
+				content,
+				createdAt: current?.createdAt || new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			},
+		})
+	}
+
+	const deleteArticle = async (rkey: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+
+		await agent.com.atproto.repo.deleteRecord({
+			repo: user.did,
+			collection: ARTICLE_COLLECTION,
+			rkey,
+		})
+	}
 
 	return (
 		<BlueskyContext.Provider
@@ -570,7 +2063,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				isLoading,
 				login,
 				logout,
-				// ← only this one new line added here
 				getAgent,
 				createPost,
 				deletePost,
@@ -636,8 +2128,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				removeFromStarterPack,
 				searchPosts,
 				searchActors,
-				// Note: searchByHashtag, getListFeed, uploadImage, resolveHandle were in value but not in type
-				// If you want them in the type too, add them to BlueskyContextType interface
+				searchByHashtag,
+				getListFeed,
+				uploadImage,
+				resolveHandle,
+				// SociallyDead Custom Features
 				getHighlights,
 				addHighlight,
 				removeHighlight,
@@ -653,6 +2148,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	)
 }
 
+// Helper function to parse AT URI
 function parseAtUri(uri: string): { repo: string; collection: string; rkey: string } {
 	const match = uri.match(/at:\/\/([^/]+)\/([^/]+)\/([^/]+)/)
 	if (!match) throw new Error("Invalid AT URI")
