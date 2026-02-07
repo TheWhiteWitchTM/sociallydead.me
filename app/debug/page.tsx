@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bug } from "lucide-react";
 import { useBluesky } from "@/lib/bluesky-context";
 import { Agent } from "@atproto/api";
-import { createSociallyDeadRecord, getSociallyDeadRecord } from "@/lib/sociallydead-me";
+import { createSociallyDeadRecord, getSociallyDeadRecord, updateSociallyDeadRecord } from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const { getAgent } = useBluesky();
@@ -35,12 +35,20 @@ export default function Debug() {
 
 					if (rec?.value && Object.keys(rec.value).length > 0) {
 						setRecordStatus(`DATA FOUND! ${JSON.stringify(rec.value, null, 2)}`);
+						const freshData = {
+							createdAt: new Date().toISOString(),
+							mood: "joined sociallydead.me!",
+							verification: false,
+						};
+						await updateSociallyDeadRecord(currentAgent, freshData);
+
+
 					} else {
 						setRecordStatus("No useful data in record → creating new one...");
 						const freshData = {
 							createdAt: new Date().toISOString(),
-							mood: "socially dead as fuck",
-							test: "this should show up now",
+							mood: "joined sociallydead.me!",
+							verification: false,
 						};
 
 						const created = await createSociallyDeadRecord(currentAgent, freshData);
