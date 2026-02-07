@@ -6,6 +6,7 @@ import {useBluesky} from "@/lib/bluesky-context";
 export default function Debug() {
 	const blueSky = useBluesky();
 	const agent = blueSky.agent;
+	const user = blueSky.user
 	return(
 		<div className="min-h-screen">
 			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -18,6 +19,7 @@ export default function Debug() {
 			</header>
 			<div>
 				{agent?.did}<br/>
+				{user?.did}<br/>
 			</div>
 		</div>
 	)
