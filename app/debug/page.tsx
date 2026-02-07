@@ -2,11 +2,13 @@
 
 import {useState} from "react";
 import {Bug} from "lucide-react";
+import {useBluesky} from "@/lib/bluesky-context";
 
 export default function Debug() {
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
-
+	const blueSky = useBluesky()
+	const agent = blueSky.agent;
 
 	return(
 		<div className="min-h-screen">
@@ -18,22 +20,21 @@ export default function Debug() {
 					</div>
 				</div>
 			</header>
-			<div>
-				<p>
-					{record ? "Record found" : "No record found!"}
-					{record &&
-						<>
-						<h2>sociallydead.me record:</h2>
-						{record}
-						</>
-					}
-					{created &&
-						<>
-							Created: {created}
-						</>
-					}
-				</p>
-			</div>
+			<main>
+				{agent &&
+					<div>
+						Agent: {agent.did}
+					</div>
+				}
+				{record &&
+					<div>
+						Record:
+						<p>
+							{record}
+						</p>
+					</div>
+				}
+			</main>
 		</div>
 	)
 }
