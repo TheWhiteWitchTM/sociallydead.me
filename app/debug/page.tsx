@@ -4,7 +4,7 @@ import {useEffect, useState} from "react";
 import {Bug} from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {Agent} from "@atproto/api";
-import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
+import {createSociallyDeadRecord, getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const {getAgent} = useBluesky()
@@ -19,7 +19,10 @@ export default function Debug() {
 					setRecord("Well")
 				})
 				.catch((record) => {
-					setRecord("WTF")
+					const data = {
+						lexicon: 1,
+					}
+					createSociallyDeadRecord(agent, data)
 				})
 
 		}
