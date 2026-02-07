@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star, FileText, Image, Plus, X, Pin, Rss, ListIcon, Package, Heart, UserPlus, UserMinus } from "lucide-react"
+import { Bug, Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star, FileText, Image, Plus, X, Pin, Rss, ListIcon, Package, Heart, UserPlus, UserMinus } from "lucide-react"
 import { VerificationPrompt } from "@/components/verification-checkout"
 import { formatDistanceToNow } from "date-fns"
 import { VerifiedBadge } from "@/components/verified-badge"
@@ -485,7 +485,7 @@ function ProfileContent() {
           </div>
           
           {/* Edit Button */}
-          <div className="absolute right-4 bottom-4 flex gap-2">
+          <div className="absolute right-4 bottom-4 flex gap-1">
             <Button variant="outline" size="sm" onClick={openEditDialog}>
               Edit Profile
             </Button>
@@ -494,6 +494,11 @@ function ProfileContent() {
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
+	          <Link href="/debug">
+		          <Button variant="outline" size="icon" className="h-9 w-9">
+			          <Bug className="h-4 w-4" />
+		          </Button>
+	          </Link>
           </div>
         </div>
         
