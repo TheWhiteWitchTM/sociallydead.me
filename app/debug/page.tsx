@@ -7,7 +7,7 @@ import {useBluesky} from "@/lib/bluesky-context";
 export default function Debug() {
 	const {getAgent} = useBluesky()
 	const [agent, setAgent] = useState<Agent | undefined>(undefined);
-
+	const [record, setRecord] = useState<string | null>("No record!");
 	useEffect(() => {
 		const agent =  getAgent();
 		if (agent)
@@ -27,6 +27,9 @@ export default function Debug() {
 			</header>
 			<main>
 				<h2>Agent: {agent?.did}</h2>
+				<p>
+					{record}
+				</p>
 			</main>
 		</div>
 	)
