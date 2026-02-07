@@ -3,6 +3,7 @@
 import {useEffect, useState} from "react";
 import {Bug} from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
+import {Agent} from "@atproto/api";
 
 export default function Debug() {
 	const {getAgent} = useBluesky()
@@ -11,7 +12,7 @@ export default function Debug() {
 	useEffect(() => {
 		const agent =  getAgent();
 		if (agent)
-			setAgent(getAgent);
+			setAgent(agent);
 	}, [agent]);
 
 	// @ts-ignore
