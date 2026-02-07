@@ -14,6 +14,18 @@ export default function Debug() {
 
 	const {getAgent} = useBluesky()
 
+	function test (agent: Agent) {
+		return(
+			<div>
+				{agent &&
+					<>
+						{agent.did}
+					</>
+				}
+			</div>
+		)
+	}
+
 	return(
 		<div className="min-h-screen">
 			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,7 +37,9 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-					{getAgent()?.did}
+				{agent &&
+					test(agent)
+				}
 			</main>
 		</div>
 	)
