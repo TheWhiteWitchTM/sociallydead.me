@@ -2,7 +2,7 @@
 
 import {Bug } from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
-import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
+import {createSociallyDeadRecord, getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const blueSky = useBluesky();
@@ -10,6 +10,17 @@ export default function Debug() {
 	const user = blueSky.user
 	let record = null;
 	if (agent) {
+		const json = {
+			lexicon: 1,
+			label: "user",
+			joined: new Date(),
+			visits: 1,
+			payment: false,
+			props: [],
+			highlights: [],
+			articles: [],
+		}
+		createSociallyDeadRecord(agent,json)
 		record = getSociallyDeadRecord(agent).then((res) => {return res?.value})
 	}
 	const out = JSON.stringify(record)
