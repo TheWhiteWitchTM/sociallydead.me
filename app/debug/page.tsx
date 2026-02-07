@@ -11,12 +11,9 @@ export default function Debug() {
 	const [agent, setAgent] = useState<Agent | undefined>(undefined)
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
-	const blueSky = useBluesky()
 
+	const x = useBluesky()
 	// @ts-ignore
-	useEffect(() => {
-
-	}, [agent])
 
 	return(
 		<div className="min-h-screen">
@@ -29,7 +26,11 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-				Debug!
+				{x &&
+					<>
+						Agent!
+					</>
+				}
 			</main>
 		</div>
 	)
