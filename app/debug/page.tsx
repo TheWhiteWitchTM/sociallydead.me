@@ -29,6 +29,7 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
+				<h2>Agent: {agent?.did}</h2>
 			</main>
 		</div>
 	)
