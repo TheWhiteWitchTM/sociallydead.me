@@ -4,29 +4,18 @@ import {useEffect, useState} from "react";
 import {Bug} from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
+import {Agent} from "@atproto/api";
 
 export default function Debug() {
 	const [state, setState] = useState("Loading!");
-	const [agent, setAgent] = useState(null)
+	const [agent, setAgent] = useState<Agent | undefined>(undefined)
 	const [record, setRecord] = useState("No record!");
 	const [created, setCreated] = useState("Not created!");
 	const blueSky = useBluesky()
 
 	// @ts-ignore
 	useEffect(() => {
-		if (!agent) {
-			return ("FUCK!")
-		}
-		if (agent) {
-			getSociallyDeadRecord(agent)
-				.then((record) => {
-					setRecord(JSON.stringify(record?.value))
-				})
-				.catch((err) => {return "Record fetch failed!"})
-				.finally(()=> {})
-		} else {
-			setState("No agent found!")
-		}
+
 	}, [agent])
 
 	return(
@@ -40,16 +29,7 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-				<h3>For fucks sake!</h3>
-				{state}
-				{record &&
-					<div>
-						Record:
-						<p>
-							{record}
-						</p>
-					</div>
-				}
+				Debug!
 			</main>
 		</div>
 	)
