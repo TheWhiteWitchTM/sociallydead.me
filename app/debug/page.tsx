@@ -7,7 +7,6 @@ import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 import {Agent} from "@atproto/api";
 
 export default function Debug() {
-	const [record, setRecord] = useState("No record!");
 	const {getAgent} = useBluesky()
 
 	useEffect(() => {
@@ -16,17 +15,11 @@ export default function Debug() {
 
 	async function debugInfo () {
 		const agent =  getAgent();
-		if (agent) {
-			setRecord("OK")
-		}
 
 		return(
 			<div>
 				<p>
 					<h2>Agent: {agent?.did}</h2>
-				</p>
-				<p>
-
 				</p>
 			</div>
 		)
