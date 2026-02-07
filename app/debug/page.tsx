@@ -13,7 +13,7 @@ export default function Debug() {
 	const blueSky = useBluesky()
 
 	useEffect(() => {
-	blueSky.get
+	const agent = blueSky.getAgent();
 		if (agent) {
 			getSociallyDeadRecord(agent)
 				.then((record) => {
