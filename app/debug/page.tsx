@@ -14,12 +14,22 @@ export default function Debug() {
 
 	const {getAgent} = useBluesky()
 
-	function test () {
+	async function debug () {
 		const agent = getAgent();
+		let record = null;
+		if (agent) {
+			record = await getSociallyDeadRecord(agent);
+		}
+
 		return(
-			<>
-				{agent?.did}
-			</>
+			<div>
+				<p>
+					<h2>Agent: {agent?.did}</h2>
+				</p>
+				<p>
+					<h3>Record</h3>
+				</p>
+			</div>
 		)
 	}
 
@@ -36,7 +46,7 @@ export default function Debug() {
 			</header>
 			<main>
 				{getAgent()
-					? test()
+					? debug()
 					: <div>No Agent!</div>
 				}
 			</main>
