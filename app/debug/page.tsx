@@ -14,11 +14,12 @@ export default function Debug() {
 
 	const {getAgent} = useBluesky()
 
-	async function debug () {
+	async function debugInfo () {
 		const agent = getAgent();
-		let record = null;
+		let recordString = "No data";
 		if (agent) {
-			record = await getSociallyDeadRecord(agent);
+			const record = await getSociallyDeadRecord(agent);
+			recordString = JSON.stringify(record);
 		}
 
 		return(
@@ -28,6 +29,7 @@ export default function Debug() {
 				</p>
 				<p>
 					<h3>Record</h3>
+					{recordString}
 				</p>
 			</div>
 		)
@@ -46,7 +48,7 @@ export default function Debug() {
 			</header>
 			<main>
 				{getAgent()
-					? debug()
+					? debugInfo()
 					: <div>No Agent!</div>
 				}
 			</main>
