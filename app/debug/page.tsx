@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import {Bug} from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {Agent} from "@atproto/api";
+import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const {getAgent} = useBluesky()
@@ -13,7 +14,10 @@ export default function Debug() {
 		const agent =  getAgent();
 		if (agent) {
 			setAgent(agent);
-			setRecord("I am here!");
+			getSociallyDeadRecord(agent)
+				.then((record) => {
+					setRecord("Well")
+				})
 		}
 	});
 
