@@ -12,8 +12,15 @@ export default function Debug() {
 	const [created, setCreated] = useState("Not created!");
 	const blueSky = useBluesky()
 
+	// @ts-ignore
 	useEffect(() => {
-		if (!agent) return
+		if (!agent) {
+			return (
+				<div>
+					No agent found!
+				</div>
+			)
+		}
 		if (agent) {
 			getSociallyDeadRecord(agent)
 				.then((record) => {
@@ -22,7 +29,7 @@ export default function Debug() {
 				.catch((err) => {return "Record fetch failed!"})
 				.finally(()=> {})
 		} else {
-			setState("No agent!")
+			setState("No agent found!")
 		}
 	}, [agent])
 
