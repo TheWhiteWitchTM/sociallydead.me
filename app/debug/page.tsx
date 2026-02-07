@@ -4,13 +4,13 @@ import {Bug } from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
 import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
-export default async function Debug() {
+export default function Debug() {
 	const blueSky = useBluesky();
 	const agent = blueSky.agent;
 	const user = blueSky.user
 	let record = null;
 	if (agent) {
-		record = await getSociallyDeadRecord(agent)
+		record = getSociallyDeadRecord(agent).then((res) => {return res?.value})
 	}
 	const out = JSON.stringify(record)
 	return(
