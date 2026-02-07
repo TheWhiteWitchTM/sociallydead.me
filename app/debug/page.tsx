@@ -26,6 +26,9 @@ export default function Debug() {
 						.then((rec) => {
 							setRecord("Set")
 						})
+						.catch((record) => {
+							setRecord("WTF")
+						})
 				})
 
 		}
