@@ -1,7 +1,7 @@
-import { Agent } from '@atproto/api';
+}import { Agent } from '@atproto/api';
 
 /**
- * Creates a new "sociallydead.me" record if it doesn't exist.
+ * Creates a new "sociallydead" record if it doesn't exist.
  * Returns the URI and CID of the created record.
  */
 export async function createSociallyDeadRecord(
@@ -9,15 +9,15 @@ export async function createSociallyDeadRecord(
 	data: Record<string, unknown> // Your custom settings object
 ): Promise<{ uri: string; cid: string }> {
 	const response = await agent.com.atproto.repo.createRecord({
-		repo: agent.assertDid, // or agent.session?.did if you prefer
-		collection: 'sociallydead.me',
+		repo: agent.assertDid,
+		collection: 'me.sociallydead.status',  // ← FIXED: valid NSID
 		rkey: 'self',
 		record: {
-			$type: 'sociallydead.me', // Optional but recommended for your custom type
+			$type: 'me.sociallydead.status',     // ← must match collection exactly
 			createdAt: new Date().toISOString(),
-			...data, // Spread your settings here
+			...data,
 		},
-		// validate: true, // Optional: enforce Lexicon validation if you define one
+		// validate: false,  // Uncomment only if you want to skip schema checks (not needed here)
 	});
 
 	return {
@@ -27,8 +27,7 @@ export async function createSociallyDeadRecord(
 }
 
 /**
- * Gets the current "sociallydead.me" record (or null if it doesn't exist).
- * Returns the parsed record data + metadata.
+ * Gets the current "sociallydead" record (or null if missing).
  */
 export async function getSociallyDeadRecord(
 	agent: Agent
@@ -40,7 +39,7 @@ export async function getSociallyDeadRecord(
 	try {
 		const response = await agent.com.atproto.repo.getRecord({
 			repo: agent.assertDid,
-			collection: 'sociallydead.me',
+			collection: 'me.sociallydead.status',  // ← FIXED
 			rkey: 'self',
 		});
 
@@ -53,38 +52,34 @@ export async function getSociallyDeadRecord(
 		if (err?.status === 404 || err?.error === 'RecordNotFound') {
 			return null;
 		}
-		throw err; // Rethrow other errors (network, auth, etc.)
+		throw err;
 	}
 }
 
 /**
- * Updates (or creates if missing) the "sociallydead.me" record.
- * - Fetches current value first (if exists)
- * - Merges new data on top
- * - Uses putRecord to upsert
- * Returns the new URI and CID.
+ * Updates (or creates) the "sociallydead" record.
+ * Merges updates on top of existing data.
  */
 export async function updateSociallyDeadRecord(
 	agent: Agent,
-	updates: Record<string, unknown> // Partial updates to merge
+	updates: Record<string, unknown>
 ): Promise<{ uri: string; cid: string }> {
-	// Get current record (or start fresh)
 	const existing = await getSociallyDeadRecord(agent);
 
 	const newRecord = {
-		$type: 'sociallydead.me',
-		createdAt: existing?.value.createdAt || new Date().toISOString(), // Preserve original createdAt if possible
+		$type: 'me.sociallydead.status',  // ← FIXED
+		createdAt: existing?.value.createdAt || new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
-		...(existing?.value || {}), // Old data
-		...updates, // New/override data
+		...(existing?.value || {}),
+		...updates,
 	};
 
 	const response = await agent.com.atproto.repo.putRecord({
 		repo: agent.assertDid,
-		collection: 'sociallydead.me',
+		collection: 'me.sociallydead.status',  // ← FIXED
 		rkey: 'self',
 		record: newRecord,
-		// validate: true, // Optional
+		// validate: false,  // Optional: bypass if you later add complex schema
 	});
 
 	return {
