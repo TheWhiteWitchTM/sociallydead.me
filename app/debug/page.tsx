@@ -9,49 +9,58 @@ import { createSociallyDeadRecord, getSociallyDeadRecord } from "@/lib/sociallyd
 export default function Debug() {
 	const { getAgent } = useBluesky();
 	const [agent, setAgent] = useState<Agent | undefined>(undefined);
-	const [recordStatus, setRecordStatus] = useState<string>("Loading...");
+	const [recordStatus, setRecordStatus] = useState<string>("Loading agent...");
 
 	useEffect(() => {
-		const agent = getAgent();
-		if (!agent) {
-			setRecordStatus("No agent available");
-			return;
-		}
+		let isMounted = true;
 
-		setAgent(agent);
-
-		const init = async () => {
+		const loadAgentAndRecord = async () => {
 			try {
-				const rec = await getSociallyDeadRecord(agent);
+				const currentAgent = getAgent();
+				if (!currentAgent) {
+					// Agent not ready yet → retry after delay (or listen for context change if possible)
+					setRecordStatus("Waiting for agent...");
+					const timer = setTimeout(() => {
+						if (isMounted) loadAgentAndRecord(); // retry
+					}, 1000); // adjust delay as needed (or use a context event if your provider emits one)
+					return () => clearTimeout(timer);
+				}
 
-				console.log("GET RECORD FULL RESPONSE:", rec); // ← check this in console!
+				if (isMounted) {
+					setAgent(currentAgent);
+					setRecordStatus("Agent loaded. Checking record...");
 
-				if (rec?.value && Object.keys(rec.value).length > 0) {
-					setRecordStatus("DATA FOUND! → " + JSON.stringify(rec.value));
-				} else {
-					// Value empty → force create/overwrite with clean data
-					setRecordStatus("No useful data → creating fresh record...");
-					const freshData = {
-						createdAt: new Date().toISOString(),
-						mood: "socially dead since " + new Date().toLocaleString(),
-						test: "this should appear",
-					};
+					const rec = await getSociallyDeadRecord(currentAgent);
+					console.log("GET RECORD RESPONSE:", rec); // Check console for uri / cid / value!
 
-					const created = await createSociallyDeadRecord(agent, freshData);
-					console.log("CREATE SUCCESS:", created);
+					if (rec?.value && Object.keys(rec.value).length > 0) {
+						setRecordStatus(`DATA FOUND! ${JSON.stringify(rec.value, null, 2)}`);
+					} else {
+						setRecordStatus("No useful data in record → creating new one...");
+						const freshData = {
+							createdAt: new Date().toISOString(),
+							mood: "socially dead as fuck",
+							test: "this should show up now",
+						};
 
-					// Optional: re-fetch to confirm
-					const freshRec = await getSociallyDeadRecord(agent);
-					setRecordStatus("Record set! Value now: " + JSON.stringify(freshRec?.value));
+						const created = await createSociallyDeadRecord(currentAgent, freshData);
+						console.log("CREATE SUCCESS:", created);
+
+						// Re-fetch to verify
+						const freshRec = await getSociallyDeadRecord(currentAgent);
+						setRecordStatus(`Record created/set! Value: ${JSON.stringify(freshRec?.value, null, 2)}`);
+					}
 				}
 			} catch (err: any) {
-				console.error("FULL ERROR:", err);
-				setRecordStatus("Error: " + (err.message || "Unknown failure"));
+				console.error("ERROR IN LOAD:", err);
+				setRecordStatus(`Error: ${err.message || "Failed to load/record"}`);
 			}
 		};
 
-		init();
-	}, []); // add deps if needed, e.g. [getAgent]
+		loadAgentAndRecord();
+
+		return () => { isMounted = false; };
+	}, []); // Still empty deps – or add getAgent if it's stable
 
 	return (
 		<div className="min-h-screen">
@@ -64,10 +73,10 @@ export default function Debug() {
 				</div>
 			</header>
 			<main className="p-4">
-				<h2>Agent DID: {agent?.assertDid || "Not loaded"}</h2>
-				<p className="font-mono whitespace-pre-wrap">{recordStatus}</p>
+				<h2>Agent DID: {agent?.assertDid || "Not loaded yet"}</h2>
+				<p className="font-mono whitespace-pre-wrap break-words">{recordStatus}</p>
 				<p className="text-sm text-muted-foreground mt-4">
-					Open browser console (F12) to see full logs / response objects.
+					Check browser console (F12) for full response logs. If agent never loads, check your Bluesky context/provider setup (login/session resume).
 				</p>
 			</main>
 		</div>
