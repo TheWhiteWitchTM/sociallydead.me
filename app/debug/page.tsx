@@ -26,6 +26,7 @@ export default function Debug() {
 		)
 	}
 
+	// @ts-ignore
 	return(
 		<div className="min-h-screen">
 			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,10 +38,9 @@ export default function Debug() {
 				</div>
 			</header>
 			<main>
-				{getAgent() &&
-					<>
-						Got agent!
-					</>
+				{getAgent()
+					? <div>Agent</div>
+					: <div>No Agent!</div>
 				}
 			</main>
 		</div>
