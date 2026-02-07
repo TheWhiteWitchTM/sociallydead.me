@@ -14,15 +14,12 @@ export default function Debug() {
 
 	const {getAgent} = useBluesky()
 
-	function test (agent: Agent) {
+	function test () {
+		const agent = getAgent();
 		return(
-			<div>
-				{agent &&
-					<>
-						{agent.did}
-					</>
-				}
-			</div>
+			<>
+				{agent?.did}
+			</>
 		)
 	}
 
@@ -39,7 +36,7 @@ export default function Debug() {
 			</header>
 			<main>
 				{getAgent()
-					? <div>Agent</div>
+					? test()
 					: <div>No Agent!</div>
 				}
 			</main>
