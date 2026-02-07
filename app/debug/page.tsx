@@ -12,6 +12,7 @@ export default function Debug() {
 	if (agent) {
 		record = getSociallyDeadRecord(agent)
 	}
+	const out = JSON.stringify(record)
 	return(
 		<div className="min-h-screen">
 			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,6 +27,11 @@ export default function Debug() {
 				{agent?.did}<br/>
 				<p>
 					{record ? "Record found" : "No record found!"}
+					{record &&
+						<>
+							{out}
+						</>
+					}
 				</p>
 			</div>
 		</div>
