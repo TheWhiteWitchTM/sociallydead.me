@@ -13,7 +13,7 @@ export default function Debug() {
 	const blueSky = useBluesky()
 
 	useEffect(() => {
-	const agent = blueSky.getAgent();
+		if (!agent) return
 		if (agent) {
 			getSociallyDeadRecord(agent)
 				.then((record) => {
@@ -24,7 +24,7 @@ export default function Debug() {
 		} else {
 			setState("No agent!")
 		}
-	})
+	}, [agent])
 
 	return(
 		<div className="min-h-screen">
