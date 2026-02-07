@@ -20,7 +20,7 @@ export default function Debug() {
 				})
 				.catch((record) => {
 					const data = {
-						lexicon: 1,
+						crested: new Date(),
 					}
 					createSociallyDeadRecord(agent, data)
 						.then((rec) => {
