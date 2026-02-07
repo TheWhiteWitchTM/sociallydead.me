@@ -2,11 +2,16 @@
 
 import {Bug } from "lucide-react";
 import {useBluesky} from "@/lib/bluesky-context";
+import {getSociallyDeadRecord} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const blueSky = useBluesky();
 	const agent = blueSky.agent;
 	const user = blueSky.user
+	let record = null;
+	if (agent) {
+		record = getSociallyDeadRecord(agent)
+	}
 	return(
 		<div className="min-h-screen">
 			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -19,7 +24,9 @@ export default function Debug() {
 			</header>
 			<div>
 				{agent?.did}<br/>
-				{user?.did}<br/>
+				<p>
+					{record ? "Record found" : "No record found!"}
+				</p>
 			</div>
 		</div>
 	)
