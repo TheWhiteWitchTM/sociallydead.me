@@ -11,8 +11,11 @@ export default function Debug() {
 	const [record, setRecord] = useState<string | null>("No record!");
 	useEffect(() => {
 		const agent =  getAgent();
-		if (agent)
+		if (agent) {
 			setAgent(agent);
+			setRecord("I am here!");
+		}
+
 	}, [agent]);
 
 	// @ts-ignore
