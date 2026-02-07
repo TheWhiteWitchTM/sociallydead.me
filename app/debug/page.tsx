@@ -15,12 +15,8 @@ export default function Debug() {
 	const {getAgent} = useBluesky()
 
 	async function debugInfo () {
-		const agent = getAgent();
+		const agent =  getAgent();
 		let recordString = "No data";
-		if (agent) {
-			const record = await getSociallyDeadRecord(agent);
-			recordString = JSON.stringify(record);
-		}
 
 		return(
 			<div>
