@@ -12,10 +12,13 @@ export default function Debug() {
 				<div className="flex h-14 items-center justify-between px-4">
 					<div className="flex items-center gap-2">
 						<Bug className="h-5 w-5" />
-						<h1 className="text-xl font-bold">Lists</h1>
+						<h1 className="text-xl font-bold">Debug</h1>
 					</div>
 				</div>
 			</header>
+			<div>
+				{agent?.did}<br/>
+			</div>
 		</div>
 	)
 }
