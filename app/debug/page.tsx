@@ -1,20 +1,57 @@
-// app/debug-central/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Agent } from '@atproto/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock } from 'lucide-react';
+import { toast } from 'sonner';
+
+const PASSWORD = 'Kate70Bush$';
 
 export default function CentralRepoDebug() {
+	const [passwordInput, setPasswordInput] = useState('');
+	const [unlocked, setUnlocked] = useState(false);
 	const [handleInput, setHandleInput] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [record, setRecord] = useState<any | null>(null);
-	const [status, setStatus] = useState<string>('Ready');
+	const [status, setStatus] = useState<string>('Enter password');
+	const [jsonEdit, setJsonEdit] = useState<string>('');
+
+	// Check if already unlocked in this session
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			const saved = localStorage.getItem('debug-unlocked');
+			if (saved === 'true') {
+				setUnlocked(true);
+				setStatus('Unlocked – ready to lookup');
+			}
+		}
+	}, []);
+
+	const handleUnlock = () => {
+		if (passwordInput === PASSWORD) {
+			setUnlocked(true);
+			localStorage.setItem('debug-unlocked', 'true');
+			setStatus('Unlocked – ready to lookup');
+			setError(null);
+		} else {
+			setError('Wrong password');
+		}
+	};
+
+	const handleLogout = () => {
+		setUnlocked(false);
+		localStorage.removeItem('debug-unlocked');
+		setStatus('Locked – enter password');
+		setError(null);
+		setHandleInput('');
+		setRecord(null);
+		setJsonEdit('');
+	};
 
 	const handleLookup = async () => {
 		if (!handleInput.trim()) {
@@ -25,68 +62,255 @@ export default function CentralRepoDebug() {
 		setLoading(true);
 		setError(null);
 		setRecord(null);
+		setJsonEdit('');
 		setStatus('Resolving handle...');
 
 		try {
 			const cleanHandle = handleInput.trim().replace(/^@/, '');
 
-			// Public handle → DID resolution (client-safe)
 			const publicAgent = new Agent({ service: 'https://bsky.social' });
 			const resolve = await publicAgent.com.atproto.identity.resolveHandle({
 				handle: cleanHandle,
 			});
 			const did = resolve.data.did;
 
-			setStatus(`Resolved to DID: ${did} → Fetching from app repo...`);
+			setStatus(`DID: ${did} → Fetching record...`);
 
-			// Call YOUR server API route (env vars & login happen server-side)
 			const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did)}`);
 			const json = await res.json();
 
 			if (!res.ok) {
-				throw new Error(json.error || 'API request failed');
+				throw new Error(json.error || 'API error');
 			}
 
 			setRecord(json.record);
-			setStatus(json.record ? 'Record found' : 'No record found in app repo');
+			if (json.record) {
+				setJsonEdit(JSON.stringify(json.record, null, 2));
+				setStatus('Record loaded');
+			} else {
+				setStatus('No record found – use Create Default below');
+			}
 		} catch (err: any) {
-			const msg = err.message || 'Lookup failed';
-			setError(msg);
+			setError(err.message || 'Lookup failed');
 			setStatus('Error');
-			console.error('[Debug Lookup] Error:', err);
+			console.error(err);
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	const handleCreateDefault = async () => {
+		if (!handleInput.trim()) return;
+
+		setLoading(true);
+		setError(null);
+
+		try {
+			const cleanHandle = handleInput.trim().replace(/^@/, '');
+			const publicAgent = new Agent({ service: 'https://bsky.social' });
+			const resolve = await publicAgent.com.atproto.identity.resolveHandle({ handle: cleanHandle });
+			const did = resolve.data.did;
+
+			const defaultData = {
+				version: 1,
+				verified: false,
+				mood: 'default mood',
+				// add more defaults as needed
+			};
+
+			setStatus('Creating default record...');
+
+			const res = await fetch('/api/app-record', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					rkey: did,
+					data: defaultData,
+				}),
+			});
+
+			const json = await res.json();
+
+			if (!res.ok) {
+				throw new Error(json.error || 'Create failed');
+			}
+
+			setStatus('Default created → refreshing...');
+			await handleLookup();
+		} catch (err: any) {
+			setError(err.message || 'Create failed');
+			setStatus('Error');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleUpdate = async () => {
+		if (!record || !handleInput.trim()) return;
+
+		setLoading(true);
+		setError(null);
+
+		try {
+			const cleanHandle = handleInput.trim().replace(/^@/, '');
+			const publicAgent = new Agent({ service: 'https://bsky.social' });
+			const resolve = await publicAgent.com.atproto.identity.resolveHandle({ handle: cleanHandle });
+			const did = resolve.data.did;
+
+			let updatedData;
+			try {
+				updatedData = JSON.parse(jsonEdit);
+			} catch {
+				throw new Error('Invalid JSON in editor');
+			}
+
+			setStatus('Updating record...');
+
+			const res = await fetch('/api/app-record', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					rkey: did,
+					data: updatedData,
+				}),
+			});
+
+			const json = await res.json();
+
+			if (!res.ok) {
+				throw new Error(json.error || 'Update failed');
+			}
+
+			setStatus('Updated successfully → refreshing...');
+			await handleLookup();
+		} catch (err: any) {
+			setError(err.message || 'Update failed');
+			setStatus('Error');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleDelete = async () => {
+		if (!handleInput.trim() || !confirm('Delete this record? Irreversible!')) return;
+
+		setLoading(true);
+		setError(null);
+
+		try {
+			const cleanHandle = handleInput.trim().replace(/^@/, '');
+			const publicAgent = new Agent({ service: 'https://bsky.social' });
+			const resolve = await publicAgent.com.atproto.identity.resolveHandle({ handle: cleanHandle });
+			const did = resolve.data.did;
+
+			setStatus('Deleting record...');
+
+			const res = await fetch('/api/app-record', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ rkey: did }),
+			});
+
+			const json = await res.json();
+
+			if (!res.ok) {
+				throw new Error(json.error || 'Delete failed');
+			}
+
+			setStatus('Deleted successfully');
+			setRecord(null);
+			setJsonEdit('');
+		} catch (err: any) {
+			setError(err.message || 'Delete failed');
+			setStatus('Error');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const copyJson = () => {
+		if (record) {
+			navigator.clipboard.writeText(JSON.stringify(record, null, 2));
+			toast.success('JSON copied to clipboard');
+		}
+	};
+
+	if (!unlocked) {
+		return (
+			<div className="container mx-auto p-6 max-w-md">
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Lock className="h-5 w-5" />
+							Debug Access
+						</CardTitle>
+						<CardDescription>Enter password to continue</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-4">
+							<Input
+								type="password"
+								placeholder="Password"
+								value={passwordInput}
+								onChange={(e) => setPasswordInput(e.target.value)}
+								onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+							/>
+							<Button onClick={handleUnlock} className="w-full">
+								Unlock
+							</Button>
+							{error && (
+								<Alert variant="destructive">
+									<AlertDescription>{error}</AlertDescription>
+								</Alert>
+							)}
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
 	return (
 		<div className="container mx-auto p-6 max-w-4xl">
-			<Card>
-				<CardHeader>
-					<CardTitle>Central App Repo Debug</CardTitle>
-					<CardDescription>
-						Enter any handle to fetch the record from your app repo (rkey = resolved DID)
-					</CardDescription>
+			<Card className="mb-8">
+				<CardHeader className="flex flex-row items-center justify-between">
+					<CardTitle className="flex items-center gap-2">
+						Central App Repo Debug
+					</CardTitle>
+					<Button variant="outline" size="sm" onClick={handleLogout}>
+						<XCircle className="mr-2 h-4 w-4" />
+						Lock / Logout
+					</Button>
 				</CardHeader>
 
 				<CardContent>
+					{/* Status */}
+					<div className="mb-6">
+						<Badge variant={agentReady ? 'default' : 'destructive'} className="mb-2">
+							{agentReady ? 'App Agent Connected' : 'Agent Not Ready'}
+						</Badge>
+						<p className="text-sm text-muted-foreground">{status}</p>
+					</div>
+
 					{/* Form */}
 					<div className="flex gap-3 mb-6">
 						<Input
 							placeholder="@handle.bsky.social or handle.bsky.social"
 							value={handleInput}
 							onChange={(e) => setHandleInput(e.target.value)}
-							onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									handleLookup();
+								}
+							}}
 							disabled={loading}
 						/>
-						<Button
-							onClick={handleLookup}
-							disabled={loading || !handleInput.trim()}
-						>
+						<Button onClick={handleLookup} disabled={loading || !handleInput.trim()}>
 							{loading ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Looking up...
+									Loading...
 								</>
 							) : (
 								<>
@@ -105,8 +329,42 @@ export default function CentralRepoDebug() {
 						</Alert>
 					)}
 
+					{/* Actions when record loaded */}
+					{record && (
+						<div className="flex gap-3 mb-6">
+							<Button onClick={handleDelete} variant="destructive" disabled={loading}>
+								<Trash2 className="mr-2 h-4 w-4" />
+								Delete Record
+							</Button>
+							<Button onClick={copyJson} variant="outline" disabled={loading}>
+								<Copy className="mr-2 h-4 w-4" />
+								Copy JSON
+							</Button>
+						</div>
+					)}
+
+					{/* Editor for update */}
+					{record && (
+						<div className="mb-6">
+							<label className="block text-sm font-medium mb-1">Edit JSON</label>
+							<textarea
+								className="w-full h-64 p-3 border rounded-md font-mono text-sm"
+								value={jsonEdit}
+								onChange={(e) => setJsonEdit(e.target.value)}
+							/>
+							<Button
+								onClick={handleUpdate}
+								className="mt-2"
+								disabled={loading}
+							>
+								<PlusCircle className="mr-2 h-4 w-4" />
+								Save Changes (PUT)
+							</Button>
+						</div>
+					)}
+
 					{/* Result */}
-					{record !== null && (
+					{record && (
 						<Card className="bg-muted/50">
 							<CardHeader className="pb-2">
 								<CardTitle className="text-lg">
@@ -125,7 +383,9 @@ export default function CentralRepoDebug() {
 						<Alert className="mt-4">
 							<AlertTitle>No record found</AlertTitle>
 							<AlertDescription>
-								No data exists in the app repo for rkey = resolved DID of {handleInput.trim()}
+								No data exists in the app repo for this user.
+								<br />
+								Use the "Create Default" button if available, or manually create via API.
 							</AlertDescription>
 						</Alert>
 					)}
