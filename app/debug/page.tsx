@@ -31,6 +31,7 @@ export default function Debug() {
 				setStatus("Old record deleted. Creating fresh clean record…");
 
 				const freshData = {
+					version: 2,
 					mood: "joined sociallydead.me",
 					verification: false,
 					lastUpdated: new Date().toISOString(),
