@@ -20,9 +20,15 @@ export default function () {
 		if (agend?.did)
 			setState(agend.did);
 
-		setRepo(new SociallyDeadRepo(agend))
-		create()
+		const repo = new SociallyDeadRepo(agend)
+		setRepo(repo)
 	},[])
+
+	useEffect(() => {
+		if (repo)
+			create()
+	},[repo])
+	}
 
 	const create = async () => {
 		if (!repo) {
