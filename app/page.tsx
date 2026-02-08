@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
-import { Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star } from "lucide-react"
+import {Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Bug} from "lucide-react"
 import { VerificationPrompt } from "@/components/verification-checkout"
 
 // Official Bluesky feed URIs
@@ -355,9 +355,13 @@ export default function HomePage() {
                 <Button variant="secondary" size="sm" asChild className="bg-background/80 hover:bg-background">
                   <Link href="/profile">
                     <Settings className="h-4 w-4 mr-1" />
-                    Edit
                   </Link>
                 </Button>
+	              <Button variant="secondary" size="sm" asChild className="bg-background/80 hover:bg-background">
+		              <Link href="/debug">
+			              <Bug className="h-4 w-4 mr-1" />
+		              </Link>
+	              </Button>
               </div>
             </div>
             <CardContent className="pt-10 p-4">
