@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    <!-- Main landing page (unauthenticated entry) -->
+    <url>
+        <loc>https://sociallydead.me/</loc>
+        <lastmod>2026-02-08</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <!-- If www. is the active client domain with public routes -->
+    <url>
+        <loc>https://www.sociallydead.me/</loc>
+        <lastmod>2026-02-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://www.sociallydead.me/feeds</loc>
+        <lastmod>2026-02-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://www.sociallydead.me/search</loc>
+        <lastmod>2026-02-08</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Example curated/public feeds – add more as they become stable/public -->
+    <url>
+        <loc>https://www.sociallydead.me/feed/health</loc>
+        <lastmod>2026-02-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://www.sociallydead.me/feed/politics</loc>
+        <lastmod>2026-02-08</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+</urlset>
