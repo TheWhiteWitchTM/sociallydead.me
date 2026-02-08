@@ -33,14 +33,12 @@ export default function Debug() {
 				const freshData = {
 					version: 2,
 					mood: "joined sociallydead.me",
-					verification: true,
+					verification: false,
 					lastUpdated: new Date().toISOString(),
 					highlights: [],
 					articles: [],
 					props: {},
 				};
-
-				await createSociallyDeadRecord(ag, freshData);
 
 				const rec = await getSociallyDeadRecord(ag);
 
