@@ -31,14 +31,13 @@ export default function Debug() {
 				setStatus("Old record deleted. Creating fresh clean record…");
 
 				const freshData = {
+					$type: "me.sociallydead.app",
 					version: 2,
 					mood: "joined sociallydead.me",
 					verification: false,
 					lastUpdated: new Date().toISOString(),
-					highlights: [],
-					articles: [],
-					props: {},
 				};
+				await createSociallyDeadRecord(agent, freshData);
 
 				const rec = await getSociallyDeadRecord(ag);
 

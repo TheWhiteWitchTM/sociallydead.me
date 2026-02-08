@@ -129,6 +129,8 @@ export async function setSociallyDeadProperty(
 		// If no record exists → create with the change + minimal defaults
 		console.log("[setProperty] No existing record → creating with changes");
 		const initialData = {
+			$type: "me.sociallydead.app",
+
 			version: 2,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
