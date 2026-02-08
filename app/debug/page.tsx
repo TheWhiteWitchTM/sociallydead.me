@@ -1,89 +1,154 @@
-"use client";
+'use client'; // Client-side component for API calls/state
 
-import { useEffect, useState } from "react";
-import { Bug } from "lucide-react";
-import { useBluesky } from "@/lib/bluesky-context";
-import {
-	createSociallyDeadRecord,
-	deleteSociallyDeadRecord,
-	getSociallyDeadRecord,
-} from "@/lib/sociallydead-me";
+import { useState, useEffect } from 'react';
+import { Agent } from '@atproto/api'; // Assuming you have this installed
+import { SociallyDeadRepo, SociallyDeadRecord } from '@/lib/sociallydead-me'; // Adjust path if needed (e.g., /lib/sociallydead-me.ts)
+import { Button } from '@/components/ui/button'; // shadcn Button
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // shadcn Card
+import { Skeleton } from '@/components/ui/skeleton'; // shadcn Skeleton for loading
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {useBluesky} from "@/lib/bluesky-context"; // shadcn Alert for errors
 
-export default function Debug() {
-	const { getAgent } = useBluesky();
-	const [status, setStatus] = useState("Starting…");
-	const [agent, setAgent] = useState<any>(null);
+// Placeholder: Assume you have a way to get your OAuth-authenticated Agent
+// e.g., from context, session, or init here. Replace with your actual Agent retrieval.
+const getAgent = (): Agent => {
+	// TODO: Implement your Agent retrieval (from OAuth/session/storage)
+	// Example stub - in real app, use your auth flow
+	throw new Error('Implement getAgent() with your OAuth Agent');
+	// return yourAgentInstance;
+};
 
+export default function DebugPage() {
+	const blueSky  = useBluesky()
+	const [repo, setRepo] = useState<SociallyDeadRepo | null>(null);
+	const [record, setRecord] = useState<SociallyDeadRecord | null>(null);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [error, setError] = useState<string | null>(null);
+	const [actionStatus, setActionStatus] = useState<string>('');
+
+	// Init repo on mount
 	useEffect(() => {
-		const run = async () => {
+		try {
+			const agent = blueSky.getAgent()
+			if(!agent)
+				return;
+
+			const sdRepo = new SociallyDeadRepo(agent);
+			setRepo(sdRepo);
+			console.log('DebugPage: Repo initialized');
+		} catch (err: any) {
+			const msg = err.message || 'Failed to init repo/agent';
+			setError(msg);
+			console.error('DebugPage: Init error:', msg);
+		}
+	}, []);
+
+	// Fetch record when repo is ready
+	useEffect(() => {
+		if (!repo) return;
+
+		const fetchRecord = async () => {
+			setLoading(true);
+			setError(null);
+			setActionStatus('Fetching record...');
+			console.log('DebugPage: Starting fetch');
+
 			try {
-				const ag = getAgent();
-				if (!ag) {
-					setStatus("No agent available yet");
-					return;
-				}
-
-				setAgent(ag);
-				setStatus("Agent loaded. Deleting old broken record…");
-
-				await deleteSociallyDeadRecord(ag);
-
-				setStatus("Old record deleted. Creating fresh clean record…");
-
-				const freshData = {
-					$type: "me.sociallydead.app",
-					version: 2,
-					mood: "joined sociallydead.me",
-					verification: false,
-					lastUpdated: new Date().toISOString(),
-				};
-				await createSociallyDeadRecord(agent, freshData);
-
-				const rec = await getSociallyDeadRecord(ag);
-
-				if (rec?.value) {
-					setStatus(
-						"SUCCESS – current record content:\n\n" +
-						JSON.stringify(rec.value, null, 2)
-					);
+				const rec = await repo.get();
+				setRecord(rec);
+				if (rec) {
+					setActionStatus('Record found and loaded.');
+					console.log('DebugPage: Record fetched:', rec);
 				} else {
-					setStatus("Created but got empty value back – check console");
+					setActionStatus('No record found.');
+					console.log('DebugPage: No record exists yet.');
 				}
 			} catch (err: any) {
-				console.error("FATAL:", err);
-				setStatus("Error: " + (err.message || "unknown failure"));
+				const msg = err.message || 'Fetch failed';
+				setError(msg);
+				setActionStatus('Fetch error.');
+				console.error('DebugPage: Fetch error:', msg);
+			} finally {
+				setLoading(false);
 			}
 		};
 
-		run();
-	}, []);
+		fetchRecord();
+	}, [repo]);
+
+	// Handle create default record
+	const handleCreateDefault = async () => {
+		if (!repo) {
+			setError('Repo not initialized');
+			return;
+		}
+
+		setLoading(true);
+		setError(null);
+		setActionStatus('Creating default record...');
+		console.log('DebugPage: Starting create default');
+
+		const defaultData: Partial<SociallyDeadRecord> = {
+			version: 2,
+			mood: 'joined sociallydead.me',
+			verification: false,
+			highlights: [],
+			articles: [],
+			props: {},
+		};
+
+		try {
+			const { uri, cid } = await repo.createOrUpdate(defaultData);
+			setActionStatus(`Created successfully! URI: ${uri}, CID: ${cid}`);
+			console.log('DebugPage: Create success:', { uri, cid });
+
+			// Refresh record after create
+			const rec = await repo.get();
+			setRecord(rec);
+		} catch (err: any) {
+			const msg = err.message || 'Create failed';
+			setError(msg);
+			setActionStatus('Create error.');
+			console.error('DebugPage: Create error:', msg);
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
-		<div className="min-h-screen p-6">
-			<header className="border-b pb-4 mb-6">
-				<div className="flex items-center gap-3">
-					<Bug className="h-6 w-6" />
-					<h1 className="text-2xl font-bold">Debug SociallyDead Record</h1>
-				</div>
-			</header>
+		<div className="container mx-auto p-4">
+			<Card>
+				<CardHeader>
+					<CardTitle>SociallyDead Debug Page</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<p className="mb-4">Status: {actionStatus}</p>
 
-			<div>
-				<h2 className="font-semibold mb-2">Agent DID:</h2>
-				<code className="bg-muted px-2 py-1 rounded">
-					{agent?.assertDid || "not loaded"}
-				</code>
-			</div>
+					{error && (
+						<Alert variant="destructive" className="mb-4">
+							<AlertTitle>Error</AlertTitle>
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
 
-			<div className="mt-6">
-				<h2 className="font-semibold mb-2">Record status:</h2>
-				<pre className="bg-muted p-4 rounded-md whitespace-pre-wrap font-mono text-sm overflow-auto max-h-96">
-          {status}
-        </pre>
-			</div>
+					<Button onClick={handleCreateDefault} disabled={loading || !repo} className="mb-4">
+						{loading ? 'Processing...' : 'Create Default Record'}
+					</Button>
 
-			<p className="text-sm text-muted-foreground mt-6">
-				Open browser console (F12) to see detailed logs.
-			</p>
+					<div>
+						<h2 className="text-lg font-semibold mb-2">Current Record:</h2>
+						{loading ? (
+							<Skeleton className="h-32 w-full" />
+						) : record ? (
+							<pre className="bg-gray-100 p-4 rounded-md overflow-auto">
+                {JSON.stringify(record, null, 2)}
+              </pre>
+						) : (
+							<p>No record exists yet. Use the button to create one.</p>
+						)}
+					</div>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }
