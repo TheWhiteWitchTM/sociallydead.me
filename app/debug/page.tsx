@@ -95,9 +95,7 @@ export default function PDSDebugPage() {
 		const defaultData: Partial<SociallyDeadRecord> = {
 			version: 2,
 			mood: "joined sociallydead.me",
-			verification: false,
-			highlights: [],
-			articles: [],
+			verified: false,
 			props: {},
 		};
 
