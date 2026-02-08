@@ -10,26 +10,20 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {useBluesky} from "@/lib/bluesky-context"; // shadcn Alert for errors
 
 // Placeholder: Assume you have a way to get your OAuth-authenticated Agent
-// e.g., from context, session, or init here. Replace with your actual Agent retrieval.
-const getAgent = (): Agent => {
-	// TODO: Implement your Agent retrieval (from OAuth/session/storage)
-	// Example stub - in real app, use your auth flow
-	throw new Error('Implement getAgent() with your OAuth Agent');
-	// return yourAgentInstance;
-};
 
 export default function DebugPage() {
 	const blueSky  = useBluesky()
+	const [agent, setAgent] = useState<Agent | null>(null);
 	const [repo, setRepo] = useState<SociallyDeadRepo | null>(null);
 	const [record, setRecord] = useState<SociallyDeadRecord | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [actionStatus, setActionStatus] = useState<string>('');
 
+	setAgent(blueSky.agent)
 	// Init repo on mount
 	useEffect(() => {
 		try {
-			const agent = blueSky.getAgent()
 			if(!agent)
 				return;
 
@@ -41,7 +35,7 @@ export default function DebugPage() {
 			setError(msg);
 			console.error('DebugPage: Init error:', msg);
 		}
-	}, []);
+	}, [agent]);
 
 	// Fetch record when repo is ready
 	useEffect(() => {
@@ -74,7 +68,7 @@ export default function DebugPage() {
 		};
 
 		fetchRecord();
-	}, [blueSky, repo]);
+	}, [repo]);
 
 	// Handle create default record
 	const handleCreateDefault = async () => {
