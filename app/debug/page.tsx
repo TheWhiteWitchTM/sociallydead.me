@@ -7,7 +7,11 @@ export default function () {
 	const bluesky = useBluesky();
 	const [state, setState] = useState<string>("");
 	useEffect(() => {
-		setState("Loaded");
+		const agend = bluesky.getAgent()
+		if (!agend)
+			setState("Mo agend!");
+		if (agend?.did)
+			setState(agend.did);
 	},[])
 	return (
 		<div>
