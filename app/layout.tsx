@@ -13,21 +13,76 @@ import "./globals.css"
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
+import { Metadata } from 'next';
+
 export const metadata: Metadata = {
-  title: "SociallyDead - Bluesky Client",
-  description: "A Bluesky client with markdown support and pseudo-edit feature",
-  generator: "v0.app",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "SociallyDead",
-  },
-  icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
-  },
-}
+	// SEO title: Keep under ~60 chars, front-load keywords
+	title: "SociallyDead - Advanced Bluesky Client with Markdown & Post Editing",
+
+	// Meta description: Under ~160 chars, compelling + keywords
+	description:
+		"SociallyDead is a modern Bluesky client featuring markdown formatting, syntax highlighting, article support, pseudo-edit for posts, and a clean interface for better Bluesky experience.",
+
+	// Helps some crawlers
+	generator: "v0.app",
+
+	// PWA manifest
+	manifest: "/manifest.json",
+
+	// iOS/Android web app
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: "default",
+		title: "SociallyDead",
+	},
+
+	// Icons (you can expand with more sizes if needed)
+	icons: {
+		icon: "/icons/icon-192.png",
+		apple: "/icons/icon-192.png",
+	},
+
+	// Open Graph – great for Facebook, Bluesky link previews, etc.
+	openGraph: {
+		title: "SociallyDead – Bluesky Client with Markdown, Editing & Articles",
+		description:
+			"Enhance your Bluesky experience: full markdown support, code highlighting, article formatting, pseudo-editing of posts, and more in a fast, modern client.",
+		url: "https://your-domain.com", // ← replace with actual site URL
+		siteName: "SociallyDead",
+		type: "website",
+		// Use your banner as the main preview image
+		images: [
+			{
+				url: "/banner.png",
+				width: 1200, // ideal OG width
+				height: 630, // ideal OG height (1.91:1 ratio)
+				alt: "SociallyDead Bluesky Client Banner – Markdown & Edit Features",
+			},
+		],
+		locale: "en_US", // optional but good
+	},
+
+	// Twitter / X cards – falls back to OG if missing, but explicit is better
+	twitter: {
+		card: "summary_large_image",
+		title: "SociallyDead – Markdown + Edit for Bluesky",
+		description:
+			"Powerful Bluesky client: markdown highlights, articles, pseudo-edit posts and cleaner UI.",
+		// Same banner works here (X loves large images)
+		images: ["/banner.png"],
+		// Optional: your X handle if you have one
+		// creator: "@yourhandle",
+	},
+
+	// Optional: keywords if you want to hint at them (less important in 2026 but harmless)
+	keywords: [
+		"Bluesky client",
+		"Bluesky markdown",
+		"edit Bluesky posts",
+		"Bluesky alternative",
+		"Bluesky articles",
+	],
+};
 
 export const viewport: Viewport = {
   themeColor: [
