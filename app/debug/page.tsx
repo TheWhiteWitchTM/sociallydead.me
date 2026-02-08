@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock } from 'lucide-react';
+import {Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock, XCircle, Badge} from 'lucide-react';
 import { toast } from 'sonner';
 
 const PASSWORD = 'Kate70Bush$';
@@ -270,6 +270,7 @@ export default function CentralRepoDebug() {
 		);
 	}
 
+	let agentReady;
 	return (
 		<div className="container mx-auto p-6 max-w-4xl">
 			<Card className="mb-8">
