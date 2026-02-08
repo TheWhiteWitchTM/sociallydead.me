@@ -74,7 +74,7 @@ export default function DebugPage() {
 		};
 
 		fetchRecord();
-	}, [repo]);
+	}, [blueSky, repo]);
 
 	// Handle create default record
 	const handleCreateDefault = async () => {
