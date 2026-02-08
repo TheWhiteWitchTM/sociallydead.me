@@ -26,11 +26,11 @@ import { cn } from "@/lib/utils"
 const feedCategories = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
-  { id: "news", href: "/news", icon: Newspaper, label: "News" },
-  { id: "politics", href: "/politics", icon: Vote, label: "Politics" },
-  { id: "games", href: "/games", icon: Gamepad2, label: "Games" },
-  { id: "tech", href: "/tech", icon: Cpu, label: "Tech" },
-  { id: "health", href: "/health", icon: Heart, label: "Health" },
+  { id: "news", href: "/feed/news", icon: Newspaper, label: "News" },
+  { id: "politics", href: "/feed/politics", icon: Vote, label: "Politics" },
+  { id: "games", href: "/feed/games", icon: Gamepad2, label: "Games" },
+  { id: "tech", href: "/feed/tech", icon: Cpu, label: "Tech" },
+  { id: "health", href: "/feed/health", icon: Heart, label: "Health" },
 ]
 
 export function AppHeader() {
