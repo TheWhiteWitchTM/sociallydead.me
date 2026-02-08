@@ -30,12 +30,7 @@ export default function PDSDebugPage() {
 			return;
 		}
 
-		let did: string | undefined;
-		try {
-			did = agent.assertDid(); // Preferred modern way
-		} catch {
-			did = agent.did; // Fallback
-		}
+		const did = agent.did;
 
 		if (!did) {
 			setStatus("Agent authenticated but no DID found");
