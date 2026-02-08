@@ -31,7 +31,7 @@ export default function Debug() {
 				setStatus("Old record deleted. Creating fresh clean record…");
 
 				const freshData = {
-					mood: "joined sociallydead.me (clean " + new Date().toLocaleTimeString() + ")",
+					mood: "joined sociallydead.me",
 					verification: false,
 					lastUpdated: new Date().toISOString(),
 					// Add whatever fields you actually want — nothing else will appear
