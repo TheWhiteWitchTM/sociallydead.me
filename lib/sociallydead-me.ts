@@ -33,15 +33,13 @@ export class SociallyDeadRepo {
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 			mood: data.mood ?? 'default mood',
-			verification: data.verification ?? false,
-			highlights: data.highlights ?? [],
-			articles: data.articles ?? [],
+			verified: data.verification ?? false,
 			props: data.props ?? {},
 			...data,
 		};
 
 		const params: ComAtprotoRepoCreateRecord.InputSchema = {
-			repo: this.agent.session!.did,
+			repo: this.agent.did,
 			collection: this.collection,
 			rkey: this.rkey,
 			record: fullRecord,
@@ -53,7 +51,7 @@ export class SociallyDeadRepo {
 
 	async get(): Promise<SociallyDeadRecord | null> {
 		const params: ComAtprotoRepoGetRecord.QueryParams = {
-			repo: this.agent.session!.did,
+			repo: this.agent.did,
 			collection: this.collection,
 			rkey: this.rkey,
 		};
@@ -97,7 +95,7 @@ export class SociallyDeadRepo {
 
 	async delete(): Promise<void> {
 		const params: ComAtprotoRepoDeleteRecord.InputSchema = {
-			repo: this.agent.session!.did,
+			repo: this.agent.did,
 			collection: this.collection,
 			rkey: this.rkey,
 		};
@@ -107,7 +105,7 @@ export class SociallyDeadRepo {
 
 	async list(limit = 10): Promise<any[]> {
 		const resp = await this.agent.com.atproto.repo.listRecords({
-			repo: this.agent.session!.did,
+			repo: this.agent.did,
 			collection: this.collection,
 			limit,
 		});
