@@ -28,7 +28,6 @@ export default function () {
 		if (repo)
 			create()
 	},[repo])
-	}
 
 	const create = async () => {
 		if (!repo) {
