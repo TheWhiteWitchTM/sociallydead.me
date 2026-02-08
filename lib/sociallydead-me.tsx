@@ -1,25 +1,30 @@
 import { Agent } from '@atproto/api';
 
 /**
- * Creates a new "sociallydead" record if it doesn't exist.
- * Returns the URI and CID of the created record.
+ * Collection name – valid NSID (change only if you want something else)
+ */
+const COLLECTION = 'me.sociallydead.app';
+
+/**
+ * Creates a new record (fails if exists – use update for upsert)
  */
 export async function createSociallyDeadRecord(
 	agent: Agent,
-	data: Record<string, unknown> // Your custom settings object
+	data: Record<string, unknown>
 ): Promise<{ uri: string; cid: string }> {
 	const response = await agent.com.atproto.repo.createRecord({
 		repo: agent.assertDid,
-		collection: 'me.sociallydead',  // ← FIXED: valid NSID
+		collection: COLLECTION,
 		rkey: 'self',
 		record: {
-			$type: 'me.sociallydead.status',     // ← must match collection exactly
+			$type: COLLECTION,
 			createdAt: new Date().toISOString(),
 			...data,
 		},
-		// validate: false,  // Uncomment only if you want to skip schema checks (not needed here)
+		validate: false,
 	});
 
+	console.log("CREATE SUCCESS:", response.data);
 	return {
 		uri: response.data.uri,
 		cid: response.data.cid,
@@ -27,7 +32,7 @@ export async function createSociallyDeadRecord(
 }
 
 /**
- * Gets the current "sociallydead" record (or null if missing).
+ * Gets the record (returns null if missing)
  */
 export async function getSociallyDeadRecord(
 	agent: Agent
@@ -39,10 +44,11 @@ export async function getSociallyDeadRecord(
 	try {
 		const response = await agent.com.atproto.repo.getRecord({
 			repo: agent.assertDid,
-			collection: 'me.sociallydead',  // ← FIXED
+			collection: COLLECTION,
 			rkey: 'self',
 		});
 
+		console.log("GET SUCCESS:", response.data);
 		return {
 			uri: response.data.uri,
 			cid: response.data.cid,
@@ -50,40 +56,41 @@ export async function getSociallyDeadRecord(
 		};
 	} catch (err: any) {
 		if (err?.status === 404 || err?.error === 'RecordNotFound') {
+			console.log("Record not found (expected)");
 			return null;
 		}
+		console.error("GET FAILED:", err.message, err.error, err.status);
 		throw err;
 	}
 }
 
 /**
- * Updates (or creates) the "sociallydead" record.
- * Merges updates on top of existing data.
+ * Updates / overwrites the record cleanly (no old fields survive unless you send them)
  */
 export async function updateSociallyDeadRecord(
 	agent: Agent,
 	updates: Record<string, unknown>
 ): Promise<{ uri: string; cid: string }> {
-	// Optional: get existing just to preserve createdAt
 	const existing = await getSociallyDeadRecord(agent).catch(() => null);
 
 	const newRecord = {
-		$type: 'me.sociallydead',
+		$type: COLLECTION,
 		createdAt: existing?.value?.createdAt || new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
-		...updates,  // ← only fresh fields — nothing old survives
+		...updates,  // ← only what YOU provide – no ghost fields
 	};
 
-	console.log("Writing clean record (no old junk):", newRecord);
+	console.log("UPDATE – writing clean record:", newRecord);
 
 	const response = await agent.com.atproto.repo.putRecord({
 		repo: agent.assertDid,
-		collection: 'me.sociallydead',
+		collection: COLLECTION,
 		rkey: 'self',
 		record: newRecord,
 		validate: false,
 	});
 
+	console.log("UPDATE SUCCESS:", response.data);
 	return {
 		uri: response.data.uri,
 		cid: response.data.cid,
@@ -91,23 +98,22 @@ export async function updateSociallyDeadRecord(
 }
 
 /**
- * Deletes the "sociallydead.me" record if it exists.
- * Safe to call even if missing (ignores 404 errors).
+ * Deletes the record (safe if missing)
  */
 export async function deleteSociallyDeadRecord(agent: Agent): Promise<void> {
 	try {
 		await agent.com.atproto.repo.deleteRecord({
 			repo: agent.assertDid,
-			collection: 'me.sociallydead',  // ← use YOUR exact collection name
+			collection: COLLECTION,
 			rkey: 'self',
 		});
-		console.log("Record deleted successfully");
+		console.log("DELETE SUCCESS: record removed");
 	} catch (err: any) {
 		if (err?.status === 404 || err?.error === 'RecordNotFound') {
-			console.log("No record existed → nothing to delete");
+			console.log("DELETE: no record existed – nothing done");
 			return;
 		}
-		console.error("Delete failed:", err.message, err.error, err.status);
-		throw err; // let caller handle real errors
+		console.error("DELETE FAILED:", err.message, err.error, err.status);
+		throw err;
 	}
 }
