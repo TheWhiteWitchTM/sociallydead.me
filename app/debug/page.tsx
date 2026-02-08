@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, PlusCircle, ListIcon } from "lucide-react";
+import { Bug, RefreshCw, PlusCircle, ListIcon, Trash2 } from "lucide-react";
 
 export default function PDSDebugPage() {
 	const bluesky = useBluesky();
@@ -31,7 +31,6 @@ export default function PDSDebugPage() {
 		}
 
 		const did = agent.did;
-
 		if (!did) {
 			setStatus("Agent authenticated but no DID found");
 			setError("Could not retrieve DID from agent");
@@ -43,7 +42,7 @@ export default function PDSDebugPage() {
 		setRepo(sdRepo);
 	}, [bluesky]);
 
-	// Fetch the main record (rkey: self)
+	// Fetch main record (rkey: self)
 	const fetchRecord = async () => {
 		if (!repo) return;
 		setLoading(true);
@@ -85,33 +84,60 @@ export default function PDSDebugPage() {
 		}
 	};
 
-	// Create / overwrite default record
-	const createDefault = async () => {
+	// Upsert default record
+	const upsertDefault = async () => {
 		if (!repo) return;
 		setLoading(true);
 		setError(null);
-		setStatus("Creating default record...");
+		setStatus("Upserting default record...");
 
 		const defaultData: Partial<SociallyDeadRecord> = {
 			version: 2,
 			mood: "joined sociallydead.me",
-			verified: false,
+			verification: false,
+			highlights: [],
+			articles: [],
 			props: {},
 		};
 
 		try {
-			const { uri, cid } = await repo.createOrUpdate(defaultData);
-			setStatus(`Created successfully! URI: ${uri} | CID: ${cid.slice(0, 12)}...`);
-			console.log("Create success:", { uri, cid });
+			const { uri, cid } = await repo.upsert(defaultData);
+			setStatus(`Success! URI: ${uri} | CID: ${cid.slice(0, 12)}...`);
+			console.log("Upsert success:", { uri, cid });
 
-			// Refresh both views
 			await fetchRecord();
 			await fetchList();
 		} catch (err: any) {
-			const msg = err.message || "Create failed";
+			const msg = err.message || "Upsert failed";
 			setError(msg);
-			setStatus("Create failed");
-			console.error("Create error:", err);
+			setStatus("Upsert failed");
+			console.error("Upsert error:", err);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	// Delete current record
+	const deleteRecord = async () => {
+		if (!repo) return;
+		if (!confirm("Are you sure you want to delete the current record?\nThis cannot be undone!")) {
+			return;
+		}
+
+		setLoading(true);
+		setError(null);
+		setStatus("Deleting record...");
+
+		try {
+			await repo.delete();
+			setStatus("Record deleted successfully");
+			setRecord(null);
+			await fetchList();
+		} catch (err: any) {
+			const msg = err.message || "Delete failed";
+			setError(msg);
+			setStatus("Delete failed");
+			console.error("Delete error:", err);
 		} finally {
 			setLoading(false);
 		}
@@ -132,11 +158,9 @@ export default function PDSDebugPage() {
 		<div className="container mx-auto p-6 max-w-4xl">
 			<Card className="mb-8">
 				<CardHeader>
-					<CardTitle className="flex items-center justify-between">
-						SociallyDead PDS Debug
-						<Badge variant={repo ? "default" : "secondary"}>
-							{repo ? "Connected" : "Waiting"}
-						</Badge>
+					<CardTitle className="flex items-center gap-2">
+						<Bug className="h-6 w-6 text-red-500" />
+						PDS Debug
 					</CardTitle>
 					<CardDescription>Status: {status}</CardDescription>
 				</CardHeader>
@@ -149,34 +173,62 @@ export default function PDSDebugPage() {
 						</Alert>
 					)}
 
-					<div className="flex flex-wrap gap-4 mb-6">
-						<Button
-							onClick={fetchRecord}
-							disabled={loading || !repo}
-							variant="outline"
-						>
-							<RefreshCw className="mr-2 h-4 w-4" />
-							Refresh Record
-						</Button>
+					<Card className="mb-6 border-destructive/50 bg-destructive/5">
+						<CardHeader className="pb-2">
+							<CardTitle className="text-base text-destructive flex items-center gap-2">
+								<Trash2 className="h-4 w-4" />
+								Danger Zone
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<Alert variant="destructive" className="mb-4">
+								<AlertTitle>Warning</AlertTitle>
+								<AlertDescription>
+									The <strong>Delete Record</strong> button will permanently remove the current record at rkey "self".
+									<br />
+									This cannot be undone and may affect your SociallyDead app functionality.
+								</AlertDescription>
+							</Alert>
 
-						<Button
-							onClick={fetchList}
-							disabled={loading || !repo}
-							variant="outline"
-						>
-							<ListIcon className="mr-2 h-4 w-4" />
-							List All Records
-						</Button>
+							<div className="flex flex-wrap gap-4">
+								<Button
+									onClick={upsertDefault}
+									disabled={loading || !repo}
+									variant={noRecord ? "default" : "secondary"}
+								>
+									<PlusCircle className="mr-2 h-4 w-4" />
+									{noRecord ? "Create Default Record" : "Update Default Record"}
+								</Button>
 
-						<Button
-							onClick={createDefault}
-							disabled={loading || !repo}
-							variant={noRecord ? "default" : "secondary"}
-						>
-							<PlusCircle className="mr-2 h-4 w-4" />
-							{noRecord ? "Create Default Record" : "Overwrite Default Record"}
-						</Button>
-					</div>
+								<Button
+									onClick={deleteRecord}
+									disabled={loading || !repo || !record}
+									variant="destructive"
+								>
+									<Trash2 className="mr-2 h-4 w-4" />
+									Delete Record
+								</Button>
+
+								<Button
+									onClick={fetchRecord}
+									disabled={loading || !repo}
+									variant="outline"
+								>
+									<RefreshCw className="mr-2 h-4 w-4" />
+									Refresh Record
+								</Button>
+
+								<Button
+									onClick={fetchList}
+									disabled={loading || !repo}
+									variant="outline"
+								>
+									<ListIcon className="mr-2 h-4 w-4" />
+									List All Records
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
 
 					{loading && (
 						<div className="space-y-4">
@@ -197,9 +249,10 @@ export default function PDSDebugPage() {
 					{noRecord && (
 						<Alert className="mb-6">
 							<AlertTitle>No Record Found</AlertTitle>
-							<AlertDescription className="space-y-2">
-								<p>No data exists at rkey "self" in collection <code>me.sociallydead.app</code>.</p>
-								<p>Click "Create Default Record" to initialize it.</p>
+							<AlertDescription>
+								Nothing exists at rkey "self" yet.
+								<br />
+								Use "Create Default Record" to initialize your SociallyDead data.
 							</AlertDescription>
 						</Alert>
 					)}

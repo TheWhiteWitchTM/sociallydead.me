@@ -4,6 +4,7 @@ import {
 	ComAtprotoRepoDeleteRecord,
 	ComAtprotoRepoGetRecord,
 	ComAtprotoRepoListRecords,
+	ComAtprotoRepoPutRecord,
 } from '@atproto/api';
 
 export interface SociallyDeadRecord {
@@ -12,7 +13,9 @@ export interface SociallyDeadRecord {
 	createdAt: string;
 	updatedAt?: string;
 	mood: string;
-	verified: boolean;
+	verification: boolean;
+	highlights: string[];
+	articles: any[];
 	props: Record<string, any>;
 	[key: string]: any;
 }
@@ -20,99 +23,125 @@ export interface SociallyDeadRecord {
 export class SociallyDeadRepo {
 	private agent: Agent;
 	private readonly collection = 'me.sociallydead.app';
-	private readonly rkey = 'self';
+	private readonly rkey: string;
 
-	constructor(agent: Agent) {
+	constructor(agent: Agent, rkey: string = 'self') {
 		this.agent = agent;
+		this.rkey = rkey;
 	}
 
-	async createOrUpdate(data: Partial<SociallyDeadRecord>): Promise<{ uri: string; cid: string }> {
-		const fullRecord: SociallyDeadRecord = {
+	private get did(): string {
+		const d = this.agent.did;
+		if (!d) throw new Error('Agent has no DID');
+		return d;
+	}
+
+	private buildRecord(data: Partial<SociallyDeadRecord>): SociallyDeadRecord {
+		return {
 			$type: this.collection,
 			version: data.version ?? 1,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 			mood: data.mood ?? 'default mood',
-			verified: data.verified ?? false,
+			verification: data.verification ?? false,
+			highlights: data.highlights ?? [],
+			articles: data.articles ?? [],
 			props: data.props ?? {},
 			...data,
 		};
+	}
 
-		const params: ComAtprotoRepoCreateRecord.InputSchema = {
-			repo: this.agent.did,
-			collection: this.collection,
-			rkey: this.rkey,
-			record: fullRecord,
-		};
+	async create(data: Partial<SociallyDeadRecord>): Promise<{ uri: string; cid: string }> {
+		const record = this.buildRecord(data);
 
 		try {
-			const resp = await this.agent.com.atproto.repo.createRecord(params);
-			return { uri: resp.data.uri, cid: resp.data.cid };
+			await this.agent.com.atproto.repo.getRecord({
+				repo: this.did,
+				collection: this.collection,
+				rkey: this.rkey,
+			});
+			throw new Error(`Record already exists at rkey "${this.rkey}"`);
 		} catch (err: any) {
-			throw err;
+			if (err?.error !== 'RecordNotFound') throw err;
 		}
+
+		const resp = await this.agent.com.atproto.repo.createRecord({
+			repo: this.did,
+			collection: this.collection,
+			rkey: this.rkey,
+			record,
+		} satisfies ComAtprotoRepoCreateRecord.InputSchema);
+
+		return { uri: resp.data.uri, cid: resp.data.cid };
+	}
+
+	async update(
+		data: Partial<SociallyDeadRecord>,
+		options: { expectedCid?: string } = {}
+	): Promise<{ uri: string; cid: string }> {
+		const record = this.buildRecord(data);
+
+		const params = {
+			repo: this.did,
+			collection: this.collection,
+			rkey: this.rkey,
+			record,
+			...(options.expectedCid ? { swapCid: options.expectedCid } : {}),
+		} satisfies ComAtprotoRepoPutRecord.InputSchema;
+
+		const resp = await this.agent.com.atproto.repo.putRecord(params);
+
+		return { uri: resp.data.uri, cid: resp.data.cid };
+	}
+
+	async upsert(data: Partial<SociallyDeadRecord>): Promise<{ uri: string; cid: string }> {
+		let existingCid: string | undefined;
+		try {
+			const getResp = await this.agent.com.atproto.repo.getRecord({
+				repo: this.did,
+				collection: this.collection,
+				rkey: this.rkey,
+			});
+			existingCid = getResp.data.cid;
+		} catch (err: any) {
+			if (err?.error !== 'RecordNotFound') throw err;
+		}
+
+		if (existingCid) {
+			return this.update(data, { expectedCid: existingCid });
+		}
+
+		return this.create(data);
 	}
 
 	async get(): Promise<SociallyDeadRecord | null> {
-		const params: ComAtprotoRepoGetRecord.QueryParams = {
-			repo: this.agent.did,
-			collection: this.collection,
-			rkey: this.rkey,
-		};
-
 		try {
-			const resp = await this.agent.com.atproto.repo.getRecord(params);
+			const resp = await this.agent.com.atproto.repo.getRecord({
+				repo: this.did,
+				collection: this.collection,
+				rkey: this.rkey,
+			} satisfies ComAtprotoRepoGetRecord.QueryParams);
 			return resp.data.value as SociallyDeadRecord;
 		} catch (err: any) {
-			if (err?.error === 'RecordNotFound') {
-				return null;
-			}
+			if (err?.error === 'RecordNotFound') return null;
 			throw err;
 		}
 	}
 
-	async getField<K extends keyof SociallyDeadRecord>(field: K): Promise<SociallyDeadRecord[K] | undefined> {
-		const record = await this.get();
-		if (!record) return undefined;
-		return record[field];
-	}
-
-	async editField<K extends keyof SociallyDeadRecord>(
-		field: K,
-		value: SociallyDeadRecord[K]
-	): Promise<void> {
-		const current = await this.get();
-
-		if (!current) {
-			await this.createOrUpdate({ [field]: value });
-			return;
-		}
-
-		const updated: Partial<SociallyDeadRecord> = {
-			...current,
-			[field]: value,
-			updatedAt: new Date().toISOString(),
-		};
-
-		await this.createOrUpdate(updated);
-	}
-
 	async delete(): Promise<void> {
-		const params: ComAtprotoRepoDeleteRecord.InputSchema = {
-			repo: this.agent.did,
+		await this.agent.com.atproto.repo.deleteRecord({
+			repo: this.did,
 			collection: this.collection,
 			rkey: this.rkey,
-		};
-
-		await this.agent.com.atproto.repo.deleteRecord(params);
+		} satisfies ComAtprotoRepoDeleteRecord.InputSchema);
 	}
 
 	async list(limit = 10): Promise<any[]> {
 		const resp = await this.agent.com.atproto.repo.listRecords({
-			repo: this.agent.did,
+			repo: this.did,
 			collection: this.collection,
 			limit,
-		});
+		} satisfies ComAtprotoRepoListRecords.QueryParams);
 		return resp.data.records;
 	}
 }
