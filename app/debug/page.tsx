@@ -34,7 +34,9 @@ export default function Debug() {
 					mood: "joined sociallydead.me",
 					verification: false,
 					lastUpdated: new Date().toISOString(),
-					// Add whatever fields you actually want — nothing else will appear
+					highlights: [],
+					articles: [],
+					props: {},
 				};
 
 				await createSociallyDeadRecord(ag, freshData);
@@ -83,8 +85,6 @@ export default function Debug() {
 
 			<p className="text-sm text-muted-foreground mt-6">
 				Open browser console (F12) to see detailed logs.
-				<br />
-				The field <code>test</code> can no longer survive — delete + clean create.
 			</p>
 		</div>
 	);

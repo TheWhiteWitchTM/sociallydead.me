@@ -133,6 +133,10 @@ export async function setSociallyDeadProperty(
 			updatedAt: new Date().toISOString(),
 			mood: "joined sociallydead.me",
 			verification: false,
+			highlights: [],
+			articles: [],
+			props: {},
+
 			...changes,
 		};
 		return createSociallyDeadRecord(agent, initialData);
