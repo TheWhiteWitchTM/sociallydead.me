@@ -8,8 +8,7 @@ import {
 
 export interface SociallyDeadRecord {
 	$type: 'me.sociallydead.app';
-	rkey: "self"
-	version: 2;
+	version: number;
 	createdAt: string;
 	updatedAt?: string;
 	mood: string;
@@ -20,21 +19,18 @@ export interface SociallyDeadRecord {
 
 export class SociallyDeadRepo {
 	private agent: Agent;
-	private readonly collection:string = 'me.sociallydead.app';
-	private readonly rkey: string = 'self';
+	private readonly collection = 'me.sociallydead.app';
+	private readonly rkey = 'self';
 
-	constructor(agent: Agent, rkey?: string) {
+	constructor(agent: Agent) {
 		this.agent = agent;
-		if (rkey) {
-			this.rkey = rkey;
-		}
 	}
 
 	async createOrUpdate(data: Partial<SociallyDeadRecord>): Promise<{ uri: string; cid: string }> {
 		const fullRecord: SociallyDeadRecord = {
 			$type: this.collection,
 			version: data.version ?? 1,
-			createdAt: data.createdAt ?? new Date().toISOString(),
+			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 			mood: data.mood ?? 'default mood',
 			verified: data.verified ?? false,
@@ -49,8 +45,12 @@ export class SociallyDeadRepo {
 			record: fullRecord,
 		};
 
-		const resp = await this.agent.com.atproto.repo.createRecord(params);
-		return { uri: resp.data.uri, cid: resp.data.cid };
+		try {
+			const resp = await this.agent.com.atproto.repo.createRecord(params);
+			return { uri: resp.data.uri, cid: resp.data.cid };
+		} catch (err: any) {
+			throw err;
+		}
 	}
 
 	async get(): Promise<SociallyDeadRecord | null> {
