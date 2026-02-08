@@ -33,7 +33,7 @@ export default function Debug() {
 				const freshData = {
 					version: 2,
 					mood: "joined sociallydead.me",
-					verification: false,
+					verification: true,
 					lastUpdated: new Date().toISOString(),
 					highlights: [],
 					articles: [],
