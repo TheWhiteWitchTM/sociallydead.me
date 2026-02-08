@@ -177,6 +177,15 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
                   </p>
                 </div>
               </div>
+              <div className="flex gap-3 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                <BadgeCheck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">As a thank you</p>
+                  <p className="text-muted-foreground mt-1">
+                    You will receive a blue verified badge next to your name across SociallyDead as our way of saying thanks.
+                  </p>
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (USD)</Label>
@@ -186,7 +195,7 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
                     id="amount"
                     type="number"
                     min="1.00"
-                    step="1.00"
+                    step="0.01"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="pl-7"
@@ -228,7 +237,7 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
             <div className="text-center">
               <p className="font-semibold text-lg">Thank you for your support!</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Your contribution helps keep SociallyDead running.
+                Your contribution helps keep SociallyDead running. A blue checkmark will now appear next to your name as our thanks.
               </p>
             </div>
             <Button onClick={() => handleOpen(false)} className="mt-2">

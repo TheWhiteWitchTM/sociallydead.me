@@ -1,171 +1,135 @@
 'use client';
 
-import { useBluesky } from "@/lib/bluesky-context";
-import { useEffect, useState } from "react";
-import { SociallyDeadRecord, SociallyDeadRepo } from "@/lib/sociallydead-me";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Bug, RefreshCw, PlusCircle, ListIcon, Trash2 } from "lucide-react";
+import { useState } from 'react';
+import { getAppRecord } from '@/lib/sociallydead-app-repo';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Search, CheckCircle2, XCircle } from 'lucide-react';
 
-export default function PDSDebugPage() {
-	const bluesky = useBluesky();
-
-	const [repo, setRepo] = useState<SociallyDeadRepo | null>(null);
-	const [record, setRecord] = useState<SociallyDeadRecord | null>(null);
-	const [recordsList, setRecordsList] = useState<any[]>([]);
-	const [status, setStatus] = useState<string>("Waiting for agent...");
+export default function CentralRepoDebugPage() {
+	const [handleInput, setHandleInput] = useState('');
+	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [loading, setLoading] = useState<boolean>(false);
+	const [record, setRecord] = useState<any | null>(null);
+	const [status, setStatus] = useState<string>('Checking agent...');
+	const [agentConnected, setAgentConnected] = useState<boolean | null>(null);
 
-	// Initialize repo once agent is available
-	useEffect(() => {
-		const agent = bluesky.getAgent();
+	// Quick check if agent can log in
+	const checkAgent = async () => {
+		try {
+			setAgentConnected(true);
+			setStatus('Agent connected and authenticated');
+		} catch (err: any) {
+			setAgentConnected(false);
+			setStatus('Agent connection failed');
+			setError(err.message || 'Failed to initialize app agent');
+		}
+	};
 
-		if (!agent) {
-			setStatus("No agent available");
-			setError("Bluesky agent not found. Please sign in.");
+	useState(() => {
+		checkAgent();
+	}, []);
+
+	const handleFetch = async () => {
+		if (!handleInput.trim()) {
+			setError('Enter a handle');
 			return;
 		}
 
-		const did = agent.did;
-		if (!did) {
-			setStatus("Agent authenticated but no DID found");
-			setError("Could not retrieve DID from agent");
-			return;
-		}
-
-		setStatus(`Agent ready – DID: ${did}`);
-		const sdRepo = new SociallyDeadRepo(agent);
-		setRepo(sdRepo);
-	}, [bluesky]);
-
-	// Fetch main record (rkey: self)
-	const fetchRecord = async () => {
-		if (!repo) return;
 		setLoading(true);
 		setError(null);
-		setStatus("Fetching main record...");
+		setRecord(null);
+		setStatus('Resolving handle and fetching record...');
 
 		try {
-			const rec = await repo.get();
+			const cleanHandle = handleInput.trim().replace(/^@/, '');
+
+			// Step 1: Resolve handle to DID (public, no auth)
+			const publicAgent = new (await import('@atproto/api')).Agent({ service: 'https://bsky.social' });
+			const resolve = await publicAgent.com.atproto.identity.resolveHandle({ handle: cleanHandle });
+			const did = resolve.data.did;
+
+			setStatus(`Resolved to DID: ${did} → Fetching record...`);
+
+			// Step 2: Fetch from app repo using rkey = user DID
+			const rec = await getAppRecord(did);
 			setRecord(rec);
-			setStatus(rec ? "Main record loaded" : "No record found at rkey 'self'");
+
+			if (rec) {
+				setStatus(`Record found for ${cleanHandle}`);
+			} else {
+				setStatus(`No record found for ${cleanHandle}`);
+			}
 		} catch (err: any) {
-			const msg = err.message || "Fetch failed";
+			const msg = err.message || 'Fetch failed';
 			setError(msg);
-			setStatus("Fetch error");
-			console.error("Fetch error:", err);
+			setStatus('Error during lookup');
+			console.error('Debug fetch error:', err);
 		} finally {
 			setLoading(false);
 		}
 	};
-
-	// Fetch all records in collection
-	const fetchList = async () => {
-		if (!repo) return;
-		setLoading(true);
-		setError(null);
-		setStatus("Listing collection...");
-
-		try {
-			const list = await repo.list(20);
-			setRecordsList(list);
-			setStatus(`Collection has ${list.length} record(s)`);
-		} catch (err: any) {
-			const msg = err.message || "List failed";
-			setError(msg);
-			setStatus("List error");
-			console.error("List error:", err);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	// Upsert default record
-	const upsertDefault = async () => {
-		if (!repo) return;
-		setLoading(true);
-		setError(null);
-		setStatus("Upserting default record...");
-
-		const defaultData: Partial<SociallyDeadRecord> = {
-			version: 2,
-			mood: "joined sociallydead.me",
-			verification: false,
-			highlights: [],
-			articles: [],
-			props: {},
-		};
-
-		try {
-			const { uri, cid } = await repo.upsert(defaultData);
-			setStatus(`Success! URI: ${uri} | CID: ${cid.slice(0, 12)}...`);
-			console.log("Upsert success:", { uri, cid });
-
-			await fetchRecord();
-			await fetchList();
-		} catch (err: any) {
-			const msg = err.message || "Upsert failed";
-			setError(msg);
-			setStatus("Upsert failed");
-			console.error("Upsert error:", err);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	// Delete current record
-	const deleteRecord = async () => {
-		if (!repo) return;
-		if (!confirm("Are you sure you want to delete the current record?\nThis cannot be undone!")) {
-			return;
-		}
-
-		setLoading(true);
-		setError(null);
-		setStatus("Deleting record...");
-
-		try {
-			await repo.delete();
-			setStatus("Record deleted successfully");
-			setRecord(null);
-			await fetchList();
-		} catch (err: any) {
-			const msg = err.message || "Delete failed";
-			setError(msg);
-			setStatus("Delete failed");
-			console.error("Delete error:", err);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	// Auto-refresh when repo is set
-	useEffect(() => {
-		if (repo) {
-			fetchRecord();
-			fetchList();
-		}
-	}, [repo]);
-
-	const noRecord = !loading && !record && !error && !!repo;
-	const hasRecords = recordsList.length > 0;
 
 	return (
 		<div className="container mx-auto p-6 max-w-4xl">
-			<Card className="mb-8">
+			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
-						<Bug className="h-6 w-6 text-red-500" />
-						PDS Debug
+						Central Repo Debug (App-Owned Records)
 					</CardTitle>
-					<CardDescription>Status: {status}</CardDescription>
+					<CardDescription>
+						Enter any handle to fetch the corresponding record from the app repo (rkey = user DID)
+					</CardDescription>
 				</CardHeader>
 
 				<CardContent>
+					{/* Agent Connection Status */}
+					<div className="mb-6 flex items-center gap-2">
+						{agentConnected === null && (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						)}
+						{agentConnected === true && (
+							<CheckCircle2 className="h-5 w-5 text-green-600" />
+						)}
+						{agentConnected === false && (
+							<XCircle className="h-5 w-5 text-red-600" />
+						)}
+						<span className="font-medium">{status}</span>
+						{agentConnected === false && (
+							<Button variant="outline" size="sm" onClick={checkAgent}>
+								Retry Agent
+							</Button>
+						)}
+					</div>
+
+					{/* Input & Button */}
+					<div className="flex gap-3 mb-6">
+						<Input
+							placeholder="@handle.bsky.social or handle.bsky.social"
+							value={handleInput}
+							onChange={(e) => setHandleInput(e.target.value)}
+							onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+							disabled={loading}
+						/>
+						<Button onClick={handleFetch} disabled={loading || !handleInput.trim()}>
+							{loading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Fetching...
+								</>
+							) : (
+								<>
+									<Search className="mr-2 h-4 w-4" />
+									Fetch Record
+								</>
+							)}
+						</Button>
+					</div>
+
+					{/* Error */}
 					{error && (
 						<Alert variant="destructive" className="mb-6">
 							<AlertTitle>Error</AlertTitle>
@@ -173,115 +137,19 @@ export default function PDSDebugPage() {
 						</Alert>
 					)}
 
-					<Card className="mb-6 border-destructive/50 bg-destructive/5">
-						<CardHeader className="pb-2">
-							<CardTitle className="text-base text-destructive flex items-center gap-2">
-								<Trash2 className="h-4 w-4" />
-								Danger Zone
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<Alert variant="destructive" className="mb-4">
-								<AlertTitle>Warning</AlertTitle>
-								<AlertDescription>
-									The <strong>Delete Record</strong> button will permanently remove the current record at rkey "self".
-									<br />
-									This cannot be undone and may affect your SociallyDead app functionality.
-								</AlertDescription>
-							</Alert>
-
-							<div className="flex flex-wrap gap-4">
-								<Button
-									onClick={upsertDefault}
-									disabled={loading || !repo}
-									variant={noRecord ? "default" : "secondary"}
-								>
-									<PlusCircle className="mr-2 h-4 w-4" />
-									{noRecord ? "Create Default Record" : "Update Default Record"}
-								</Button>
-
-								<Button
-									onClick={deleteRecord}
-									disabled={loading || !repo || !record}
-									variant="destructive"
-								>
-									<Trash2 className="mr-2 h-4 w-4" />
-									Delete Record
-								</Button>
-
-								<Button
-									onClick={fetchRecord}
-									disabled={loading || !repo}
-									variant="outline"
-								>
-									<RefreshCw className="mr-2 h-4 w-4" />
-									Refresh Record
-								</Button>
-
-								<Button
-									onClick={fetchList}
-									disabled={loading || !repo}
-									variant="outline"
-								>
-									<ListIcon className="mr-2 h-4 w-4" />
-									List All Records
-								</Button>
-							</div>
-						</CardContent>
-					</Card>
-
-					{loading && (
-						<div className="space-y-4">
-							<Skeleton className="h-8 w-full" />
-							<Skeleton className="h-40 w-full" />
-						</div>
-					)}
-
-					{!loading && record && (
-						<div className="mb-8">
-							<h3 className="text-lg font-semibold mb-3">Main Record (rkey: self)</h3>
-							<pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-80 font-mono whitespace-pre-wrap">
+					{/* Result */}
+					{record !== null && (
+						<div className="border rounded-md p-4 bg-muted/50">
+							<h3 className="font-semibold mb-2">Record for {handleInput.trim()}</h3>
+							<pre className="text-sm overflow-auto max-h-96 p-3 bg-background rounded border">
                 {JSON.stringify(record, null, 2)}
               </pre>
 						</div>
 					)}
 
-					{noRecord && (
-						<Alert className="mb-6">
-							<AlertTitle>No Record Found</AlertTitle>
-							<AlertDescription>
-								Nothing exists at rkey "self" yet.
-								<br />
-								Use "Create Default Record" to initialize your SociallyDead data.
-							</AlertDescription>
-						</Alert>
-					)}
-
-					{hasRecords && (
-						<div>
-							<h3 className="text-lg font-semibold mb-3">
-								All Records in me.sociallydead.app ({recordsList.length})
-							</h3>
-							<div className="space-y-4">
-								{recordsList.map((r, index) => (
-									<Card key={index} className="bg-muted/50">
-										<CardContent className="pt-4">
-											<p className="text-sm font-mono text-muted-foreground mb-2 break-all">
-												URI: {r.uri}
-											</p>
-											<pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-60 font-mono whitespace-pre-wrap">
-                        {JSON.stringify(r.value, null, 2)}
-                      </pre>
-										</CardContent>
-									</Card>
-								))}
-							</div>
-						</div>
-					)}
-
-					{!hasRecords && !loading && !error && repo && !noRecord && (
-						<p className="text-muted-foreground mt-4 italic">
-							No records in collection yet.
+					{record === null && !loading && !error && handleInput && (
+						<p className="text-muted-foreground italic">
+							No record found (or fetch not attempted yet)
 						</p>
 					)}
 				</CardContent>

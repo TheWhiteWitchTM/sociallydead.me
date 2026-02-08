@@ -1,108 +1,166 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { Agent } from '@atproto/api';
+import { BadgeCheck, ShieldCheck } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import useSWR from "swr"
 
-type UserBadgesProps = {
-	handle: string;                     // e.g. "thewhitewitchtm.sociallydead.me" or "@handle"
-	isBlueskyVerified: boolean;
-	isDomainVerified: boolean;
-	isSociallyDeadDomain: boolean;
-};
+interface VerifiedBadgeProps {
+  handle: string
+  did?: string
+  className?: string
+}
 
-export function UserBadges({
-	                           handle,
-	                           isBlueskyVerified,
-	                           isDomainVerified,
-	                           isSociallyDeadDomain,
-                           }: UserBadgesProps) {
-	const [isSdVerified, setIsSdVerified] = useState<boolean | null>(null);
+type VerificationType = "bluesky" | "gold" | "green" | "blue" | null
 
-	const cleanHandle = handle.replace(/^@/, '');
+// Check supporter record from PDS
+async function checkSupporterRecord(did: string): Promise<boolean> {
+  if (!did) return false
+  try {
+    const res = await fetch(
+      `https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=me.sociallydead.supporter&rkey=self`
+    )
+    if (!res.ok) return false
+    const data = await res.json()
+    return !!data?.value?.verifiedAt
+  } catch {
+    return false
+  }
+}
 
-	useEffect(() => {
-		if (!cleanHandle) {
-			setIsSdVerified(false);
-			return;
-		}
+// Check Bluesky official verification via the public API
+async function checkBlueskyVerification(did: string): Promise<boolean> {
+  if (!did) return false
+  try {
+    const res = await fetch(
+      `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+    )
+    if (!res.ok) return false
+    const data = await res.json()
+    // Bluesky official verification is in the `verification` field
+    // It contains `verifications` array with trustedVerifiers
+    if (data.verification?.verifications?.length > 0) {
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
 
-		let mounted = true;
+export function getVerificationType(handle: string): VerificationType {
+  // Invalid or deleted accounts get nothing
+  if (!handle || handle === "handle.invalid" || handle.endsWith(".invalid")) {
+    return null
+  }
 
-		const publicAgent = new Agent({ service: 'https://bsky.social' });
+  // Gold checkmark for SociallyDead users
+  if (handle.endsWith(".sociallydead.me") || handle === "sociallydead.me") {
+    return "gold"
+  }
+  
+  // Green checkmark for domain-verified users (not using bsky.social)
+  if (!handle.endsWith(".bsky.social")) {
+    return "green"
+  }
+  
+  // No static checkmark for regular bsky.social users
+  // Blue/Bluesky checkmarks are determined by async checks
+  return null
+}
 
-		const check = async () => {
-			try {
-				// Resolve handle to DID (public)
-				const resolve = await publicAgent.com.atproto.identity.resolveHandle({
-					handle: cleanHandle,
-				});
-				const did = resolve.data.did;
+export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProps) {
+  // Bail early for invalid/deleted handles
+  if (!handle || handle === "handle.invalid" || handle.endsWith(".invalid")) {
+    return null
+  }
 
-				// Fetch the custom record (public read)
-				const recordResp = await publicAgent.com.atproto.repo.getRecord({
-					repo: did,
-					collection: 'me.sociallydead.app',
-					rkey: 'self',
-				});
-
-				const record = recordResp.data.value as any;
-				const verified = record?.verification === true;
-
-				if (mounted) setIsSdVerified(verified);
-			} catch {
-				if (mounted) setIsSdVerified(false);
-			}
-		};
-
-		check();
-
-		return () => {
-			mounted = false;
-		};
-	}, [cleanHandle]);
-
-	// Precedence: Bluesky > Gold > Green > Blue (only if none above)
-	const showBlueBadge =
-		isSdVerified === true &&
-		!isBlueskyVerified &&
-		!isSociallyDeadDomain &&
-		!isDomainVerified;
-
-	return (
-		<div className="flex items-center gap-1.5 flex-wrap">
-			{/* Your existing badges unchanged */}
-			{isBlueskyVerified && (
-				<span className="bg-blue-500 text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
-          Verified
-        </span>
-			)}
-
-			{isSociallyDeadDomain && (
-				<span className="bg-yellow-500 text-black text-xs font-medium px-2.5 py-0.5 rounded-full">
-          Gold
-        </span>
-			)}
-
-			{isDomainVerified && (
-				<span className="bg-green-500 text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
-          Domain
-        </span>
-			)}
-
-			{/* Blue SociallyDead badge – only when no higher precedence */}
-			{showBlueBadge && (
-				<span className="bg-indigo-600 text-white text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1">
-          SD Verified
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-        </span>
-			)}
-
-			{/* Tiny loading indicator while checking */}
-			{isSdVerified === null && (
-				<span className="text-xs text-muted-foreground">·</span>
-			)}
-		</div>
-	);
+  const staticType = getVerificationType(handle)
+  
+  // Check Bluesky official verification (async, cached)
+  const { data: isBlueskyVerified } = useSWR(
+    did ? `bsky-verified:${did}` : null,
+    () => checkBlueskyVerification(did!),
+    { 
+      revalidateOnFocus: false, 
+      revalidateOnReconnect: false,
+      dedupingInterval: 600000, // 10 min dedup
+    }
+  )
+  
+  // Only check PDS supporter if there's no static badge, no bluesky badge, and we have a DID
+  const shouldCheckPDS = !staticType && !isBlueskyVerified && !!did
+  const { data: isSupporter } = useSWR(
+    shouldCheckPDS ? `supporter:${did}` : null,
+    () => checkSupporterRecord(did!),
+    { 
+      revalidateOnFocus: false, 
+      revalidateOnReconnect: false,
+      dedupingInterval: 300000, // 5 min dedup
+    }
+  )
+  
+  // Priority: Bluesky official > gold (SociallyDead) > green (domain) > blue (supporter)
+  let verificationType: VerificationType = null
+  if (isBlueskyVerified) {
+    verificationType = "bluesky"
+  } else if (staticType) {
+    verificationType = staticType
+  } else if (isSupporter) {
+    verificationType = "blue"
+  }
+  
+  if (!verificationType) {
+    return null
+  }
+  
+  const config = {
+    bluesky: {
+      color: "text-yellow-500",
+      label: "Bluesky Verified",
+      description: "Officially verified by Bluesky",
+      Icon: ShieldCheck,
+    },
+    gold: {
+      color: "text-yellow-500",
+      label: "SociallyDead Verified",
+      description: "This account is verified through SociallyDead",
+      Icon: BadgeCheck,
+    },
+    green: {
+      color: "text-green-500",
+      label: "Domain Verified",
+      description: "This account owns their domain",
+      Icon: BadgeCheck,
+    },
+    blue: {
+      color: "text-blue-500",
+      label: "Supporter Verified",
+      description: "This account supports SociallyDead",
+      Icon: BadgeCheck,
+    },
+  }
+  
+  const { color, label, description, Icon } = config[verificationType]
+  
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <Icon 
+            className={`h-4 w-4 ${color} ${className} inline-block shrink-0`}
+            aria-label={label}
+          />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <p className="font-semibold">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
 }
