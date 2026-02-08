@@ -11,6 +11,9 @@ export default function () {
 					</div>
 				</div>
 			</header>
+			<code className={"text-red-500"}>
+				Under construction!
+			</code>
 		</div>
 	)
 }
