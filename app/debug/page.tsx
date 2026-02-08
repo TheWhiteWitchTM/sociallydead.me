@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Agent } from '@atproto/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock, XCircle, Badge} from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PASSWORD = 'Kate70Bush$';
@@ -18,16 +19,16 @@ export default function CentralRepoDebug() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [record, setRecord] = useState<any | null>(null);
-	const [status, setStatus] = useState<string>('Enter password');
+	const [status, setStatus] = useState<string>('Enter password to unlock');
 	const [jsonEdit, setJsonEdit] = useState<string>('');
 
-	// Check if already unlocked in this session
+	// Check if unlocked in session
 	useEffect(() => {
 		if (typeof window !== 'undefined') {
 			const saved = localStorage.getItem('debug-unlocked');
 			if (saved === 'true') {
 				setUnlocked(true);
-				setStatus('Unlocked – ready to lookup');
+				setStatus('Unlocked – enter a handle');
 			}
 		}
 	}, []);
@@ -36,7 +37,7 @@ export default function CentralRepoDebug() {
 		if (passwordInput === PASSWORD) {
 			setUnlocked(true);
 			localStorage.setItem('debug-unlocked', 'true');
-			setStatus('Unlocked – ready to lookup');
+			setStatus('Unlocked – enter a handle');
 			setError(null);
 		} else {
 			setError('Wrong password');
@@ -91,9 +92,10 @@ export default function CentralRepoDebug() {
 				setStatus('No record found – use Create Default below');
 			}
 		} catch (err: any) {
-			setError(err.message || 'Lookup failed');
+			const msg = err.message || 'Lookup failed';
+			setError(msg);
 			setStatus('Error');
-			console.error(err);
+			console.error('[Lookup] Error:', err);
 		} finally {
 			setLoading(false);
 		}
@@ -231,7 +233,7 @@ export default function CentralRepoDebug() {
 	const copyJson = () => {
 		if (record) {
 			navigator.clipboard.writeText(JSON.stringify(record, null, 2));
-			toast.success('JSON copied to clipboard');
+			toast.success('JSON copied');
 		}
 	};
 
@@ -270,10 +272,9 @@ export default function CentralRepoDebug() {
 		);
 	}
 
-	let agentReady;
 	return (
 		<div className="container mx-auto p-6 max-w-4xl">
-			<Card className="mb-8">
+			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="flex items-center gap-2">
 						Central App Repo Debug
@@ -287,10 +288,9 @@ export default function CentralRepoDebug() {
 				<CardContent>
 					{/* Status */}
 					<div className="mb-6">
-						<Badge variant={agentReady ? 'default' : 'destructive'} className="mb-2">
-							{agentReady ? 'App Agent Connected' : 'Agent Not Ready'}
+						<Badge variant="outline" className="mb-2">
+							{status}
 						</Badge>
-						<p className="text-sm text-muted-foreground">{status}</p>
 					</div>
 
 					{/* Form */}
@@ -330,7 +330,7 @@ export default function CentralRepoDebug() {
 						</Alert>
 					)}
 
-					{/* Actions when record loaded */}
+					{/* CRUD Buttons when record loaded */}
 					{record && (
 						<div className="flex gap-3 mb-6">
 							<Button onClick={handleDelete} variant="destructive" disabled={loading}>
@@ -344,12 +344,12 @@ export default function CentralRepoDebug() {
 						</div>
 					)}
 
-					{/* Editor for update */}
+					{/* JSON Editor for update */}
 					{record && (
 						<div className="mb-6">
 							<label className="block text-sm font-medium mb-1">Edit JSON</label>
-							<textarea
-								className="w-full h-64 p-3 border rounded-md font-mono text-sm"
+							<Textarea
+								className="w-full h-64 font-mono text-sm"
 								value={jsonEdit}
 								onChange={(e) => setJsonEdit(e.target.value)}
 							/>
@@ -359,12 +359,32 @@ export default function CentralRepoDebug() {
 								disabled={loading}
 							>
 								<PlusCircle className="mr-2 h-4 w-4" />
-								Save Changes (PUT)
+								Save Changes (Update)
 							</Button>
 						</div>
 					)}
 
-					{/* Result */}
+					{/* Create Default if missing */}
+					{record === null && !loading && !error && handleInput.trim() && (
+						<div className="mt-4">
+							<Alert className="mb-4">
+								<AlertTitle>No record found</AlertTitle>
+								<AlertDescription>
+									No data exists in the app repo for this user.
+								</AlertDescription>
+							</Alert>
+							<Button
+								onClick={handleCreateDefault}
+								disabled={loading}
+								variant="secondary"
+							>
+								<PlusCircle className="mr-2 h-4 w-4" />
+								Create Default Record
+							</Button>
+						</div>
+					)}
+
+					{/* Result JSON */}
 					{record && (
 						<Card className="bg-muted/50">
 							<CardHeader className="pb-2">
@@ -378,17 +398,6 @@ export default function CentralRepoDebug() {
                 </pre>
 							</CardContent>
 						</Card>
-					)}
-
-					{record === null && !loading && !error && handleInput.trim() && (
-						<Alert className="mt-4">
-							<AlertTitle>No record found</AlertTitle>
-							<AlertDescription>
-								No data exists in the app repo for this user.
-								<br />
-								Use the "Create Default" button if available, or manually create via API.
-							</AlertDescription>
-						</Alert>
 					)}
 				</CardContent>
 			</Card>
