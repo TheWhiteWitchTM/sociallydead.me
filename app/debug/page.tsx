@@ -1,68 +1,54 @@
+// app/debug-central/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Agent } from '@atproto/api';
-import { getAppRecord } from '@/lib/sociallydead-app-repo'; // your library
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 
 export default function CentralRepoDebug() {
 	const [handleInput, setHandleInput] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [record, setRecord] = useState<any | null>(null);
-	const [status, setStatus] = useState<string>('Checking app agent...');
-	const [agentReady, setAgentReady] = useState<boolean | null>(null);
-
-	// Check agent readiness on mount
-	useEffect(() => {
-		const check = async () => {
-			try {
-				// Just trigger init to see if it logs in
-				await getAppRecord('test-dummy-rkey'); // dummy rkey — will likely 404, but agent initializes
-				setAgentReady(true);
-				setStatus('App agent connected and authenticated');
-			} catch (err: any) {
-				setAgentReady(false);
-				setStatus('App agent not connected');
-				setError(err.message || 'Agent initialization failed');
-			}
-		};
-		check();
-	}, []);
+	const [status, setStatus] = useState<string>('Ready');
 
 	const handleLookup = async () => {
 		if (!handleInput.trim()) {
-			setError('Please enter a handle');
+			setError('Enter a handle');
 			return;
 		}
 
 		setLoading(true);
 		setError(null);
 		setRecord(null);
-		setStatus('Resolving handle → Fetching record...');
+		setStatus('Resolving handle...');
 
 		try {
 			const cleanHandle = handleInput.trim().replace(/^@/, '');
 
-			// Public resolve (no auth needed)
+			// Public handle → DID resolution (client-safe)
 			const publicAgent = new Agent({ service: 'https://bsky.social' });
 			const resolve = await publicAgent.com.atproto.identity.resolveHandle({
 				handle: cleanHandle,
 			});
 			const did = resolve.data.did;
 
-			setStatus(`Resolved to DID: ${did} → Checking app repo...`);
+			setStatus(`Resolved to DID: ${did} → Fetching from app repo...`);
 
-			// Fetch from YOUR app's repo with rkey = user's DID
-			const rec = await getAppRecord(did);
+			// Call YOUR server API route (env vars & login happen server-side)
+			const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did)}`);
+			const json = await res.json();
 
-			setRecord(rec);
-			setStatus(rec ? 'Record found' : 'No record found in app repo');
+			if (!res.ok) {
+				throw new Error(json.error || 'API request failed');
+			}
+
+			setRecord(json.record);
+			setStatus(json.record ? 'Record found' : 'No record found in app repo');
 		} catch (err: any) {
 			const msg = err.message || 'Lookup failed';
 			setError(msg);
@@ -75,31 +61,16 @@ export default function CentralRepoDebug() {
 
 	return (
 		<div className="container mx-auto p-6 max-w-4xl">
-			<Card className="mb-8">
+			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						Central App Repo Debug
-					</CardTitle>
+					<CardTitle>Central App Repo Debug</CardTitle>
 					<CardDescription>
-						Enter any handle to fetch the record from your app's repo (rkey = resolved DID)
+						Enter any handle to fetch the record from your app repo (rkey = resolved DID)
 					</CardDescription>
 				</CardHeader>
 
 				<CardContent>
-					{/* Agent Status */}
-					<div className="mb-6 flex items-center gap-3">
-						{agentReady === null && <Loader2 className="h-5 w-5 animate-spin" />}
-						{agentReady === true && <CheckCircle2 className="h-5 w-5 text-green-600" />}
-						{agentReady === false && <XCircle className="h-5 w-5 text-red-600" />}
-						<span className="font-medium text-lg">{status}</span>
-						{agentReady === false && (
-							<Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-								Retry Connection
-							</Button>
-						)}
-					</div>
-
-					{/* Lookup Form */}
+					{/* Form */}
 					<div className="flex gap-3 mb-6">
 						<Input
 							placeholder="@handle.bsky.social or handle.bsky.social"
