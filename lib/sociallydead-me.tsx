@@ -1,17 +1,17 @@
 import { Agent } from '@atproto/api';
 
-/**
- * Collection name – valid NSID (change only if you want something else)
- */
 const COLLECTION = 'me.sociallydead.app';
 
-/**
- * Creates a new record (fails if exists – use update for upsert)
- */
 export async function createSociallyDeadRecord(
 	agent: Agent,
 	data: Record<string, unknown>
 ): Promise<{ uri: string; cid: string }> {
+	console.log('[create] Preparing record:', {
+		$type: COLLECTION,
+		createdAt: new Date().toISOString(),
+		...data
+	});
+
 	const response = await agent.com.atproto.repo.createRecord({
 		repo: agent.assertDid,
 		collection: COLLECTION,
@@ -24,16 +24,13 @@ export async function createSociallyDeadRecord(
 		validate: false,
 	});
 
-	console.log("CREATE SUCCESS:", response.data);
+	console.log('[create] Success →', response.data);
 	return {
 		uri: response.data.uri,
 		cid: response.data.cid,
 	};
 }
 
-/**
- * Gets the record (returns null if missing)
- */
 export async function getSociallyDeadRecord(
 	agent: Agent
 ): Promise<{
@@ -48,7 +45,7 @@ export async function getSociallyDeadRecord(
 			rkey: 'self',
 		});
 
-		console.log("GET SUCCESS:", response.data);
+		console.log('[get] Success → value:', response.data.value);
 		return {
 			uri: response.data.uri,
 			cid: response.data.cid,
@@ -56,17 +53,14 @@ export async function getSociallyDeadRecord(
 		};
 	} catch (err: any) {
 		if (err?.status === 404 || err?.error === 'RecordNotFound') {
-			console.log("Record not found (expected)");
+			console.log('[get] Not found (normal)');
 			return null;
 		}
-		console.error("GET FAILED:", err.message, err.error, err.status);
+		console.error('[get] Error:', err.message, err.status, err.error);
 		throw err;
 	}
 }
 
-/**
- * Updates / overwrites the record cleanly (no old fields survive unless you send them)
- */
 export async function updateSociallyDeadRecord(
 	agent: Agent,
 	updates: Record<string, unknown>
@@ -77,10 +71,10 @@ export async function updateSociallyDeadRecord(
 		$type: COLLECTION,
 		createdAt: existing?.value?.createdAt || new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
-		...updates,  // ← only what YOU provide – no ghost fields
+		...updates,                    // ← ONLY what you pass — no old garbage
 	};
 
-	console.log("UPDATE – writing clean record:", newRecord);
+	console.log('[update] Preparing clean overwrite:', newRecord);
 
 	const response = await agent.com.atproto.repo.putRecord({
 		repo: agent.assertDid,
@@ -90,16 +84,13 @@ export async function updateSociallyDeadRecord(
 		validate: false,
 	});
 
-	console.log("UPDATE SUCCESS:", response.data);
+	console.log('[update] Success →', response.data);
 	return {
 		uri: response.data.uri,
 		cid: response.data.cid,
 	};
 }
 
-/**
- * Deletes the record (safe if missing)
- */
 export async function deleteSociallyDeadRecord(agent: Agent): Promise<void> {
 	try {
 		await agent.com.atproto.repo.deleteRecord({
@@ -107,13 +98,13 @@ export async function deleteSociallyDeadRecord(agent: Agent): Promise<void> {
 			collection: COLLECTION,
 			rkey: 'self',
 		});
-		console.log("DELETE SUCCESS: record removed");
+		console.log('[delete] Success — record removed');
 	} catch (err: any) {
 		if (err?.status === 404 || err?.error === 'RecordNotFound') {
-			console.log("DELETE: no record existed – nothing done");
+			console.log('[delete] Nothing to delete (did not exist)');
 			return;
 		}
-		console.error("DELETE FAILED:", err.message, err.error, err.status);
+		console.error('[delete] Error:', err.message, err.status, err.error);
 		throw err;
 	}
 }

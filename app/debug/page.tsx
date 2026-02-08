@@ -1,96 +1,91 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
 import { Bug } from "lucide-react";
 import { useBluesky } from "@/lib/bluesky-context";
-import { Agent } from "@atproto/api";
-import { createSociallyDeadRecord, getSociallyDeadRecord, updateSociallyDeadRecord } from "@/lib/sociallydead-me";
+import {
+	createSociallyDeadRecord,
+	deleteSociallyDeadRecord,
+	getSociallyDeadRecord,
+} from "@/lib/sociallydead-me";
 
 export default function Debug() {
 	const { getAgent } = useBluesky();
-	const [agent, setAgent] = useState<Agent | undefined>(undefined);
-	const [recordStatus, setRecordStatus] = useState<string>("Loading agent...");
+	const [status, setStatus] = useState("Starting…");
+	const [agent, setAgent] = useState<any>(null);
 
 	useEffect(() => {
-		let isMounted = true;
-
-		const loadAndUpdateRecord = async () => {
+		const run = async () => {
 			try {
-				let currentAgent = getAgent();
-				if (!currentAgent) {
-					setRecordStatus("Waiting for agent (retrying...)");
-					const timer = setTimeout(() => {
-						if (isMounted) loadAndUpdateRecord();
-					}, 1000);
-					return () => clearTimeout(timer);
+				const ag = getAgent();
+				if (!ag) {
+					setStatus("No agent available yet");
+					return;
 				}
 
-				if (isMounted) {
-					setAgent(currentAgent);
-					setRecordStatus("Agent loaded (DID: " + currentAgent.assertDid + "). Checking/Updating record...");
+				setAgent(ag);
+				setStatus("Agent loaded. Deleting old broken record…");
 
-					let rec = await getSociallyDeadRecord(currentAgent);
-					console.log("INITIAL GET RECORD:", rec);
+				await deleteSociallyDeadRecord(ag);
 
-					const freshData = {
-						createdAt: rec?.value?.createdAt || new Date().toISOString(),  // preserve if exists
-						updatedAt: new Date().toISOString(),
-						mood: "joined sociallydead.me! (updated " + new Date().toLocaleTimeString() + ")",
-						verification: false,
-						test: "this update should appear now",
-					};
+				setStatus("Old record deleted. Creating fresh clean record…");
 
-					if (rec?.value && Object.keys(rec.value).length > 0) {
-						// Update existing
-						setRecordStatus("Existing record found → updating...");
-						const updated = await updateSociallyDeadRecord(currentAgent, freshData);
-						console.log("UPDATE SUCCESS:", updated);
-					} else {
-						// Create new
-						setRecordStatus("No useful record → creating...");
-						const created = await createSociallyDeadRecord(currentAgent, freshData);
-						console.log("CREATE SUCCESS:", created);
-					}
+				const freshData = {
+					mood: "joined sociallydead.me (clean " + new Date().toLocaleTimeString() + ")",
+					verification: false,
+					lastUpdated: new Date().toISOString(),
+					// Add whatever fields you actually want — nothing else will appear
+				};
 
-					// ALWAYS re-fetch after write to confirm
-					await new Promise(r => setTimeout(r, 1500)); // small delay for PDS consistency
-					rec = await getSociallyDeadRecord(currentAgent);
-					console.log("FINAL GET AFTER WRITE:", rec);
+				await createSociallyDeadRecord(ag, freshData);
 
-					if (rec?.value && Object.keys(rec.value).length > 0) {
-						setRecordStatus(`SUCCESS! Current value:\n${JSON.stringify(rec.value, null, 2)}`);
-					} else {
-						setRecordStatus("Update ran but value still empty/missing. Check console for logs.");
-					}
+				const rec = await getSociallyDeadRecord(ag);
+
+				if (rec?.value) {
+					setStatus(
+						"SUCCESS – current record content:\n\n" +
+						JSON.stringify(rec.value, null, 2)
+					);
+				} else {
+					setStatus("Created but got empty value back – check console");
 				}
 			} catch (err: any) {
-				console.error("FULL ERROR:", err);
-				setRecordStatus(`Error: ${err.message || "Failed (check console)"}`);
+				console.error("FATAL:", err);
+				setStatus("Error: " + (err.message || "unknown failure"));
 			}
 		};
 
-		loadAndUpdateRecord();
-
-		return () => { isMounted = false; };
+		run();
 	}, []);
 
 	return (
-		<div className="min-h-screen">
-			<header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-				<div className="flex h-14 items-center justify-between px-4">
-					<div className="flex items-center gap-2">
-						<Bug className="h-5 w-5" />
-						<h1 className="text-xl font-bold">Debug</h1>
-					</div>
+		<div className="min-h-screen p-6">
+			<header className="border-b pb-4 mb-6">
+				<div className="flex items-center gap-3">
+					<Bug className="h-6 w-6" />
+					<h1 className="text-2xl font-bold">Debug SociallyDead Record</h1>
 				</div>
 			</header>
-			<main className="p-4">
-				<h2>Agent DID: {agent?.assertDid || "Not loaded yet"}</h2>
-				<p className="font-mono whitespace-pre-wrap break-words max-w-full">{recordStatus}</p>
-				<p className="text-sm text-muted-foreground mt-4">
-					Refresh page after first run to test read-only. Check browser console (F12) for "GET RECORD", "UPDATE/CREATE SUCCESS", and "FINAL GET" logs — paste them here if value still empty.
-				</p>
-			</main>
+
+			<div>
+				<h2 className="font-semibold mb-2">Agent DID:</h2>
+				<code className="bg-muted px-2 py-1 rounded">
+					{agent?.assertDid || "not loaded"}
+				</code>
+			</div>
+
+			<div className="mt-6">
+				<h2 className="font-semibold mb-2">Record status:</h2>
+				<pre className="bg-muted p-4 rounded-md whitespace-pre-wrap font-mono text-sm overflow-auto max-h-96">
+          {status}
+        </pre>
+			</div>
+
+			<p className="text-sm text-muted-foreground mt-6">
+				Open browser console (F12) to see detailed logs.
+				<br />
+				The field <code>test</code> can no longer survive — delete + clean create.
+			</p>
 		</div>
 	);
 }
