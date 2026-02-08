@@ -108,3 +108,61 @@ export async function deleteSociallyDeadRecord(agent: Agent): Promise<void> {
 		throw err;
 	}
 }
+/**
+ * Updates ONLY one (or more) specific property/properties in the sociallydead record.
+ * - Fetches current record
+ * - Merges only the provided changes
+ * - Overwrites the record
+ * - Returns new URI and CID
+ *
+ * Example:
+ * await setSociallyDeadProperty(agent, { verified: true });
+ * await setSociallyDeadProperty(agent, { mood: "very dead", verified: false });
+ */
+export async function setSociallyDeadProperty(
+	agent: Agent,
+	changes: Record<string, unknown>  // e.g. { verified: true }
+): Promise<{ uri: string; cid: string }> {
+	const existing = await getSociallyDeadRecord(agent);
+
+	if (!existing) {
+		// If no record exists → create with the change + minimal defaults
+		console.log("[setProperty] No existing record → creating with changes");
+		const initialData = {
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			mood: "joined sociallydead.me",
+			verification: false,
+			...changes,
+		};
+		return createSociallyDeadRecord(agent, initialData);
+	}
+
+	// Merge only the changes on top of current value
+	const updatedValue = {
+		...existing.value,
+		...changes,
+		updatedAt: new Date().toISOString(), // always update timestamp
+	};
+
+	console.log("[setProperty] Updating only these fields:", changes);
+	console.log("[setProperty] New full value:", updatedValue);
+
+	const response = await agent.com.atproto.repo.putRecord({
+		repo: agent.assertDid,
+		collection: COLLECTION,
+		rkey: 'self',
+		record: {
+			$type: COLLECTION,
+			createdAt: existing.value.createdAt || new Date().toISOString(),
+			...updatedValue,
+		},
+		validate: false,
+	});
+
+	console.log("[setProperty] Success → new CID:", response.data.cid);
+	return {
+		uri: response.data.uri,
+		cid: response.data.cid,
+	};
+}
