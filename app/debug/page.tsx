@@ -12,34 +12,43 @@ import { RefreshCw, PlusCircle, ListIcon } from "lucide-react";
 
 export default function PDSDebugPage() {
 	const bluesky = useBluesky();
+
 	const [repo, setRepo] = useState<SociallyDeadRepo | null>(null);
 	const [record, setRecord] = useState<SociallyDeadRecord | null>(null);
 	const [recordsList, setRecordsList] = useState<any[]>([]);
-	const [status, setStatus] = useState<string>("Initializing...");
+	const [status, setStatus] = useState<string>("Waiting for agent...");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState<boolean>(false);
 
 	// Initialize repo once agent is available
 	useEffect(() => {
 		const agent = bluesky.getAgent();
+
 		if (!agent) {
 			setStatus("No agent available");
 			setError("Bluesky agent not found. Please sign in.");
 			return;
 		}
 
-		if (!agent.session?.did) {
-			setStatus("Agent has no DID");
-			setError("Authenticated agent is missing session DID");
+		let did: string | undefined;
+		try {
+			did = agent.assertDid(); // Preferred modern way
+		} catch {
+			did = agent.did; // Fallback
+		}
+
+		if (!did) {
+			setStatus("Agent authenticated but no DID found");
+			setError("Could not retrieve DID from agent");
 			return;
 		}
 
-		setStatus(`Agent ready (DID: ${agent.session.did})`);
+		setStatus(`Agent ready – DID: ${did}`);
 		const sdRepo = new SociallyDeadRepo(agent);
 		setRepo(sdRepo);
 	}, [bluesky]);
 
-	// Fetch main record (rkey: self)
+	// Fetch the main record (rkey: self)
 	const fetchRecord = async () => {
 		if (!repo) return;
 		setLoading(true);
@@ -49,7 +58,7 @@ export default function PDSDebugPage() {
 		try {
 			const rec = await repo.get();
 			setRecord(rec);
-			setStatus(rec ? "Record loaded successfully" : "No record found at rkey 'self'");
+			setStatus(rec ? "Main record loaded" : "No record found at rkey 'self'");
 		} catch (err: any) {
 			const msg = err.message || "Fetch failed";
 			setError(msg);
@@ -60,17 +69,17 @@ export default function PDSDebugPage() {
 		}
 	};
 
-	// Fetch list of all records in the collection
+	// Fetch all records in collection
 	const fetchList = async () => {
 		if (!repo) return;
 		setLoading(true);
 		setError(null);
-		setStatus("Listing records in collection...");
+		setStatus("Listing collection...");
 
 		try {
-			const list = await repo.list(20); // higher limit for visibility
+			const list = await repo.list(20);
 			setRecordsList(list);
-			setStatus(`Found ${list.length} record(s)`);
+			setStatus(`Collection has ${list.length} record(s)`);
 		} catch (err: any) {
 			const msg = err.message || "List failed";
 			setError(msg);
@@ -81,7 +90,7 @@ export default function PDSDebugPage() {
 		}
 	};
 
-	// Create default record
+	// Create / overwrite default record
 	const createDefault = async () => {
 		if (!repo) return;
 		setLoading(true);
@@ -99,10 +108,10 @@ export default function PDSDebugPage() {
 
 		try {
 			const { uri, cid } = await repo.createOrUpdate(defaultData);
-			setStatus(`Created! URI: ${uri} | CID: ${cid.slice(0, 12)}...`);
+			setStatus(`Created successfully! URI: ${uri} | CID: ${cid.slice(0, 12)}...`);
 			console.log("Create success:", { uri, cid });
 
-			// Refresh views
+			// Refresh both views
 			await fetchRecord();
 			await fetchList();
 		} catch (err: any) {
@@ -115,7 +124,7 @@ export default function PDSDebugPage() {
 		}
 	};
 
-	// Auto-fetch when repo becomes available
+	// Auto-refresh when repo is set
 	useEffect(() => {
 		if (repo) {
 			fetchRecord();
@@ -123,7 +132,7 @@ export default function PDSDebugPage() {
 		}
 	}, [repo]);
 
-	const noRecord = !loading && !record && !error && repo;
+	const noRecord = !loading && !record && !error && !!repo;
 	const hasRecords = recordsList.length > 0;
 
 	return (
@@ -133,7 +142,7 @@ export default function PDSDebugPage() {
 					<CardTitle className="flex items-center justify-between">
 						SociallyDead PDS Debug
 						<Badge variant={repo ? "default" : "secondary"}>
-							{repo ? "Connected" : "Waiting for Agent"}
+							{repo ? "Connected" : "Waiting"}
 						</Badge>
 					</CardTitle>
 					<CardDescription>Status: {status}</CardDescription>
@@ -163,7 +172,7 @@ export default function PDSDebugPage() {
 							variant="outline"
 						>
 							<ListIcon className="mr-2 h-4 w-4" />
-							List Collection
+							List All Records
 						</Button>
 
 						<Button
@@ -172,7 +181,7 @@ export default function PDSDebugPage() {
 							variant={noRecord ? "default" : "secondary"}
 						>
 							<PlusCircle className="mr-2 h-4 w-4" />
-							{noRecord ? "Create Default Record" : "Overwrite Default"}
+							{noRecord ? "Create Default Record" : "Overwrite Default Record"}
 						</Button>
 					</div>
 
@@ -186,7 +195,7 @@ export default function PDSDebugPage() {
 					{!loading && record && (
 						<div className="mb-8">
 							<h3 className="text-lg font-semibold mb-3">Main Record (rkey: self)</h3>
-							<pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-80 font-mono">
+							<pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-80 font-mono whitespace-pre-wrap">
                 {JSON.stringify(record, null, 2)}
               </pre>
 						</div>
@@ -195,10 +204,9 @@ export default function PDSDebugPage() {
 					{noRecord && (
 						<Alert className="mb-6">
 							<AlertTitle>No Record Found</AlertTitle>
-							<AlertDescription>
-								Nothing exists at rkey "self" yet.
-								<br />
-								Press "Create Default Record" to initialize your SociallyDead data.
+							<AlertDescription className="space-y-2">
+								<p>No data exists at rkey "self" in collection <code>me.sociallydead.app</code>.</p>
+								<p>Click "Create Default Record" to initialize it.</p>
 							</AlertDescription>
 						</Alert>
 					)}
@@ -215,7 +223,7 @@ export default function PDSDebugPage() {
 											<p className="text-sm font-mono text-muted-foreground mb-2 break-all">
 												URI: {r.uri}
 											</p>
-											<pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-60">
+											<pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-60 font-mono whitespace-pre-wrap">
                         {JSON.stringify(r.value, null, 2)}
                       </pre>
 										</CardContent>
@@ -225,9 +233,9 @@ export default function PDSDebugPage() {
 						</div>
 					)}
 
-					{!hasRecords && !loading && !error && repo && (
+					{!hasRecords && !loading && !error && repo && !noRecord && (
 						<p className="text-muted-foreground mt-4 italic">
-							Collection appears empty. Create a record to get started.
+							No records in collection yet.
 						</p>
 					)}
 				</CardContent>
