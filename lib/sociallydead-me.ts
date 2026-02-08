@@ -12,9 +12,7 @@ export interface SociallyDeadRecord {
 	createdAt: string;
 	updatedAt?: string;
 	mood: string;
-	verification: boolean;
-	highlights: string[];
-	articles: any[];
+	verified: boolean;
 	props: Record<string, any>;
 	[key: string]: any;
 }
