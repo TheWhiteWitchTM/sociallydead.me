@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock } from 'lucide-react';
+import {Loader2, Search, Trash2, PlusCircle, Copy, Lock, Unlock, XCircle} from 'lucide-react';
 import { toast } from 'sonner';
+import {Agent} from "@atproto/api";
 
 const PASSWORD = 'Kate70Bush$';
 
