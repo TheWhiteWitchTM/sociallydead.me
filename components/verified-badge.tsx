@@ -74,11 +74,11 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 		async () => {
 			try {
 				const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did!)}`);
-				if (!res.ok) return false;
-				const json = await res.json();
-				return json.record?.verified === true;
+				if (!res.ok) return false
+				const json = await res.json()
+				return json.record?.verified === true
 			} catch {
-				return false;
+				return false
 			}
 		},
 		{
@@ -89,27 +89,27 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 	)
 
 	// Precedence: Bluesky > Gold > Green > Blue (only if none above)
-	let type: VerificationType = staticType || (isBlueskyVerified ? "bluesky" : null);
+	let type: VerificationType = staticType || (isBlueskyVerified ? "bluesky" : null)
 
 	if (!type && isAppVerified) {
-		type = "blue";
+		type = "blue"
 	}
 
-	if (!type) return null;
+	if (!type) return null
 
 	const badgeStyles = {
 		bluesky: "bg-blue-500 text-white",
 		gold: "bg-yellow-500 text-black",
 		green: "bg-green-500 text-white",
 		blue: "bg-indigo-600 text-white",
-	};
+	}
 
 	const tooltipText = {
 		bluesky: "Bluesky Verified",
 		gold: "SociallyDead Domain",
 		green: "Domain Verified",
 		blue: "SociallyDead Verified",
-	};
+	}
 
 	return (
 		<TooltipProvider>
@@ -128,5 +128,5 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
-	);
+	)
 }
