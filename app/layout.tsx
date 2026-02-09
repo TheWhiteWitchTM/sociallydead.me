@@ -127,7 +127,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <BlueskyProvider>
-	          <SociallyDeadRepoProvider>
             <AppSidebar />
             <div className="flex min-h-screen flex-col pl-0 transition-all md:pl-20 lg:pl-64">
               <AppHeader />
@@ -135,7 +134,6 @@ export default function RootLayout({
               <MainScrollIndicator />
               <AppFooter />
             </div>
-	          </SociallyDeadRepoProvider>
           </BlueskyProvider>
         </ThemeProvider>
         <Analytics />

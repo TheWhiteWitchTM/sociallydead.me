@@ -4,7 +4,6 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || ""
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || ""
 
 const PAYPAL_LIVE = "https://api-m.paypal.com"
-const PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
 
 async function getPayPalAccessToken(apiBase: string): Promise<string> {
   const res = await fetch(`${apiBase}/v1/oauth2/token`, {
@@ -37,9 +36,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Use the same API base that was used to create the order
-    const apiBase = clientApiBase && [PAYPAL_LIVE, PAYPAL_SANDBOX].includes(clientApiBase)
+    const apiBase = clientApiBase && [PAYPAL_LIVE].includes(clientApiBase)
       ? clientApiBase
-      : (process.env.PAYPAL_MODE === "sandbox" ? PAYPAL_SANDBOX : PAYPAL_LIVE)
+      : PAYPAL_LIVE
 
     const accessToken = await getPayPalAccessToken(apiBase)
 
