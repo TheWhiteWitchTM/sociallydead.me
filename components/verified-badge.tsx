@@ -98,10 +98,10 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 	if (!type) return null
 
 	const badgeStyles = {
-		bluesky: "bg-blue-500 text-white",
-		gold: "bg-yellow-500 text-black",
-		green: "bg-green-500 text-white",
-		blue: "bg-indigo-600 text-white",
+		bluesky: "text-yellow-600 ",
+		gold: "text-yellow-500",
+		green: "text-green-500",
+		blue: "text-blue-500",
 	}
 
 	const tooltipText = {
@@ -117,7 +117,7 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 				<TooltipTrigger asChild>
           <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${badgeStyles[type]} ${className}`}>
             {type === "blue" ? (
-	            <ShieldCheck className="h-4 w-4" />
+	            <BadgeCheck className="h-4 w-4" />
             ) : (
 	            <BadgeCheck className="h-4 w-4" />
             )}
