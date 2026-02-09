@@ -26,7 +26,6 @@ async function checkBlueskyVerification(did: string): Promise<boolean> {
 		)
 		if (!res.ok) return false
 		const data = await res.json()
-		// Bluesky official verification is in the `verification` field
 		if (data.verification?.verifications?.length > 0) {
 			return true
 		}
@@ -37,48 +36,41 @@ async function checkBlueskyVerification(did: string): Promise<boolean> {
 }
 
 export function getVerificationType(handle: string): VerificationType {
-	// Invalid or deleted accounts get nothing
 	if (!handle || handle === "handle.invalid" || handle.endsWith(".invalid")) {
 		return null
 	}
 
-	// Gold checkmark for SociallyDead users
 	if (handle.endsWith(".sociallydead.me") || handle === "sociallydead.me") {
 		return "gold"
 	}
 
-	// Green checkmark for domain-verified users (not using bsky.social)
 	if (!handle.endsWith(".bsky.social")) {
 		return "green"
 	}
 
-	// No static checkmark for regular bsky.social users
 	return null
 }
 
 export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProps) {
-	// Bail early for invalid/deleted handles
 	if (!handle || handle === "handle.invalid" || handle.endsWith(".invalid")) {
 		return null
 	}
 
 	const staticType = getVerificationType(handle)
 
-	// Check Bluesky official verification (async, cached)
 	const { data: isBlueskyVerified } = useSWR(
 		did ? `bsky-verified:${did}` : null,
 		() => checkBlueskyVerification(did!),
 		{
 			revalidateOnFocus: false,
 			revalidateOnReconnect: false,
-			dedupingInterval: 600000, // 10 min dedup
+			dedupingInterval: 600000,
 		}
 	)
 
-	// Only check app repo if no static badge and no Bluesky badge
 	const shouldCheckAppRepo = !staticType && !isBlueskyVerified && !!did
-	const { data: isSdVerified } = useSWR(
-		shouldCheckAppRepo ? `sd-verified:${did}` : null,
+	const { data: isAppVerified } = useSWR(
+		shouldCheckAppRepo ? `app-verified:${did}` : null,
 		async () => {
 			try {
 				const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did!)}`);
@@ -92,14 +84,14 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 		{
 			revalidateOnFocus: false,
 			revalidateOnReconnect: false,
-			dedupingInterval: 300000, // 5 min dedup
+			dedupingInterval: 300000,
 		}
 	)
 
-	// Precedence: Bluesky > Gold > Green > Blue (only if none of the above)
+	// Precedence: Bluesky > Gold > Green > Blue (only if none above)
 	let type: VerificationType = staticType || (isBlueskyVerified ? "bluesky" : null);
 
-	if (!type && isSdVerified) {
+	if (!type && isAppVerified) {
 		type = "blue";
 	}
 
@@ -125,15 +117,9 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 				<TooltipTrigger asChild>
           <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${badgeStyles[type]} ${className}`}>
             {type === "blue" ? (
-	            <>
-		            SD Verified
-		            <ShieldCheck className="ml-1 h-3 w-3" />
-	            </>
+	            <ShieldCheck className="h-4 w-4" />
             ) : (
-	            <>
-		            Verified
-		            <BadgeCheck className="ml-1 h-3 w-3" />
-	            </>
+	            <BadgeCheck className="h-4 w-4" />
             )}
           </span>
 				</TooltipTrigger>
