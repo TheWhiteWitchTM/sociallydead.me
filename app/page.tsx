@@ -394,34 +394,36 @@ export default function HomePage() {
           </Card>
         )}
 
-        {/* Feed Tabs */}
+        {/* Feed Tabs - Horizontal Scrolling (Bluesky Style) */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="w-full justify-start mb-4 overflow-x-auto flex-nowrap">
-            <TabsTrigger value="following" className="gap-1.5">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Following</span>
-            </TabsTrigger>
-            <TabsTrigger value="all" className="gap-1.5">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">All</span>
-            </TabsTrigger>
-            <TabsTrigger value="popular" className="gap-1.5">
-              <Globe className="h-4 w-4" />
-              <span className="hidden sm:inline">Popular</span>
-            </TabsTrigger>
-            <TabsTrigger value="with_friends" className="gap-1.5">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">With Friends</span>
-            </TabsTrigger>
-            <TabsTrigger value="mutuals" className="gap-1.5">
-              <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">Mutuals</span>
-            </TabsTrigger>
-            <TabsTrigger value="best_of_follows" className="gap-1.5">
-              <Star className="h-4 w-4" />
-              <span className="hidden sm:inline">Best of Follows</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scroll-smooth-x -mx-4 px-4 mb-4">
+            <TabsList className="inline-flex w-max min-w-full h-11 bg-transparent border-b rounded-none justify-start">
+              <TabsTrigger value="following" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                <Users className="h-4 w-4" />
+                <span>Following</span>
+              </TabsTrigger>
+              <TabsTrigger value="all" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                <Sparkles className="h-4 w-4" />
+                <span>All</span>
+              </TabsTrigger>
+              <TabsTrigger value="popular" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                <Globe className="h-4 w-4" />
+                <span>Popular</span>
+              </TabsTrigger>
+              <TabsTrigger value="with_friends" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                <Users className="h-4 w-4" />
+                <span>With Friends</span>
+              </TabsTrigger>
+              <TabsTrigger value="mutuals" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                <Heart className="h-4 w-4" />
+                <span>Mutuals</span>
+              </TabsTrigger>
+              <TabsTrigger value="best_of_follows" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                <Star className="h-4 w-4" />
+                <span>Best of Follows</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </Tabs>
 
         {/* Compose Placeholder */}
