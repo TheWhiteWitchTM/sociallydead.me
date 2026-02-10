@@ -275,6 +275,7 @@ interface BlueskyContextType {
 	markNotificationsRead: () => Promise<void>
 	// Feeds
 	getActorFeeds: (actor: string) => Promise<BlueskyFeedGenerator[]>
+	getFeedGenerator: (uri: string) => Promise<BlueskyFeedGenerator>
 	// Lists
 	getLists: (actor?: string) => Promise<BlueskyList[]>
 	getList: (uri: string) => Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }> }>
@@ -999,6 +1000,30 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 			indexedAt: feed.indexedAt,
 			viewer: feed.viewer,
 		}))
+	}
+
+	const getFeedGenerator = async (uri: string): Promise<BlueskyFeedGenerator> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.feed.getFeedGenerator({ feed: uri })
+		const feed = response.data.view
+
+		return {
+			uri: feed.uri,
+			cid: feed.cid,
+			did: feed.did,
+			creator: {
+				did: feed.creator.did,
+				handle: feed.creator.handle,
+				displayName: feed.creator.displayName,
+				avatar: feed.creator.avatar,
+			},
+			displayName: feed.displayName,
+			description: feed.description,
+			avatar: feed.avatar,
+			likeCount: feed.likeCount,
+			indexedAt: feed.indexedAt,
+			viewer: feed.viewer,
+		}
 	}
 
 	const getPopularFeeds = async (cursor?: string): Promise<{ feeds: BlueskyFeedGenerator[]; cursor?: string }> => {
@@ -2103,6 +2128,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				getUnreadCount,
 				markNotificationsRead,
 				getActorFeeds,
+				getFeedGenerator,
 				getLists,
 				getList,
 				createList,
