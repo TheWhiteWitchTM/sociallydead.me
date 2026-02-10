@@ -20,33 +20,64 @@ interface MarkdownRendererProps {
  * Links are auto-detected and made clickable.
  */
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
-  // URL regex for auto-linking
+  // Regex for hashtags, mentions and URLs
+  const mentionRegex = /@([a-zA-Z0-9.-]+)/g
+  const hashtagRegex = /#(\w+)/g
   const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])/g
 
-  // Split content into segments of text and URLs
+  // Combined regex to find all special elements
+  const combinedRegex = new RegExp(
+    `${mentionRegex.source}|${hashtagRegex.source}|${urlRegex.source}`,
+    'g'
+  )
+
   const parts: React.ReactNode[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
 
-  while ((match = urlRegex.exec(content)) !== null) {
-    // Text before the URL
+  while ((match = combinedRegex.exec(content)) !== null) {
+    // Text before the match
     if (match.index > lastIndex) {
       parts.push(content.slice(lastIndex, match.index))
     }
-    // The URL itself
-    const url = match[1]
-    parts.push(
-      <a
-        key={match.index}
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary hover:underline break-all"
-      >
-        {url}
-      </a>
-    )
-    lastIndex = match.index + match[0].length
+
+    const [fullMatch, mention, hashtag, url] = match
+
+    if (mention) {
+      parts.push(
+        <a
+          key={match.index}
+          href={`/profile/${mention}`}
+          className="text-primary hover:underline"
+        >
+          @{mention}
+        </a>
+      )
+    } else if (hashtag) {
+      parts.push(
+        <a
+          key={match.index}
+          href={`/search?q=${encodeURIComponent('#' + hashtag)}`}
+          className="text-primary hover:underline"
+        >
+          #{hashtag}
+        </a>
+      )
+    } else if (url) {
+      parts.push(
+        <a
+          key={match.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline break-all"
+        >
+          {url}
+        </a>
+      )
+    }
+
+    lastIndex = combinedRegex.lastIndex
   }
   // Remaining text after last URL
   if (lastIndex < content.length) {

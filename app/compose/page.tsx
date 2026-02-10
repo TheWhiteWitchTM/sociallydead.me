@@ -106,19 +106,29 @@ export default function ComposePage() {
           </TabsList>
 
           <TabsContent value="write" className="mt-4">
-            <ComposeInput
-              text={text}
-              onTextChange={setText}
-              mediaFiles={mediaFiles}
-              onMediaFilesChange={setMediaFiles}
-              linkCard={linkCard}
-              onLinkCardChange={setLinkCard}
-              placeholder="What's happening?"
-              minHeight="min-h-48"
-              autoFocus
-            />
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Tip: Paste a URL at the start or end to attach a link card</span>
+            <div className="bg-background rounded-xl border-none sm:border shadow-sm overflow-hidden">
+              <ComposeInput
+                text={text}
+                onTextChange={setText}
+                mediaFiles={mediaFiles}
+                onMediaFilesChange={setMediaFiles}
+                linkCard={linkCard}
+                onLinkCardChange={setLinkCard}
+                placeholder="What's happening?"
+                minHeight="min-h-48"
+                autoFocus
+              />
+            </div>
+            <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+              <div className="bg-primary/20 p-1.5 rounded-lg text-primary">
+                <PenSquare className="h-4 w-4" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Pro Tip</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Paste a URL at the very start or end of your post to automatically generate a rich link preview card. Mentions and hashtags work too!
+                </p>
+              </div>
             </div>
           </TabsContent>
 

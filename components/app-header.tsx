@@ -3,7 +3,27 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Download, Sun, Moon, Compass, Vote, Gamepad2, Cpu, Heart, Newspaper, Home, Menu, X, CreditCard, HelpCircle, BadgeCheck, FileText, Code } from "lucide-react"
+import {
+  Download,
+  Sun,
+  Moon,
+  Compass,
+  Vote,
+  Gamepad2,
+  Cpu,
+  Heart,
+  Newspaper,
+  Home,
+  Menu,
+  X,
+  CreditCard,
+  HelpCircle,
+  BadgeCheck,
+  FileText,
+  Code,
+  ChevronDown,
+  Rss
+} from "lucide-react"
 import { VerificationCheckout } from "@/components/verification-checkout"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
@@ -23,9 +43,12 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-const feedCategories = [
+const mainNavItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
+]
+
+const feedCategories = [
   { id: "news", href: "/feed/news", icon: Newspaper, label: "News" },
   { id: "politics", href: "/feed/politics", icon: Vote, label: "Politics" },
   { id: "games", href: "/feed/games", icon: Gamepad2, label: "Games" },
@@ -101,14 +124,12 @@ export function AppHeader() {
           </Button>
         </div>
 
-        {/* Feed Categories - Desktop (hidden on mobile) */}
+        {/* Navigation - Desktop (hidden on mobile) */}
         <nav className="hidden md:flex items-center gap-1">
-          {feedCategories.map((category) => {
-            const isActive =
-              pathname === category.href ||
-              (category.id !== "discover" && pathname === `/feed/${category.id}`)
+          {mainNavItems.map((item) => {
+            const isActive = pathname === item.href
             return (
-              <Link key={category.id} href={category.href}>
+              <Link key={item.id} href={item.href}>
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   size="sm"
@@ -117,12 +138,51 @@ export function AppHeader() {
                     isActive && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
-                  <category.icon className="h-4 w-4" />
-                  <span>{category.label}</span>
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
                 </Button>
               </Link>
             )
           })}
+
+          {/* Feeds Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={pathname.startsWith("/feed/") ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "gap-1.5 px-3",
+                  pathname.startsWith("/feed/") && "bg-primary text-primary-foreground font-semibold"
+                )}
+              >
+                <Rss className="h-4 w-4" />
+                <span>Feeds</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Feeds</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {feedCategories.map((category) => {
+                const isActive = pathname === category.href
+                return (
+                  <DropdownMenuItem key={category.id} asChild>
+                    <Link
+                      href={category.href}
+                      className={cn(
+                        "flex w-full items-center gap-2 cursor-pointer",
+                        isActive && "bg-accent text-accent-foreground font-medium"
+                      )}
+                    >
+                      <category.icon className="h-4 w-4" />
+                      <span>{category.label}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         {/* Right side - Donate + Help + PWA Install + Theme Toggle */}
@@ -195,17 +255,41 @@ export function AppHeader() {
       {mobileMenuOpen && (
         <nav className="md:hidden border-t border-border bg-background px-4 pb-3 pt-2">
           <div className="flex flex-col gap-1">
+            {mainNavItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link key={item.id} href={item.href}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start gap-2",
+                      isActive && "bg-primary text-primary-foreground font-semibold"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              )
+            })}
+            
+            <div className="mt-2 mb-1 px-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Rss className="h-3 w-3" />
+                Feeds
+              </span>
+            </div>
+
             {feedCategories.map((category) => {
-              const isActive =
-                pathname === category.href ||
-                (category.id !== "discover" && pathname === `/feed/${category.id}`)
+              const isActive = pathname === category.href
               return (
                 <Link key={category.id} href={category.href}>
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
                     className={cn(
-                      "w-full justify-start gap-2",
+                      "w-full justify-start gap-2 pl-4",
                       isActive && "bg-primary text-primary-foreground font-semibold"
                     )}
                   >

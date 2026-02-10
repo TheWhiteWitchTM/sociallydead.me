@@ -57,15 +57,27 @@ const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
 const MAX_IMAGES = 4
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
 
+import { MarkdownRenderer } from "@/components/markdown-renderer"
+
 function extractUrl(text: string): string | null {
   const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])/g
   const matches = text.match(urlRegex)
   if (!matches || matches.length === 0) return null
-  const trimmed = text.trim()
-  const firstUrl = matches[0]
-  const lastUrl = matches[matches.length - 1]
-  if (trimmed.startsWith(firstUrl)) return firstUrl
-  if (trimmed.endsWith(lastUrl)) return lastUrl
+  
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+  if (lines.length === 0) return null
+  
+  const firstLine = lines[0]
+  const lastLine = lines[lines.length - 1]
+  
+  // Find matches in first and last line
+  const firstLineMatch = firstLine.match(urlRegex)
+  const lastLineMatch = lastLine.match(urlRegex)
+  
+  // If first line IS just the URL (or contains it and it's what we want)
+  if (firstLineMatch && firstLine === firstLineMatch[0]) return firstLineMatch[0]
+  if (lastLineMatch && lastLine === lastLineMatch[0]) return lastLineMatch[0]
+  
   return null
 }
 
@@ -421,16 +433,20 @@ export function ComposeInput({
   const isOverLimit = charCount > maxChars
 
   return (
-    <div className="space-y-3">
-      <div className="relative">
-        <Textarea
-          ref={textareaRef}
-          placeholder={placeholder}
-          value={text}
-          onChange={(e) => handleTextChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className={cn("resize-none", minHeight)}
-        />
+    <div className="space-y-4">
+      <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
+        <div className="relative">
+          <Textarea
+            ref={textareaRef}
+            placeholder={placeholder}
+            value={text}
+            onChange={(e) => handleTextChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className={cn(
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent",
+              minHeight
+            )}
+          />
 
         {/* Mention Suggestions Dropdown */}
         {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
@@ -490,7 +506,8 @@ export function ComposeInput({
             </CardContent>
           </Card>
         )}
-      </div>
+        </div>
+      </Card>
 
       {/* Link Card Preview */}
       {linkCardLoading && (
@@ -536,6 +553,20 @@ export function ComposeInput({
           >
             <X className="h-3 w-3" />
           </Button>
+        </div>
+      )}
+
+      {/* Preview Section */}
+      {text.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Preview</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <div className="px-4 py-3 rounded-xl border bg-muted/20">
+            <MarkdownRenderer content={text} />
+          </div>
         </div>
       )}
 
