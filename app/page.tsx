@@ -13,6 +13,7 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import {Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Bug} from "lucide-react"
 import { VerificationPrompt } from "@/components/verification-checkout"
+import { ComposePlaceholder } from "@/components/compose-placeholder"
 
 // Official Bluesky feed URIs
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
@@ -423,10 +424,16 @@ export default function HomePage() {
           </TabsList>
         </Tabs>
 
+        {/* Compose Placeholder */}
+        <ComposePlaceholder
+          placeholder="What's happening?"
+          onSuccess={() => handleTabChange(activeTab)}
+        />
+
         {/* New Posts Indicator */}
         {newPostsAvailable && (
           <div className="sticky top-16 z-20 flex justify-center mb-4">
-            <Button 
+            <Button
               onClick={handleShowNewPosts}
               className="rounded-full shadow-lg animate-bounce"
               size="sm"

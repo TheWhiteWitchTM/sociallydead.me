@@ -14,6 +14,7 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { Loader2, RefreshCw, Rss, ArrowLeft, Heart, Plus, Check } from "lucide-react"
+import { ComposePlaceholder } from "@/components/compose-placeholder"
 
 export default function FeedPage() {
   const params = useParams()
@@ -215,6 +216,16 @@ export default function FeedPage() {
           </TabsList>
 
           <TabsContent value="posts" className="p-0 m-0">
+            {/* Compose Placeholder */}
+            {isAuthenticated && feed && (
+              <div className="p-4 border-b">
+                <ComposePlaceholder
+                  placeholder={`Post to ${feed.displayName}...`}
+                  onSuccess={loadPosts}
+                />
+              </div>
+            )}
+
             {postsLoading && posts.length === 0 ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
