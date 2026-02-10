@@ -12,23 +12,24 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { VerifiedBadge } from "@/components/verified-badge"
 import { cn } from "@/lib/utils"
 
-// Common emoji categories like X/Twitter
-const EMOJI_CATEGORIES = {
-  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
-  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
-  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
-  "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
-  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","🧇","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
-  "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
-  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
-} as const
+  // Common emoji categories like X/Twitter
+  const EMOJI_CATEGORIES = {
+    "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
+    "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
+    "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
+    "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
+    "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞"," waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
+    "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
+    "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
+  } as const
 
-// Popular hashtags for suggestions
-const POPULAR_HASHTAGS = [
-  "art", "music", "photography", "gaming", "tech", "news", "politics",
-  "sports", "science", "health", "food", "travel", "fashion", "movies",
-  "books", "anime", "bluesky", "developer", "design", "ai"
-]
+  // Popular hashtags for suggestions
+  const POPULAR_HASHTAGS = [
+    "art", "music", "photography", "gaming", "tech", "news", "politics",
+    "sports", "science", "health", "food", "travel", "fashion", "movies",
+    "books", "anime", "bluesky", "developer", "design", "ai", "sociallydead",
+    "coding", "programming", "react", "nextjs", "webdev", "crypto", "nature"
+  ]
 
 interface MentionSuggestion {
   did: string
@@ -71,12 +72,12 @@ function extractUrl(text: string): string | null {
   const lastLine = lines[lines.length - 1]
   
   // Find matches in first and last line
-  // We need to be careful with broad domain matching here to avoid false positives for simple words
   const firstLineMatch = firstLine.match(urlRegex)
   const lastLineMatch = lastLine.match(urlRegex)
   
-  // If first line IS just the URL (or contains it and it's what we want)
+  // If first line IS just the URL
   if (firstLineMatch && firstLine === firstLineMatch[0]) return firstLineMatch[0]
+  // If last line IS just the URL
   if (lastLineMatch && lastLine === lastLineMatch[0]) return lastLineMatch[0]
   
   return null
@@ -119,6 +120,7 @@ export function ComposeInput({
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
   const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState(0)
+  const [autocompleteCoords, setAutocompleteCoords] = useState({ top: 0, left: 0 })
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
   const highlighterRef = useRef<HTMLDivElement>(null)
@@ -248,13 +250,32 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
+    const updateAutocompletePosition = (triggerIndex: number) => {
+      setAutocompletePosition(triggerIndex)
+      
+      // Calculate visual coordinates for the popup
+      if (textareaRef.current) {
+        const { selectionStart } = textareaRef.current
+        // Create a dummy element to measure text position or use a simpler approach:
+        // Since we have a highlighter layer that mirrors the textarea, we can use it.
+        // But for now, let's just show it below the textarea or at a fixed position if it's too complex.
+        // Better: Position it relative to the trigger character in the highlighter.
+        
+        // A simple way to get coordinates is to use a hidden span in the highlighter
+        const textBeforeTrigger = newText.slice(0, triggerIndex)
+        // We'll just set it to appear below the textarea for now to ensure visibility, 
+        // then try to refine it.
+        setAutocompleteCoords({ top: 0, left: 0 }) 
+      }
+    }
+
     const mentionMatch = textBeforeCursor.match(/(?:\s|^)@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
       // Fix: the match includes the whitespace or start of line if it's there
       // We want the position of the '@'
       const triggerIndex = textBeforeCursor.lastIndexOf('@')
-      setAutocompletePosition(triggerIndex)
+      updateAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
@@ -266,7 +287,7 @@ export function ComposeInput({
     if (hashtagMatch) {
       const matchText = hashtagMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('#')
-      setAutocompletePosition(triggerIndex)
+      updateAutocompletePosition(triggerIndex)
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
@@ -531,34 +552,36 @@ export function ComposeInput({
 
         {/* Mention Suggestions Dropdown */}
         {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-          <Card className="absolute z-50 w-64 mt-1 shadow-lg">
-            <CardContent className="p-1">
+          <Card className="absolute left-4 right-4 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CardContent className="p-1 max-h-60 overflow-y-auto">
               {isSearchingMentions ? (
-                <div className="flex items-center justify-center p-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
               ) : (
                 mentionSuggestions.map((user, idx) => (
                   <button
                     key={user.did}
                     className={cn(
-                      "w-full flex items-center gap-2 p-2 rounded text-left hover:bg-accent",
-                      idx === selectedSuggestionIndex && "bg-accent"
+                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                      idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                     )}
                     onClick={() => insertSuggestion(user.handle, 'mention')}
                   >
-                    <Avatar className="h-6 w-6">
+                    <Avatar className="h-8 w-8 border border-background/10">
                       <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className="text-xs">
+                      <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
                         {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate inline-flex items-center gap-1">
+                      <p className="text-sm font-semibold truncate flex items-center gap-1">
                         {user.displayName || user.handle}
-                        <VerifiedBadge handle={user.handle} />
+                        <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                      <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                        @{user.handle}
+                      </p>
                     </div>
                   </button>
                 ))
@@ -569,19 +592,21 @@ export function ComposeInput({
 
         {/* Hashtag Suggestions Dropdown */}
         {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-          <Card className="absolute z-50 w-48 mt-1 shadow-lg">
-            <CardContent className="p-1">
+          <Card className="absolute left-4 right-4 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CardContent className="p-1 max-h-60 overflow-y-auto">
               {hashtagSuggestions.map((tag, idx) => (
                 <button
                   key={tag}
                   className={cn(
-                    "w-full flex items-center gap-2 p-2 rounded text-left hover:bg-accent",
-                    idx === selectedSuggestionIndex && "bg-accent"
+                    "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                    idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                   )}
                   onClick={() => insertSuggestion(tag, 'hashtag')}
                 >
-                  <Hash className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">#{tag}</span>
+                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
+                    <Hash className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-medium">#{tag}</span>
                 </button>
               ))}
             </CardContent>
