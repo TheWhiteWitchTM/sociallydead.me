@@ -14,6 +14,7 @@ import { HandleLink } from "@/components/handle-link"
 import {Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Bug} from "lucide-react"
 import { VerificationPrompt } from "@/components/verification-checkout"
 import { ComposePlaceholder } from "@/components/compose-placeholder"
+import { FeatureShowcase } from "@/components/feature-showcase"
 
 // Official Bluesky feed URIs
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
@@ -247,23 +248,30 @@ export default function HomePage() {
           </div>
         </header>
 
-        <main className="flex flex-col items-center justify-center px-4 py-16">
-          <Card className="w-full max-w-md border-[#0085ff]/20 bg-gradient-to-br from-[#0085ff]/5 to-[#0085ff]/10">
-            <CardContent className="p-6 sm:p-8">
-              <div className="flex flex-col items-center text-center">
-                {/* Bluesky butterfly logo */}
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0085ff] mb-6">
-                  <svg viewBox="0 0 568 501" className="h-10 w-10 text-white" fill="currentColor">
-                    <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold mb-3">Welcome to SociallyDead</h2>
-                <p className="text-muted-foreground mb-6">
-                  A feature-rich Bluesky client with markdown support, multiple feeds, and more. Sign in with your Bluesky account to get started.
-                </p>
+        <main className="container mx-auto px-4 py-8 sm:py-12">
+          {/* Hero Section with Login */}
+          <div className="text-center mb-12 max-w-4xl mx-auto">
+            <div className="flex justify-center mb-6">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#0085ff] to-[#0066cc] shadow-lg">
+                <svg viewBox="0 0 568 501" className="h-10 w-10 text-white" fill="currentColor">
+                  <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                </svg>
+              </div>
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+              Welcome to SociallyDead
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              The <span className="text-primary font-semibold">better</span> Bluesky client with unique features you'll love
+            </p>
+
+            {/* Login Card */}
+            <Card className="w-full max-w-md mx-auto border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl mb-6">
+              <CardContent className="p-6">
                 <SignInDialog
                   trigger={
-                    <Button size="lg" className="w-full gap-2 bg-[#0085ff] hover:bg-[#0085ff]/90">
+                    <Button size="lg" className="w-full gap-2 bg-[#0085ff] hover:bg-[#0085ff]/90 text-lg h-12 shadow-lg hover:shadow-xl transition-all">
                       <svg viewBox="0 0 568 501" className="h-5 w-5" fill="currentColor">
                         <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
                       </svg>
@@ -271,27 +279,31 @@ export default function HomePage() {
                     </Button>
                   }
                 />
-                <p className="mt-4 text-xs text-muted-foreground">
-                  Uses secure OAuth - we never see your password
+                <p className="mt-3 text-sm text-muted-foreground">
+                  🔒 Secure OAuth - we never see your password
                 </p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <div className="mt-8 text-center">
-            <p className="text-muted-foreground mb-4">Want to browse without signing in?</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <Button variant="outline" asChild>
-                <Link href="/discover">Discover Feed</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/search">Search</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/feeds">Browse Feeds</Link>
-              </Button>
+            {/* Browse without login */}
+            <div>
+              <p className="text-sm text-muted-foreground mb-3">Or browse without signing in:</p>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/discover">Discover</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/search">Search</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/feeds">Browse Feeds</Link>
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Feature Showcase */}
+          <FeatureShowcase />
         </main>
       </div>
     )
