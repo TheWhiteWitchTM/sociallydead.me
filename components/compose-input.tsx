@@ -58,7 +58,6 @@ const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
 const MAX_IMAGES = 4
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
 
-import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 function extractUrl(text: string): string | null {
   const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/g
@@ -93,6 +92,7 @@ interface ComposeInputProps {
   placeholder?: string
   minHeight?: string
   maxChars?: number
+  postType?: "post" | "reply" | "quote" | "article"
   compact?: boolean
   autoFocus?: boolean
 }
@@ -106,10 +106,13 @@ export function ComposeInput({
   onLinkCardChange,
   placeholder = "What's happening?",
   minHeight = "min-h-32",
-  maxChars = 300,
+  maxChars,
+  postType = "post",
   compact = false,
   autoFocus = false,
 }: ComposeInputProps) {
+  // Determine character limit based on post type
+  const effectiveMaxChars = maxChars ?? (postType === "article" ? 2000 : 300)
   const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -228,10 +231,11 @@ export function ComposeInput({
   const handleTextChange = (newText: string) => {
     onTextChange(newText)
 
-    if (newText.length < 275) {
+    const warningThreshold = effectiveMaxChars * 0.9
+    if (newText.length < warningThreshold) {
       setHasPlayedWarning(false)
     }
-    if (newText.length >= 275 && text.length < 275) {
+    if (newText.length >= warningThreshold && text.length < warningThreshold) {
       playWarningSound()
     }
 
@@ -469,51 +473,182 @@ export function ComposeInput({
   ]
 
   const charCount = text.length
-  const isOverLimit = charCount > maxChars
+  const isOverLimit = charCount > effectiveMaxChars
 
-  // Highlighting for the editor
+  // Enhanced highlighting for the editor with markdown styling
   const renderHighlightedText = () => {
-    const mentionRegex = /@([a-zA-Z0-9.-]+)/
-    const hashtagRegex = /#(\w+)/
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
-    
-    const combinedRegex = new RegExp(
-      `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
-      'g'
-    )
+    // Markdown patterns (keep syntax visible but apply styling)
+    const boldRegex = /(\*\*)(.*?)(\*\*)/g
+    const italicRegex = /(\*)([^*]+?)(\*)/g
+    const strikethroughRegex = /(~~)(.*?)(~~)/g
+    const codeRegex = /(`)(.*?)(`)/g
+    const linkRegex = /(\[)(.*?)(\]\()(.*?)(\))/g
+    const headingRegex = /^(#{1,6})\s+(.+)$/gm
+
+    // Bluesky patterns
+    const mentionRegex = /@([a-zA-Z0-9.-]+)/g
+    const hashtagRegex = /#(\w+)/g
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})(?:\/[^\s<]*)?)/g
 
     const parts: React.ReactNode[] = []
-    let lastIndex = 0
-    let match: RegExpExecArray | null
+    let processedText = text
+    let keyCounter = 0
 
-    while ((match = combinedRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(text.slice(lastIndex, match.index))
+    // Process line by line to handle headings properly
+    const lines = processedText.split('\n')
+    const processedLines = lines.map((line, lineIdx) => {
+      const lineParts: React.ReactNode[] = []
+      let currentText = line
+      const lineKey = `line-${lineIdx}`
+
+      // Check for heading
+      const headingMatch = currentText.match(/^(#{1,6})\s+(.+)$/)
+      if (headingMatch) {
+        const [, hashes, content] = headingMatch
+        lineParts.push(
+          <span key={`${lineKey}-heading`} className="text-primary font-bold text-lg">
+            <span className="text-muted-foreground">{hashes} </span>
+            {content}
+          </span>
+        )
+        return <span key={lineKey}>{lineParts}</span>
       }
 
-      const [fullMatch, mentionMatch, mention, hashtagMatch, hashtag, urlMatch] = match
+      // Process inline markdown and Bluesky elements
+      let lastIndex = 0
+      const patterns = [
+        { regex: /(\*\*)((?:(?!\*\*).)+?)(\*\*)/g, type: 'bold' },
+        { regex: /(\*)([^*\n]+?)(\*)/g, type: 'italic' },
+        { regex: /(~~)((?:(?!~~).)+?)(~~)/g, type: 'strikethrough' },
+        { regex: /(`)((?:(?!`).)+?)(`)/g, type: 'code' },
+        { regex: /(\[)((?:(?!\]).)+?)(\]\()((?:(?!\)).)+?)(\))/g, type: 'link' },
+        { regex: /@([a-zA-Z0-9.-]+)/g, type: 'mention' },
+        { regex: /#(\w+)/g, type: 'hashtag' },
+        { regex: /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})(?:\/[^\s<]*)?)/g, type: 'url' },
+      ]
 
-      if (mention) {
-        parts.push(<span key={match.index} className="text-blue-500 font-medium">{mentionMatch}</span>)
-      } else if (hashtag) {
-        parts.push(<span key={match.index} className="text-blue-500 font-medium">{hashtagMatch}</span>)
-      } else if (urlMatch) {
-        parts.push(<span key={match.index} className="text-blue-500 underline">{urlMatch}</span>)
+      const allMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
+
+      patterns.forEach(({ regex, type }) => {
+        const matches = [...currentText.matchAll(regex)]
+        matches.forEach((match) => {
+          const index = match.index!
+          const fullMatch = match[0]
+          let element: React.ReactNode
+
+          switch (type) {
+            case 'bold':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'italic':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="italic">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'strikethrough':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'code':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="bg-muted text-primary px-1 rounded font-mono text-xs">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'link':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  <span className="underline">{match[2]}</span>
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                  <span className="text-blue-400 text-xs">{match[4]}</span>
+                  <span className="text-muted-foreground/60">{match[5]}</span>
+                </span>
+              )
+              break
+            case 'mention':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                  @{match[1]}
+                </span>
+              )
+              break
+            case 'hashtag':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                  #{match[1]}
+                </span>
+              )
+              break
+            case 'url':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
+                  {match[1]}
+                </span>
+              )
+              break
+            default:
+              element = fullMatch
+          }
+
+          allMatches.push({ index, length: fullMatch.length, element })
+        })
+      })
+
+      // Sort matches by index to process them in order
+      allMatches.sort((a, b) => a.index - b.index)
+
+      // Build final line with non-overlapping matches
+      lastIndex = 0
+      const finalMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
+
+      allMatches.forEach((match) => {
+        if (match.index >= lastIndex) {
+          finalMatches.push(match)
+          lastIndex = match.index + match.length
+        }
+      })
+
+      lastIndex = 0
+      finalMatches.forEach((match) => {
+        if (match.index > lastIndex) {
+          lineParts.push(currentText.slice(lastIndex, match.index))
+        }
+        lineParts.push(match.element)
+        lastIndex = match.index + match.length
+      })
+
+      if (lastIndex < currentText.length) {
+        lineParts.push(currentText.slice(lastIndex))
       }
 
-      lastIndex = combinedRegex.lastIndex
-    }
-    
-    if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex))
-    }
-    
-    // Add a trailing newline if needed to match textarea scroll
-    if (text.endsWith('\n')) {
-      parts.push('\n')
-    }
+      return <span key={lineKey}>{lineParts.length > 0 ? lineParts : <br />}</span>
+    })
 
-    return parts
+    return processedLines.map((line, idx) => (
+      <span key={idx}>
+        {line}
+        {idx < processedLines.length - 1 && '\n'}
+      </span>
+    ))
   }
 
   return (
@@ -661,20 +796,6 @@ export function ComposeInput({
           >
             <X className="h-3 w-3" />
           </Button>
-        </div>
-      )}
-
-      {/* Preview Section */}
-      {text.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 px-1">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Preview</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <div className="px-4 py-3 rounded-xl border bg-muted/20">
-            <MarkdownRenderer content={text} />
-          </div>
         </div>
       )}
 
@@ -846,11 +967,11 @@ export function ComposeInput({
         </div>
         <span className={cn(
           "font-medium tabular-nums transition-colors text-sm",
-          charCount < 250 && "text-muted-foreground",
-          charCount >= 250 && charCount < 275 && "text-orange-500",
-          charCount >= 275 && "text-destructive font-bold"
+          charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
+          charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
+          charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
         )}>
-          {charCount}/{maxChars}
+          {charCount}/{effectiveMaxChars}
         </span>
       </div>
     </div>
