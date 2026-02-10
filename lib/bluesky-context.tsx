@@ -1920,26 +1920,20 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	// SociallyDead Custom Features - Highlights
-	const HIGHLIGHT_COLLECTION = "me.sociallydead.highlight"
-	const ARTICLE_COLLECTION = "me.sociallydead.article"
-
 	const getHighlights = async (did: string): Promise<SociallyDeadHighlight[]> => {
 		try {
-			const agentToUse = agent || publicAgent
-			const response = await agentToUse.com.atproto.repo.listRecords({
-				repo: did,
-				collection: HIGHLIGHT_COLLECTION,
-				limit: 6,
-			})
+			const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did)}`)
+			if (!res.ok) return []
+			const data = await res.json()
+			if (!data.success || !data.record?.highlights) return []
 
-			return response.data.records.map((record) => ({
-				uri: record.uri,
-				postUri: (record.value as { postUri: string }).postUri,
-				postCid: (record.value as { postCid: string }).postCid,
-				createdAt: (record.value as { createdAt: string }).createdAt,
+			return data.record.highlights.map((h: any, index: number) => ({
+				uri: `app-repo://${did}/highlights/${index}`, // Virtual URI for backwards compatibility
+				postUri: h.postUri,
+				postCid: h.postCid,
+				createdAt: h.createdAt,
 			}))
 		} catch {
-			// Collection doesn't exist yet or user has no highlights
 			return []
 		}
 	}
@@ -1947,62 +1941,111 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	const addHighlight = async (postUri: string, postCid: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
 
-		// Check if we already have 6 highlights
-		const existing = await getHighlights(user.did)
-		if (existing.length >= 6) {
+		// 1. Get existing record
+		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
+		const data = await res.json()
+		
+		let record: any = { verified: false }
+		if (data.success && data.record) {
+			record = data.record
+		} else if (data.found === false || !data.record) {
+			// Record not found, we will create one via upsert
+			record = {
+				$type: 'me.sociallydead.app',
+				version: 1,
+				createdAt: new Date().toISOString(),
+				verified: false,
+			}
+		}
+		
+		const highlights = record.highlights || []
+
+		if (highlights.length >= 6) {
 			throw new Error("Maximum 6 highlights allowed. Remove one first.")
 		}
 
-		// Check if this post is already highlighted
-		if (existing.some(h => h.postUri === postUri)) {
+		if (highlights.some((h: any) => h.postUri === postUri)) {
 			throw new Error("This post is already highlighted")
 		}
 
-		const rkey = Date.now().toString()
-		await agent.com.atproto.repo.createRecord({
-			repo: user.did,
-			collection: HIGHLIGHT_COLLECTION,
-			rkey,
-			record: {
-				$type: HIGHLIGHT_COLLECTION,
+		// 2. Add new highlight
+		const updatedHighlights = [
+			...highlights,
+			{
 				postUri,
 				postCid,
 				createdAt: new Date().toISOString(),
-			},
+			}
+		]
+
+		// 3. Upsert record
+		const updateRes = await fetch('/api/app-record', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				rkey: user.did,
+				data: {
+					...record,
+					highlights: updatedHighlights,
+					updatedAt: new Date().toISOString(),
+				}
+			}),
 		})
+
+		if (!updateRes.ok) {
+			const errData = await updateRes.json()
+			throw new Error(errData.error || "Failed to update highlights")
+		}
 	}
 
 	const removeHighlight = async (highlightUri: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
 
-		const rkey = highlightUri.split('/').pop()
-		if (!rkey) throw new Error("Invalid highlight URI")
+		// In the new system, highlightUri is virtual: app-repo://${did}/highlights/${index}
+		const indexStr = highlightUri.split('/').pop()
+		if (indexStr === undefined) throw new Error("Invalid highlight URI")
+		const index = parseInt(indexStr)
 
-		await agent.com.atproto.repo.deleteRecord({
-			repo: user.did,
-			collection: HIGHLIGHT_COLLECTION,
-			rkey,
+		// 1. Get existing record
+		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
+		const data = await res.json()
+		if (!data.success || !data.record?.highlights) return
+
+		const record = data.record
+		const highlights = [...record.highlights]
+		highlights.splice(index, 1)
+
+		// 2. Upsert record
+		const updateRes = await fetch('/api/app-record', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				rkey: user.did,
+				data: {
+					...record,
+					highlights,
+					updatedAt: new Date().toISOString(),
+				}
+			}),
 		})
+
+		if (!updateRes.ok) {
+			const errData = await updateRes.json()
+			throw new Error(errData.error || "Failed to remove highlight")
+		}
 	}
 
 	// SociallyDead Custom Features - Articles
 	const getArticles = async (did: string): Promise<SociallyDeadArticle[]> => {
 		try {
-			const agentToUse = agent || publicAgent
-			const response = await agentToUse.com.atproto.repo.listRecords({
-				repo: did,
-				collection: ARTICLE_COLLECTION,
-				limit: 50,
-			})
+			const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did)}`)
+			if (!res.ok) return []
+			const data = await res.json()
+			if (!data.success || !data.record?.articles) return []
 
-			return response.data.records.map((record) => ({
-				uri: record.uri,
-				rkey: record.uri.split('/').pop() || '',
-				title: (record.value as { title: string }).title,
-				content: (record.value as { content: string }).content,
-				createdAt: (record.value as { createdAt: string }).createdAt,
-				updatedAt: (record.value as { updatedAt?: string }).updatedAt,
-			}))
+			return data.record.articles.sort((a: any, b: any) => 
+				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+			)
 		} catch {
 			return []
 		}
@@ -2010,21 +2053,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const getArticle = async (did: string, rkey: string): Promise<SociallyDeadArticle | null> => {
 		try {
-			const agentToUse = agent || publicAgent
-			const response = await agentToUse.com.atproto.repo.getRecord({
-				repo: did,
-				collection: ARTICLE_COLLECTION,
-				rkey,
-			})
-
-			return {
-				uri: response.data.uri,
-				rkey,
-				title: (response.data.value as { title: string }).title,
-				content: (response.data.value as { content: string }).content,
-				createdAt: (response.data.value as { createdAt: string }).createdAt,
-				updatedAt: (response.data.value as { updatedAt?: string }).updatedAt,
-			}
+			const articles = await getArticles(did)
+			return articles.find(a => a.rkey === rkey) || null
 		} catch {
 			return null
 		}
@@ -2034,49 +2064,127 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		if (!agent || !user) throw new Error("Not authenticated")
 
 		const rkey = Date.now().toString()
-		const response = await agent.com.atproto.repo.createRecord({
-			repo: user.did,
-			collection: ARTICLE_COLLECTION,
-			rkey,
-			record: {
-				$type: ARTICLE_COLLECTION,
-				title,
-				content,
+		
+		// 1. Get existing record
+		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
+		const data = await res.json()
+		
+		let record: any = { verified: false }
+		if (data.success && data.record) {
+			record = data.record
+		} else if (data.found === false || !data.record) {
+			// Record not found, we will create one via upsert
+			record = {
+				$type: 'me.sociallydead.app',
+				version: 1,
 				createdAt: new Date().toISOString(),
-			},
+				verified: false,
+			}
+		}
+		
+		const articles = record.articles || []
+
+		// 2. Add new article
+		const newArticle = {
+			rkey,
+			title,
+			content,
+			createdAt: new Date().toISOString(),
+		}
+		const updatedArticles = [newArticle, ...articles]
+
+		// 3. Upsert record
+		const updateRes = await fetch('/api/app-record', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				rkey: user.did,
+				data: {
+					...record,
+					articles: updatedArticles,
+					updatedAt: new Date().toISOString(),
+				}
+			}),
 		})
 
-		return { uri: response.data.uri, rkey }
+		if (!updateRes.ok) {
+			const errData = await updateRes.json()
+			throw new Error(errData.error || "Failed to create article")
+		}
+
+		return { uri: `app-repo://${user.did}/articles/${rkey}`, rkey }
 	}
 
 	const updateArticle = async (rkey: string, title: string, content: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
 
-		// Get current record to preserve createdAt
-		const current = await getArticle(user.did, rkey)
+		// 1. Get existing record
+		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
+		const data = await res.json()
+		if (!data.success || !data.record?.articles) throw new Error("Article not found")
 
-		await agent.com.atproto.repo.putRecord({
-			repo: user.did,
-			collection: ARTICLE_COLLECTION,
-			rkey,
-			record: {
-				$type: ARTICLE_COLLECTION,
-				title,
-				content,
-				createdAt: current?.createdAt || new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			},
+		const record = data.record
+		const articles = record.articles.map((a: any) => {
+			if (a.rkey === rkey) {
+				return {
+					...a,
+					title,
+					content,
+					updatedAt: new Date().toISOString(),
+				}
+			}
+			return a
 		})
+
+		// 2. Upsert record
+		const updateRes = await fetch('/api/app-record', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				rkey: user.did,
+				data: {
+					...record,
+					articles,
+					updatedAt: new Date().toISOString(),
+				}
+			}),
+		})
+
+		if (!updateRes.ok) {
+			const errData = await updateRes.json()
+			throw new Error(errData.error || "Failed to update article")
+		}
 	}
 
 	const deleteArticle = async (rkey: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
 
-		await agent.com.atproto.repo.deleteRecord({
-			repo: user.did,
-			collection: ARTICLE_COLLECTION,
-			rkey,
+		// 1. Get existing record
+		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
+		const data = await res.json()
+		if (!data.success || !data.record?.articles) return
+
+		const record = data.record
+		const articles = record.articles.filter((a: any) => a.rkey !== rkey)
+
+		// 2. Upsert record
+		const updateRes = await fetch('/api/app-record', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				rkey: user.did,
+				data: {
+					...record,
+					articles,
+					updatedAt: new Date().toISOString(),
+				}
+			}),
 		})
+
+		if (!updateRes.ok) {
+			const errData = await updateRes.json()
+			throw new Error(errData.error || "Failed to delete article")
+		}
 	}
 
 	return (

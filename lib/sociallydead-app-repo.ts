@@ -7,6 +7,21 @@ export interface SociallyDeadAppRecord {
 	version: number;
 	createdAt: string;
 	updatedAt?: string;
+	verified?: boolean;
+	verifiedAt?: string;
+	supporterTier?: string;
+	highlights?: Array<{
+		postUri: string;
+		postCid: string;
+		createdAt: string;
+	}>;
+	articles?: Array<{
+		rkey: string;
+		title: string;
+		content: string;
+		createdAt: string;
+		updatedAt?: string;
+	}>;
 	// All other fields are free-form / dynamic
 	[key: string]: any;
 }
