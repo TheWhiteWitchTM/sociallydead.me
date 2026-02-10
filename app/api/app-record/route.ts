@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
 	getAppRecord,
+	createAppRecord,
 	upsertAppRecord,
 	deleteAppRecord,
 } from '@/lib/sociallydead-app-repo';
@@ -34,26 +35,35 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json();
-		const { rkey, data } = body;
+		const { rkey, data, mode } = body;
 
 		if (!rkey || !data || typeof data !== 'object') {
 			return NextResponse.json({ success: false, error: 'Missing or invalid rkey/data' }, { status: 400 });
 		}
 
-		console.log(`[API POST] Creating record at rkey: ${rkey}`);
-
-		const result = await upsertAppRecord(rkey, data);
-
-		return NextResponse.json({
-			success: true,
-			action: 'created',
-			uri: result.uri,
-			cid: result.cid,
-		}, { status: 201 });
+		if (mode === 'create') {
+			console.log(`[API POST] Creating NEW record at rkey: ${rkey}`);
+			const result = await createAppRecord(rkey, data);
+			return NextResponse.json({
+				success: true,
+				action: 'created',
+				uri: result.uri,
+				cid: result.cid,
+			}, { status: 201 });
+		} else {
+			console.log(`[API POST] Upserting record at rkey: ${rkey}`);
+			const result = await upsertAppRecord(rkey, data);
+			return NextResponse.json({
+				success: true,
+				action: 'upserted',
+				uri: result.uri,
+				cid: result.cid,
+			}, { status: 201 });
+		}
 	} catch (err: any) {
 		console.error('[API POST] Error:', err.message || err);
 		return NextResponse.json(
-			{ success: false, error: err.message || 'Create failed' },
+			{ success: false, error: err.message || 'Operation failed' },
 			{ status: 500 }
 		);
 	}

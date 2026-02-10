@@ -4,10 +4,9 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || ""
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || ""
 
 const PAYPAL_LIVE = "https://api-m.paypal.com"
-const PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
 
-async function getPayPalAccessToken(apiBase: string): Promise<string> {
-  const res = await fetch(`${apiBase}/v1/oauth2/token`, {
+async function getPayPalAccessToken(): Promise<string> {
+  const res = await fetch(`${PAYPAL_LIVE}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64")}`,
@@ -25,10 +24,10 @@ async function getPayPalAccessToken(apiBase: string): Promise<string> {
   return data.access_token
 }
 
-async function verifyOrder(orderId: string, apiBase: string): Promise<{ verified: boolean; amount: number; payerEmail?: string }> {
-  const accessToken = await getPayPalAccessToken(apiBase)
+async function verifyOrder(orderId: string): Promise<{ verified: boolean; amount: number; payerEmail?: string }> {
+  const accessToken = await getPayPalAccessToken()
 
-  const res = await fetch(`${apiBase}/v2/checkout/orders/${orderId}`, {
+  const res = await fetch(`${PAYPAL_LIVE}/v2/checkout/orders/${orderId}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -58,7 +57,7 @@ async function verifyOrder(orderId: string, apiBase: string): Promise<{ verified
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, handle, did, accessJwt, pdsUrl, apiBase: clientApiBase } = await req.json()
+    const { orderId, handle, did, accessJwt, pdsUrl } = await req.json()
 
     if (!orderId || !handle || !did || !accessJwt) {
       return NextResponse.json(
@@ -67,13 +66,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Use the same API base that was used to create/capture the order
-    const apiBase = clientApiBase && [PAYPAL_LIVE, PAYPAL_SANDBOX].includes(clientApiBase)
-      ? clientApiBase
-      : (process.env.PAYPAL_MODE === "sandbox" ? PAYPAL_SANDBOX : PAYPAL_LIVE)
-
     // 1. Verify the PayPal order
-    const { verified, amount, payerEmail } = await verifyOrder(orderId, apiBase)
+    const { verified, amount, payerEmail } = await verifyOrder(orderId)
 
     if (!verified) {
       return NextResponse.json(
@@ -84,36 +78,59 @@ export async function POST(req: NextRequest) {
 
     // 2. Write the supporter record to the user's PDS
     const pds = pdsUrl || "https://bsky.social"
-    const recordRes = await fetch(
-      `${pds}/xrpc/com.atproto.repo.putRecord`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessJwt}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          repo: did,
-          collection: "me.sociallydead.supporter",
-          rkey: "self",
-          record: {
-            $type: "me.sociallydead.supporter",
-            verifiedAt: new Date().toISOString(),
-            amount: amount.toString(),
-            paypalOrderId: orderId,
-            payerEmail: payerEmail || "",
-            tier: "blue",
-            createdAt: new Date().toISOString(),
+    try {
+      const recordRes = await fetch(
+        `${pds}/xrpc/com.atproto.repo.putRecord`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessJwt}`,
+            "Content-Type": "application/json",
           },
-        }),
-      }
-    )
+          body: JSON.stringify({
+            repo: did,
+            collection: "me.sociallydead.supporter",
+            rkey: "self",
+            record: {
+              $type: "me.sociallydead.supporter",
+              verifiedAt: new Date().toISOString(),
+              amount: amount.toString(),
+              paypalOrderId: orderId,
+              payerEmail: payerEmail || "",
+              tier: "blue",
+              createdAt: new Date().toISOString(),
+            },
+          }),
+        }
+      )
 
-    if (!recordRes.ok) {
-      const errText = await recordRes.text()
-      console.error("[PayPal] Failed to write supporter record:", errText)
+      if (!recordRes.ok) {
+        const errText = await recordRes.text()
+        console.error("[PayPal] Failed to write supporter record to PDS:", errText)
+        // We continue even if PDS write fails, as long as we can write to our own repo
+      }
+    } catch (e) {
+      console.error("[PayPal] Error writing to PDS:", e)
+    }
+
+    // 3. Also update the SociallyDead app-record for the blue badge
+    try {
+      const { upsertAppRecord, getAppRecord } = await import('@/lib/sociallydead-app-repo');
+      
+      // Get existing record if any to preserve other fields
+      const existing = await getAppRecord(did);
+      await upsertAppRecord(did, {
+        ...existing,
+        verified: true,
+        verifiedAt: new Date().toISOString(),
+        supporterTier: "blue",
+      });
+      console.log(`[PayPal] Successfully updated app-record for DID: ${did}`);
+    } catch (err) {
+      console.error("[PayPal] Failed to update app-record:", err);
+      // If this fails, the user won't get the badge immediately in SociallyDead
       return NextResponse.json(
-        { error: "Payment verified but failed to save supporter status. Please contact support." },
+        { error: "Payment verified but failed to update status. Please contact support." },
         { status: 500 }
       )
     }

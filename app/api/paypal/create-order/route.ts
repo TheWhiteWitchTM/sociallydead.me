@@ -4,18 +4,9 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || ""
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || ""
 
 const PAYPAL_LIVE = "https://api-m.paypal.com"
-const PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
 
-// Determine which API to use: explicit env var, or try live first
-function getPayPalAPI(): string {
-  if (process.env.PAYPAL_MODE === "sandbox") return PAYPAL_SANDBOX
-  if (process.env.PAYPAL_MODE === "live") return PAYPAL_LIVE
-  // Default to live
-  return PAYPAL_LIVE
-}
-
-async function getPayPalAccessToken(apiBase: string): Promise<string> {
-  const res = await fetch(`${apiBase}/v1/oauth2/token`, {
+async function getPayPalAccessToken(): Promise<string> {
+  const res = await fetch(`${PAYPAL_LIVE}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64")}`,
@@ -31,27 +22,6 @@ async function getPayPalAccessToken(apiBase: string): Promise<string> {
 
   const data = await res.json()
   return data.access_token
-}
-
-async function getWorkingPayPalConnection(): Promise<{ accessToken: string; apiBase: string }> {
-  const primaryApi = getPayPalAPI()
-
-  try {
-    const accessToken = await getPayPalAccessToken(primaryApi)
-    return { accessToken, apiBase: primaryApi }
-  } catch {
-    // If primary fails and no explicit mode set, try the other endpoint
-    if (!process.env.PAYPAL_MODE) {
-      const fallbackApi = primaryApi === PAYPAL_LIVE ? PAYPAL_SANDBOX : PAYPAL_LIVE
-      console.log("[PayPal] Primary auth failed, trying fallback:", fallbackApi)
-      const accessToken = await getPayPalAccessToken(fallbackApi)
-      return { accessToken, apiBase: fallbackApi }
-    }
-    throw new Error(
-      `PayPal authentication failed. Your credentials don't work with the ${primaryApi.includes("sandbox") ? "sandbox" : "live"} API. ` +
-      `Try setting PAYPAL_MODE=${primaryApi.includes("sandbox") ? "live" : "sandbox"} in your environment variables.`
-    )
-  }
 }
 
 export async function POST(req: NextRequest) {
@@ -73,9 +43,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { accessToken, apiBase } = await getWorkingPayPalConnection()
+    const accessToken = await getPayPalAccessToken()
 
-    const res = await fetch(`${apiBase}/v2/checkout/orders`, {
+    const res = await fetch(`${PAYPAL_LIVE}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -113,8 +83,7 @@ export async function POST(req: NextRequest) {
     const order = await res.json()
     const approvalUrl = order.links?.find((link: { rel: string; href: string }) => link.rel === "approve")?.href
 
-    // Store which API base was used so capture uses the same one
-    return NextResponse.json({ orderId: order.id, approvalUrl, apiBase })
+    return NextResponse.json({ orderId: order.id, approvalUrl })
   } catch (error) {
     console.error("[PayPal] Create order error:", error)
     return NextResponse.json(

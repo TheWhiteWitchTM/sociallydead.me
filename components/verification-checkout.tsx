@@ -54,7 +54,7 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
       }
 
       const createData = await createRes.json()
-      const { orderId, approvalUrl, apiBase } = createData
+      const { orderId, approvalUrl } = createData
 
       if (!approvalUrl) {
         throw new Error("PayPal did not return an approval URL. Please check your PayPal app configuration.")
@@ -88,7 +88,7 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
       const captureRes = await fetch("/api/paypal/capture-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, apiBase }),
+        body: JSON.stringify({ orderId }),
       })
 
       if (!captureRes.ok) {
@@ -112,7 +112,6 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
           did: user?.did,
           accessJwt: session?.accessJwt,
           pdsUrl: session?.pdsUri || "https://bsky.social",
-          apiBase,
         }),
       })
 
@@ -230,18 +229,36 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
         )}
 
         {step === "success" && (
-          <div className="flex flex-col items-center gap-4 py-8">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10">
-              <CheckCircle className="h-8 w-8 text-blue-500" />
+          <div className="flex flex-col items-center gap-6 py-8">
+            <div className="relative">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/10">
+                <CheckCircle className="h-10 w-10 text-blue-500" />
+              </div>
+              <BadgeCheck className="absolute -bottom-1 -right-1 h-8 w-8 text-blue-500 bg-background rounded-full p-0.5" />
             </div>
-            <div className="text-center">
-              <p className="font-semibold text-lg">Thank you for your support!</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Your contribution helps keep SociallyDead running. A blue checkmark will now appear next to your name as our thanks.
+            
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-bold tracking-tight">You're verified!</h3>
+              <p className="text-muted-foreground px-4">
+                Thank you so much for your support. Your contribution directly helps us keep SociallyDead independent and free for everyone.
               </p>
             </div>
-            <Button onClick={() => handleOpen(false)} className="mt-2">
-              Done
+
+            <div className="w-full bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                <BadgeCheck className="h-6 w-6 text-blue-500" />
+              </div>
+              <div className="text-sm">
+                <p className="font-semibold">Verification Active</p>
+                <p className="text-muted-foreground">The blue checkmark is now linked to your DID and will appear next to your name across the app.</p>
+              </div>
+            </div>
+
+            <Button 
+              onClick={() => handleOpen(false)} 
+              className="w-full h-11 text-base font-semibold bg-blue-500 hover:bg-blue-600 transition-colors"
+            >
+              Start using SociallyDead
             </Button>
           </div>
         )}

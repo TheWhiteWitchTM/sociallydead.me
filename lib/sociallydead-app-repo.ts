@@ -42,6 +42,41 @@ async function getAppAgent(): Promise<AtpAgent> {
 }
 
 /**
+ * Create a NEW record. Fails if rkey already exists.
+ * Uses createRecord.
+ */
+export async function createAppRecord(
+	rkey: string,
+	partialData: Omit<Partial<SociallyDeadAppRecord>, '$type' | 'createdAt' | 'updatedAt'>
+): Promise<{ uri: string; cid: string }> {
+	const agent = await getAppAgent();
+
+	console.log(`[createAppRecord] Creating new record at rkey: ${rkey}`);
+
+	const record: SociallyDeadAppRecord = {
+		$type: 'me.sociallydead.app',
+		version: partialData.version ?? 1,
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+		...partialData,
+	};
+
+	const resp = await agent.com.atproto.repo.createRecord({
+		repo: agent.session!.did,
+		collection: 'me.sociallydead.app',
+		rkey,
+		record,
+	});
+
+	console.log('[createAppRecord] Success →', {
+		uri: resp.data.uri,
+		cid: resp.data.cid,
+	});
+
+	return { uri: resp.data.uri, cid: resp.data.cid };
+}
+
+/**
  * Create or overwrite a record at the given rkey.
  * Uses putRecord (safe overwrite).
  */

@@ -5,8 +5,8 @@ const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || ""
 
 const PAYPAL_LIVE = "https://api-m.paypal.com"
 
-async function getPayPalAccessToken(apiBase: string): Promise<string> {
-  const res = await fetch(`${apiBase}/v1/oauth2/token`, {
+async function getPayPalAccessToken(): Promise<string> {
+  const res = await fetch(`${PAYPAL_LIVE}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64")}`,
@@ -26,7 +26,7 @@ async function getPayPalAccessToken(apiBase: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, apiBase: clientApiBase } = await req.json()
+    const { orderId } = await req.json()
 
     if (!orderId) {
       return NextResponse.json(
@@ -35,15 +35,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Use the same API base that was used to create the order
-    const apiBase = clientApiBase && [PAYPAL_LIVE].includes(clientApiBase)
-      ? clientApiBase
-      : PAYPAL_LIVE
-
-    const accessToken = await getPayPalAccessToken(apiBase)
+    const accessToken = await getPayPalAccessToken()
 
     const res = await fetch(
-      `${apiBase}/v2/checkout/orders/${orderId}/capture`,
+      `${PAYPAL_LIVE}/v2/checkout/orders/${orderId}/capture`,
       {
         method: "POST",
         headers: {
