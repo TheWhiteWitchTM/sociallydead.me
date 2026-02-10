@@ -3,15 +3,18 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useBluesky } from "@/lib/bluesky-context"
+import { useComposeContext } from "@/lib/compose-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { ComposeInput, type LinkCardData, type MediaFile } from "@/components/compose-input"
-import { Loader2, Send, PenSquare } from "lucide-react"
+import { Loader2, Send, PenSquare, Rss, MessageSquare, X } from "lucide-react"
 
 export default function ComposePage() {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading, createPost } = useBluesky()
+  const { context, clearContext } = useComposeContext()
   const [text, setText] = useState("")
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
   const [linkCard, setLinkCard] = useState<LinkCardData | null>(null)
@@ -41,10 +44,13 @@ export default function ComposePage() {
         images: images.length > 0 ? images : undefined,
         video: video || undefined,
         linkCard: linkCard && !mediaFiles.length ? linkCard : undefined,
+        reply: context?.replyTo ? { uri: context.replyTo.uri, cid: context.replyTo.cid } : undefined,
+        quote: context?.quotePost,
       })
       setText("")
       setMediaFiles([])
       setLinkCard(null)
+      clearContext()
       router.push("/")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create post")
@@ -72,13 +78,42 @@ export default function ComposePage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <PenSquare className="h-5 w-5" />
-            <h1 className="text-xl font-bold">Compose</h1>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <PenSquare className="h-5 w-5 shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-xl font-bold leading-tight">Compose</h1>
+              {context && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+                  {context.feedName && (
+                    <>
+                      <Rss className="h-3 w-3 shrink-0" />
+                      <span className="truncate">Posting to {context.feedName}</span>
+                    </>
+                  )}
+                  {context.replyTo && (
+                    <>
+                      <MessageSquare className="h-3 w-3 shrink-0" />
+                      <span className="truncate">
+                        Replying to @{context.replyTo.author.handle}
+                      </span>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 ml-1 shrink-0"
+                    onClick={() => clearContext()}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
           <Button
             onClick={handleSubmit}
             disabled={isPosting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
+            className="shrink-0"
           >
             {isPosting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

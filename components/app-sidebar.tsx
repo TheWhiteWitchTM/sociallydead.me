@@ -48,11 +48,13 @@ const authNavItems: Array<{ href: string; icon: typeof Home; label: string; show
   { href: "/feeds", icon: Rss, label: "Feeds" },
   { href: "/lists", icon: ListIcon, label: "Lists" },
   { href: "/starter-packs", icon: UsersRound, label: "Starter Packs" },
-  { href: "/compose", icon: PenSquare, label: "Compose", mobileKey: true },
   { href: "/profile", icon: User, label: "Profile", mobileKey: true },
   { href: "/ai", icon: Sparkles, label: "AI" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ]
+
+// Keep Compose button separate for mobile
+const mobileComposeItem = { href: "/compose", icon: PenSquare, label: "Compose", mobileKey: true }
 
 const publicNavItems: Array<{ href: string; icon: typeof Home; label: string; showBadge?: boolean; showMessageBadge?: boolean; mobileKey?: boolean }> = [
   { href: "/", icon: Home, label: "Home", mobileKey: true },
@@ -72,7 +74,7 @@ export function AppSidebar() {
   const [mobileExpanded, setMobileExpanded] = useState(false)
 
   const navItems = isAuthenticated ? authNavItems : publicNavItems
-  const mobileKeyItems = navItems.filter(item => item.mobileKey)
+  const mobileKeyItems = [...navItems.filter(item => item.mobileKey), ...(isAuthenticated ? [mobileComposeItem] : [])]
   const mobileExtraItems = navItems.filter(item => !item.mobileKey)
   const navRef = useRef<HTMLElement>(null)
   const [showNavScroll, setShowNavScroll] = useState(false)
@@ -302,8 +304,8 @@ export function AppSidebar() {
             {navItems.map((item) => {
               const isActive = pathname === item.href
               return (
-                <Link 
-                  key={item.href} 
+                <Link
+                  key={item.href}
                   href={item.href}
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('nav-click', { detail: item.href }))
@@ -322,7 +324,7 @@ export function AppSidebar() {
                       <TooltipProvider delayDuration={200}>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Badge 
+                            <Badge
                               className={cn(
                                 "absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5 border-0 text-white",
                                 "bg-amber-500 hover:bg-amber-600",
@@ -342,7 +344,7 @@ export function AppSidebar() {
                       <TooltipProvider delayDuration={200}>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Badge 
+                            <Badge
                               className="absolute -top-1 -right-1 lg:static lg:ml-auto h-5 min-w-5 flex items-center justify-center text-xs px-1.5 border-0 text-white bg-blue-500 hover:bg-blue-600"
                             >
                               {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
@@ -366,6 +368,25 @@ export function AppSidebar() {
             </div>
           )}
         </div>
+
+        {/* Compose Button - Pinned at bottom */}
+        {isAuthenticated && (
+          <div className="border-t border-sidebar-border p-2 lg:p-4">
+            <Link href="/compose">
+              <Button
+                className={cn(
+                  "w-full h-12 text-base font-semibold shadow-lg",
+                  "bg-primary hover:bg-primary/90 text-primary-foreground",
+                  "transition-all duration-200 hover:scale-105"
+                )}
+                size="lg"
+              >
+                <PenSquare className="h-5 w-5 lg:mr-3" />
+                <span className="hidden lg:inline">Compose</span>
+              </Button>
+            </Link>
+          </div>
+        )}
       </aside>
 
       {/* Mobile Bottom Bar */}

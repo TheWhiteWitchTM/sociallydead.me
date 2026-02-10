@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send } from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, Smile, Separator } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -851,7 +851,205 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* Link Card Preview */}
+      {/* Unified Toolbar with all controls */}
+      <TooltipProvider delayDuration={300}>
+        <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
+          {/* Left side: Formatting and media buttons */}
+          <div className="flex items-center gap-0.5">
+            {/* Markdown formatting buttons */}
+            {formatActions.map(({ icon: Icon, label, action }) => (
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={action}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="sr-only">{label}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+
+            {/* Separator */}
+            <div className="w-px h-5 bg-border mx-1" />
+
+            {/* Emoji Picker */}
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                    >
+                      <SmilePlus className="h-3.5 w-3.5" />
+                      <span className="sr-only">Emoji</span>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Emoji</p>
+                </TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-72 p-0" align="start" side="top">
+                <div className="p-2">
+                  <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
+                    {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
+                      <Button
+                        key={cat}
+                        variant={emojiCategory === cat ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => setEmojiCategory(cat)}
+                      >
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                    {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
+                        onClick={() => {
+                          insertEmoji(emoji)
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Separator */}
+            <div className="w-px h-5 bg-border mx-1" />
+
+            {/* Mention Picker Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setMentionPickerOpen(true)}
+                >
+                  <AtSign className="h-3.5 w-3.5" />
+                  <span className="sr-only">Add Mentions</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">Add Mentions</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Hashtag Picker Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setHashtagPickerOpen(true)}
+                >
+                  <Hash className="h-3.5 w-3.5" />
+                  <span className="sr-only">Add Hashtags</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">Add Hashtags</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Right side: Character count and submit button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isDM && effectiveMaxChars !== Infinity && (
+              <span className={cn(
+                "font-medium tabular-nums transition-colors text-sm",
+                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
+                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
+                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
+              )}>
+                {charCount}/{effectiveMaxChars}
+              </span>
+            )}
+            {showSubmitButton && onSubmit && (
+              <Button
+                onClick={onSubmit}
+                disabled={isSubmitting || !text.trim()}
+                size="sm"
+                className="gap-1.5 h-7"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5" />
+                    {submitButtonText}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </TooltipProvider>
+
+      {/* Media Previews - Below toolbar */}
+      {mediaFiles.length > 0 && (
+        <div className={cn(
+          "gap-2",
+          hasVideo ? "flex" : "grid grid-cols-2"
+        )}>
+          {mediaFiles.map((media, index) => (
+            <div key={index} className="relative group">
+              {media.type === "image" ? (
+                <img
+                  src={media.preview}
+                  alt={`Upload ${index + 1}`}
+                  className="w-full h-32 object-cover rounded-lg border"
+                />
+              ) : (
+                <div className="relative w-full rounded-lg border overflow-hidden bg-muted">
+                  <video
+                    src={media.preview}
+                    className="w-full max-h-64 object-contain"
+                    controls
+                    preload="metadata"
+                  />
+                  <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Video className="h-3 w-3" />
+                    Video
+                  </div>
+                </div>
+              )}
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => removeMedia(index)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Link Card Preview - Below toolbar */}
       {linkCardLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 border rounded-lg">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -897,163 +1095,6 @@ export function ComposeInput({
           </Button>
         </div>
       )}
-
-      {/* Media Previews */}
-      {mediaFiles.length > 0 && (
-        <div className={cn(
-          "gap-2",
-          hasVideo ? "flex" : "grid grid-cols-2"
-        )}>
-          {mediaFiles.map((media, index) => (
-            <div key={index} className="relative group">
-              {media.type === "image" ? (
-                <img
-                  src={media.preview}
-                  alt={`Upload ${index + 1}`}
-                  className="w-full h-32 object-cover rounded-lg border"
-                />
-              ) : (
-                <div className="relative w-full rounded-lg border overflow-hidden bg-muted">
-                  <video
-                    src={media.preview}
-                    className="w-full max-h-64 object-contain"
-                    controls
-                    preload="metadata"
-                  />
-                  <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Video className="h-3 w-3" />
-                    Video
-                  </div>
-                </div>
-              )}
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => removeMedia(index)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Markdown Formatting Toolbar */}
-      <TooltipProvider delayDuration={300}>
-        <div className="flex items-center gap-0.5 flex-wrap border rounded-lg p-1 bg-muted/30">
-          {formatActions.map(({ icon: Icon, label, action }) => (
-            <Tooltip key={label}>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={action}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="sr-only">{label}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">{label}</p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-
-          {/* Emoji Picker */}
-          <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                  >
-                    <SmilePlus className="h-3.5 w-3.5" />
-                    <span className="sr-only">Emoji</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Emoji</p>
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent className="w-72 p-0" align="start" side="top">
-              <div className="p-2">
-                <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
-                  {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
-                    <Button
-                      key={cat}
-                      variant={emojiCategory === cat ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-7 px-2 text-xs shrink-0"
-                      onClick={() => setEmojiCategory(cat)}
-                    >
-                      {cat}
-                    </Button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
-                  {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
-                      onClick={() => {
-                        insertEmoji(emoji)
-                      }}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Mention Picker Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setMentionPickerOpen(true)}
-              >
-                <AtSign className="h-3.5 w-3.5" />
-                <span className="sr-only">Add Mentions</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Add Mentions</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Hashtag Picker Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setHashtagPickerOpen(true)}
-              >
-                <Hash className="h-3.5 w-3.5" />
-                <span className="sr-only">Add Hashtags</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Add Hashtags</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </TooltipProvider>
 
       {/* Mention Picker Dialog */}
       <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
@@ -1204,88 +1245,6 @@ export function ComposeInput({
         </DialogContent>
       </Dialog>
 
-      {/* Media Toolbar */}
-      {!isDM && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={getAcceptTypes()}
-              multiple={!hasVideo}
-              className="hidden"
-              onChange={handleMediaSelect}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!canAddMedia}
-              title={hasVideo ? "Remove video to add images" : imageCount >= MAX_IMAGES ? "Maximum 4 images" : "Add media"}
-            >
-              <ImagePlus className="h-4 w-4 mr-1.5" />
-              {!compact && <span className="hidden sm:inline">Image</span>}
-              {imageCount > 0 && <span className="ml-1 text-xs">({imageCount}/{MAX_IMAGES})</span>}
-            </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.accept = VIDEO_TYPES.join(",")
-                fileInputRef.current.multiple = false
-                fileInputRef.current.click()
-                setTimeout(() => {
-                  if (fileInputRef.current) {
-                    fileInputRef.current.accept = getAcceptTypes()
-                    fileInputRef.current.multiple = !hasVideo
-                  }
-                }, 100)
-              }
-            }}
-            disabled={hasImages || hasVideo}
-            title={hasImages ? "Remove images to add video" : hasVideo ? "Only 1 video allowed" : "Add video (max 50MB)"}
-          >
-            <Video className="h-4 w-4 mr-1.5" />
-            {!compact && <span className="hidden sm:inline">Video</span>}
-          </Button>
-        </div>
-          <span className={cn(
-            "font-medium tabular-nums transition-colors text-sm",
-            charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
-            charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
-            charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
-          )}>
-            {charCount}/{effectiveMaxChars}
-          </span>
-        </div>
-      )}
-
-      {/* Submit Button for DM mode */}
-      {showSubmitButton && onSubmit && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            Press Shift+Enter to send
-          </span>
-          <Button
-            onClick={onSubmit}
-            disabled={isSubmitting || !text.trim()}
-            size="sm"
-            className="gap-1.5 shrink-0"
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Send className="h-3.5 w-3.5" />
-                {submitButtonText}
-              </>
-            )}
-          </Button>
-        </div>
-      )}
     </div>
   )
 }

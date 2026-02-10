@@ -14,6 +14,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 import { SociallyDeadRepoProvider } from "@/lib/sociallydead-repo-context";
+import { ComposeContextProvider } from "@/lib/compose-context";
 
 export const metadata: Metadata = {
 	// SEO title: Keep under ~60 chars, front-load keywords
@@ -127,13 +128,15 @@ export default function RootLayout({
         >
           <BlueskyProvider>
             <SociallyDeadRepoProvider>
-              <AppSidebar />
-              <div className="flex min-h-screen flex-col pl-0 transition-all md:pl-20 lg:pl-64">
-                <AppHeader />
-                <main className="flex-1 pb-16 md:pb-0">{children}</main>
-                <MainScrollIndicator />
-                <AppFooter />
-              </div>
+              <ComposeContextProvider>
+                <AppSidebar />
+                <div className="flex min-h-screen flex-col pl-0 transition-all md:pl-20 lg:pl-64">
+                  <AppHeader />
+                  <main className="flex-1 pb-16 md:pb-0">{children}</main>
+                  <MainScrollIndicator />
+                  <AppFooter />
+                </div>
+              </ComposeContextProvider>
             </SociallyDeadRepoProvider>
           </BlueskyProvider>
         </ThemeProvider>
