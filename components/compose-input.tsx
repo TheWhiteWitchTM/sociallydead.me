@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign } from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -89,24 +89,28 @@ function extractUrl(text: string): string | null {
 interface ComposeInputProps {
   text: string
   onTextChange: (text: string) => void
-  mediaFiles: MediaFile[]
-  onMediaFilesChange: (files: MediaFile[]) => void
-  linkCard: LinkCardData | null
-  onLinkCardChange: (card: LinkCardData | null) => void
+  mediaFiles?: MediaFile[]
+  onMediaFilesChange?: (files: MediaFile[]) => void
+  linkCard?: LinkCardData | null
+  onLinkCardChange?: (card: LinkCardData | null) => void
   placeholder?: string
   minHeight?: string
   maxChars?: number
-  postType?: "post" | "reply" | "quote" | "article"
+  postType?: "post" | "reply" | "quote" | "article" | "dm"
   compact?: boolean
   autoFocus?: boolean
+  onSubmit?: () => void
+  showSubmitButton?: boolean
+  submitButtonText?: string
+  isSubmitting?: boolean
 }
 
 export function ComposeInput({
   text,
   onTextChange,
-  mediaFiles,
+  mediaFiles = [],
   onMediaFilesChange,
-  linkCard,
+  linkCard = null,
   onLinkCardChange,
   placeholder = "What's happening?",
   minHeight = "min-h-32",
@@ -114,9 +118,14 @@ export function ComposeInput({
   postType = "post",
   compact = false,
   autoFocus = false,
+  onSubmit,
+  showSubmitButton = false,
+  submitButtonText = "Send",
+  isSubmitting = false,
 }: ComposeInputProps) {
   // Determine character limit based on post type
-  const effectiveMaxChars = maxChars ?? (postType === "article" ? 2000 : 300)
+  const isDM = postType === "dm"
+  const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
   const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -323,6 +332,16 @@ export function ComposeInput({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle Shift+Enter to submit (for DM mode or when onSubmit is provided)
+    if (e.key === 'Enter' && e.shiftKey && onSubmit && !isSubmitting) {
+      e.preventDefault()
+      if (text.trim()) {
+        onSubmit()
+      }
+      return
+    }
+
+    // Handle autocomplete suggestions
     if (!showMentionSuggestions && !showHashtagSuggestions) return
     const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
 
@@ -413,6 +432,7 @@ export function ComposeInput({
 
   // Hashtag picker dialog state
   const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
+  const [hashtagSearch, setHashtagSearch] = useState("")
   const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
 
   const insertEmoji = (emoji: string) => {
@@ -479,8 +499,14 @@ export function ComposeInput({
     onTextChange(newText)
     setSelectedHashtags(new Set())
     setHashtagPickerOpen(false)
+    setHashtagSearch("")
     setTimeout(() => textareaRef.current?.focus(), 100)
   }
+
+  // Filter hashtags based on search
+  const filteredHashtags = hashtagSearch.trim() === ""
+    ? POPULAR_HASHTAGS
+    : POPULAR_HASHTAGS.filter(tag => tag.toLowerCase().includes(hashtagSearch.toLowerCase()))
 
   // Debounced search for picker
   useEffect(() => {
@@ -1117,33 +1143,45 @@ export function ComposeInput({
             <DialogTitle>Add Hashtags</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <Input
+              placeholder="Search hashtags..."
+              value={hashtagSearch}
+              onChange={(e) => setHashtagSearch(e.target.value)}
+              autoFocus
+            />
             <ScrollArea className="h-[400px] border rounded-lg">
-              <div className="p-2 space-y-1">
-                {POPULAR_HASHTAGS.map((tag) => (
-                  <div
-                    key={tag}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
-                    onClick={() => {
-                      const newSelected = new Set(selectedHashtags)
-                      if (newSelected.has(tag)) {
-                        newSelected.delete(tag)
-                      } else {
-                        newSelected.add(tag)
-                      }
-                      setSelectedHashtags(newSelected)
-                    }}
-                  >
-                    <Checkbox
-                      checked={selectedHashtags.has(tag)}
-                      onCheckedChange={() => {}}
-                    />
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                      <Hash className="h-5 w-5" />
+              {filteredHashtags.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  No hashtags found
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {filteredHashtags.map((tag) => (
+                    <div
+                      key={tag}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        const newSelected = new Set(selectedHashtags)
+                        if (newSelected.has(tag)) {
+                          newSelected.delete(tag)
+                        } else {
+                          newSelected.add(tag)
+                        }
+                        setSelectedHashtags(newSelected)
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedHashtags.has(tag)}
+                        onCheckedChange={() => {}}
+                      />
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <Hash className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm font-medium">#{tag}</span>
                     </div>
-                    <span className="text-sm font-medium">#{tag}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
             <div className="flex justify-between items-center">
               <p className="text-sm text-muted-foreground">
@@ -1153,6 +1191,7 @@ export function ComposeInput({
                 <Button variant="outline" onClick={() => {
                   setHashtagPickerOpen(false)
                   setSelectedHashtags(new Set())
+                  setHashtagSearch("")
                 }}>
                   Cancel
                 </Button>
@@ -1166,28 +1205,29 @@ export function ComposeInput({
       </Dialog>
 
       {/* Media Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={getAcceptTypes()}
-            multiple={!hasVideo}
-            className="hidden"
-            onChange={handleMediaSelect}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={!canAddMedia}
-            title={hasVideo ? "Remove video to add images" : imageCount >= MAX_IMAGES ? "Maximum 4 images" : "Add media"}
-          >
-            <ImagePlus className="h-4 w-4 mr-1.5" />
-            {!compact && <span className="hidden sm:inline">Image</span>}
-            {imageCount > 0 && <span className="ml-1 text-xs">({imageCount}/{MAX_IMAGES})</span>}
-          </Button>
+      {!isDM && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={getAcceptTypes()}
+              multiple={!hasVideo}
+              className="hidden"
+              onChange={handleMediaSelect}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canAddMedia}
+              title={hasVideo ? "Remove video to add images" : imageCount >= MAX_IMAGES ? "Maximum 4 images" : "Add media"}
+            >
+              <ImagePlus className="h-4 w-4 mr-1.5" />
+              {!compact && <span className="hidden sm:inline">Image</span>}
+              {imageCount > 0 && <span className="ml-1 text-xs">({imageCount}/{MAX_IMAGES})</span>}
+            </Button>
           <Button
             type="button"
             variant="outline"
@@ -1212,15 +1252,40 @@ export function ComposeInput({
             {!compact && <span className="hidden sm:inline">Video</span>}
           </Button>
         </div>
-        <span className={cn(
-          "font-medium tabular-nums transition-colors text-sm",
-          charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
-          charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
-          charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
-        )}>
-          {charCount}/{effectiveMaxChars}
-        </span>
-      </div>
+          <span className={cn(
+            "font-medium tabular-nums transition-colors text-sm",
+            charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
+            charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
+            charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
+          )}>
+            {charCount}/{effectiveMaxChars}
+          </span>
+        </div>
+      )}
+
+      {/* Submit Button for DM mode */}
+      {showSubmitButton && onSubmit && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Press Shift+Enter to send
+          </span>
+          <Button
+            onClick={onSubmit}
+            disabled={isSubmitting || !text.trim()}
+            size="sm"
+            className="gap-1.5 shrink-0"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Send className="h-3.5 w-3.5" />
+                {submitButtonText}
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

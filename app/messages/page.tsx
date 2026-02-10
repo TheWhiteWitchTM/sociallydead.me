@@ -5,16 +5,14 @@ import { formatDistanceToNow } from "date-fns"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { ComposeInput } from "@/components/compose-input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
-  Loader2, RefreshCw, Send, ArrowLeft, PenSquare, MessageSquare,
-  MoreVertical, Trash2, BellOff, Bell, Ban, LogOut, X,
-  Bold, Italic, Strikethrough, Code, Heading1, Heading2,
-  Quote, List, ListOrdered, Link2, SmilePlus, Hash
+  Loader2, RefreshCw, ArrowLeft, PenSquare, MessageSquare,
+  MoreVertical, Trash2, BellOff, Bell, Ban, LogOut, X
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -47,14 +45,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import {UserHoverCard} from "@/components/user-hover-card";
 import Link from "next/link";
-
-// Emoji categories (same as compose-input for consistency)
-const EMOJI_CATEGORIES = {
-  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
-  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
-  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
-  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
-} as const
 
 interface Convo {
   id: string
@@ -93,188 +83,6 @@ function getMemberDisplayName(member: { handle: string; displayName?: string }):
   if (isInvalidHandle(member.handle)) return "Deleted Account"
   return member.displayName || member.handle
 }
-
-// ---- Chat Composer Component ----
-function ChatComposer({
-  value,
-  onChange,
-  onSend,
-  isSending,
-  placeholder = "Type a message...",
-}: {
-  value: string
-  onChange: (v: string) => void
-  onSend: () => void
-  isSending: boolean
-  placeholder?: string
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
-  const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
-
-  const insertEmoji = (emoji: string) => {
-    const cursorPos = textareaRef.current?.selectionStart || value.length
-    const before = value.slice(0, cursorPos)
-    const after = value.slice(cursorPos)
-    onChange(before + emoji + after)
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newPos = cursorPos + emoji.length
-        textareaRef.current.focus()
-        textareaRef.current.setSelectionRange(newPos, newPos)
-      }
-    }, 0)
-  }
-
-  const wrapSelection = (prefix: string, suffix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = value.slice(start, end)
-    const before = value.slice(0, start)
-    const after = value.slice(end)
-    const wrapped = selectedText
-      ? `${before}${prefix}${selectedText}${suffix}${after}`
-      : `${before}${prefix}text${suffix}${after}`
-    onChange(wrapped)
-    setTimeout(() => {
-      textarea.focus()
-      if (selectedText) {
-        textarea.setSelectionRange(start + prefix.length, end + prefix.length)
-      } else {
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4)
-      }
-    }, 0)
-  }
-
-  const insertAtLineStart = (prefix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1
-    const before = value.slice(0, lineStart)
-    const after = value.slice(lineStart)
-    onChange(`${before}${prefix}${after}`)
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
-    }, 0)
-  }
-
-  const formatActions = [
-    { icon: Bold, label: "Bold", action: () => wrapSelection("**", "**") },
-    { icon: Italic, label: "Italic", action: () => wrapSelection("*", "*") },
-    { icon: Strikethrough, label: "Strikethrough", action: () => wrapSelection("~~", "~~") },
-    { icon: Code, label: "Code", action: () => wrapSelection("`", "`") },
-    { icon: Quote, label: "Quote", action: () => insertAtLineStart("> ") },
-    { icon: Link2, label: "Link", action: () => wrapSelection("[", "](url)") },
-  ]
-
-  return (
-    <div className="space-y-2">
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        disabled={isSending}
-        className="resize-none min-h-[60px] max-h-[200px]"
-        rows={2}
-      />
-
-      {/* Toolbar + Send */}
-      <div className="flex items-center justify-between gap-2">
-        <TooltipProvider delayDuration={300}>
-          <div className="flex items-center gap-0.5 flex-wrap">
-            {formatActions.map(({ icon: Icon, label, action }) => (
-              <Tooltip key={label}>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={action}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="sr-only">{label}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">{label}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-
-            {/* Emoji Picker */}
-            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7">
-                      <SmilePlus className="h-3.5 w-3.5" />
-                      <span className="sr-only">Emoji</span>
-                    </Button>
-                  </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">Emoji</p>
-                </TooltipContent>
-              </Tooltip>
-              <PopoverContent className="w-72 p-0" align="start" side="top">
-                <div className="p-2">
-                  <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
-                    {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
-                      <Button
-                        key={cat}
-                        variant={emojiCategory === cat ? "secondary" : "ghost"}
-                        size="sm"
-                        className="h-7 px-2 text-xs shrink-0"
-                        onClick={() => setEmojiCategory(cat)}
-                      >
-                        {cat}
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
-                    {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
-                        onClick={() => insertEmoji(emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </TooltipProvider>
-
-        <Button
-          onClick={onSend}
-          disabled={isSending || !value.trim()}
-          size="sm"
-          className="gap-1.5 shrink-0"
-        >
-          {isSending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <Send className="h-3.5 w-3.5" />
-              Send
-            </>
-          )}
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 
 export default function MessagesPage() {
   const { 
@@ -1036,12 +844,18 @@ export default function MessagesPage() {
 
                 {/* Chat Composer - pinned to bottom */}
                 <div className="shrink-0 border-t border-border bg-background pt-3 pb-2">
-                  <ChatComposer
-                    value={newMessage}
-                    onChange={setNewMessage}
-                    onSend={handleSendMessage}
-                    isSending={isSending}
-                    placeholder="Type a message... (Markdown supported)"
+                  <ComposeInput
+                    text={newMessage}
+                    onTextChange={setNewMessage}
+                    onSubmit={handleSendMessage}
+                    isSubmitting={isSending}
+                    placeholder="Type a message... (Markdown supported, Shift+Enter to send)"
+                    postType="dm"
+                    showSubmitButton={true}
+                    submitButtonText="Send"
+                    minHeight="min-h-[60px]"
+                    compact={true}
+                    autoFocus={false}
                   />
                 </div>
               </div>
