@@ -9,7 +9,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ComposeInput, type LinkCardData, type MediaFile } from "@/components/compose-input"
-import { Loader2, Send, PenSquare, Rss, MessageSquare, X } from "lucide-react"
+import { Loader2, Send, PenSquare, Rss, MessageSquare, X, ArrowLeft } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ComposePage() {
   const router = useRouter()
@@ -20,6 +30,10 @@ export default function ComposePage() {
   const [linkCard, setLinkCard] = useState<LinkCardData | null>(null)
   const [isPosting, setIsPosting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false)
+
+  // Check if there's content
+  const hasContent = text.trim().length > 0 || mediaFiles.length > 0 || linkCard !== null
 
   // Load draft from AI assistant if available
   useEffect(() => {
@@ -29,6 +43,32 @@ export default function ComposePage() {
       sessionStorage.removeItem("compose_draft")
     }
   }, [])
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        handleCancel()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [hasContent])
+
+  const handleCancel = () => {
+    if (hasContent) {
+      setShowDiscardDialog(true)
+    } else {
+      router.back()
+    }
+  }
+
+  const handleDiscard = () => {
+    clearContext()
+    router.back()
+  }
 
   const handleSubmit = async () => {
     if (!text.trim() && mediaFiles.length === 0) return
@@ -79,7 +119,15 @@ export default function ComposePage() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <PenSquare className="h-5 w-5 shrink-0" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCancel}
+              disabled={isPosting}
+              className="shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
             <div className="flex flex-col min-w-0">
               <h1 className="text-xl font-bold leading-tight">Compose</h1>
               {context && (
@@ -124,6 +172,27 @@ export default function ComposePage() {
           </Button>
         </div>
       </header>
+
+      {/* Discard confirmation dialog */}
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This can't be undone and you'll lose your draft.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDiscard}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {error && (

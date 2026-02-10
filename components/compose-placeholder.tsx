@@ -1,12 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { PenSquare } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { PenSquare, X } from "lucide-react"
 import { ComposeInput, type MediaFile, type LinkCardData } from "@/components/compose-input"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface ComposePlaceholderProps {
   placeholder?: string
@@ -27,6 +38,43 @@ export function ComposePlaceholder({
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
   const [linkCard, setLinkCard] = useState<LinkCardData | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false)
+
+  // Check if there's content to save
+  const hasContent = text.trim().length > 0 || mediaFiles.length > 0 || linkCard !== null
+
+  const handleCancel = () => {
+    if (hasContent) {
+      // Show confirmation dialog if there's content
+      setShowDiscardDialog(true)
+    } else {
+      // Just close if empty
+      setIsExpanded(false)
+    }
+  }
+
+  const handleDiscard = () => {
+    setText("")
+    setMediaFiles([])
+    setLinkCard(null)
+    setIsExpanded(false)
+    setShowDiscardDialog(false)
+  }
+
+  // Handle ESC key
+  useEffect(() => {
+    if (!isExpanded) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        handleCancel()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isExpanded, hasContent])
 
   const handleSubmit = async () => {
     if (!text.trim() && mediaFiles.length === 0) return
@@ -61,21 +109,65 @@ export function ComposePlaceholder({
 
   if (isExpanded) {
     return (
-      <div className={cn("mb-6", className)}>
-        <ComposeInput
-          text={text}
-          onTextChange={setText}
-          mediaFiles={mediaFiles}
-          onMediaFilesChange={setMediaFiles}
-          linkCard={linkCard}
-          onLinkCardChange={setLinkCard}
-          placeholder={placeholder}
-          postType={postType}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          autoFocus={true}
-        />
-      </div>
+      <>
+        <div className={cn("mb-6", className)}>
+          <Card>
+            {/* Cancel button in top right */}
+            <div className="flex items-center justify-between p-2 border-b">
+              <span className="text-sm font-medium text-muted-foreground px-2">
+                Composing
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <CardContent className="p-0">
+              <ComposeInput
+                text={text}
+                onTextChange={setText}
+                mediaFiles={mediaFiles}
+                onMediaFilesChange={setMediaFiles}
+                linkCard={linkCard}
+                onLinkCardChange={setLinkCard}
+                placeholder={placeholder}
+                postType={postType}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                autoFocus={true}
+                compact={true}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Discard confirmation dialog */}
+        <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Discard post?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This can't be undone and you'll lose your draft.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Continue editing</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDiscard}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Discard
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     )
   }
 
