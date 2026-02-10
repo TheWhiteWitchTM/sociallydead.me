@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, Smile, Separator } from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, Smile, Separator, PenSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -747,9 +747,27 @@ export function ComposeInput({
     ))
   }
 
+  // Determine what we're composing
+  const composeType = postType === "reply" ? "Replying" :
+                      postType === "quote" ? "Quoting" :
+                      postType === "dm" ? "Direct Message" :
+                      postType === "article" ? "Writing Article" :
+                      "New Post"
+
   return (
     <div className="space-y-4">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
+        {/* Title Bar - Shows what you're composing */}
+        {!compact && (
+          <div className="border-b border-border bg-muted/30 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <PenSquare className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{composeType}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Text Input Area */}
         <div className="relative">
           {/* Highlighter Layer - Renders styled markdown */}
           <div
@@ -851,7 +869,7 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* Unified Toolbar with all controls */}
+      {/* Toolbar - At the BOTTOM */}
       <TooltipProvider delayDuration={300}>
         <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           {/* Left side: Formatting and media buttons */}
@@ -987,7 +1005,7 @@ export function ComposeInput({
                 {charCount}/{effectiveMaxChars}
               </span>
             )}
-            {showSubmitButton && onSubmit && (
+            {onSubmit && (
               <Button
                 onClick={onSubmit}
                 disabled={isSubmitting || !text.trim()}
@@ -999,7 +1017,7 @@ export function ComposeInput({
                 ) : (
                   <>
                     <Send className="h-3.5 w-3.5" />
-                    {submitButtonText}
+                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
                   </>
                 )}
               </Button>
