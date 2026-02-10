@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
+import {UserHoverCard} from "@/components/user-hover-card";
 
 interface Notification {
   uri: string
