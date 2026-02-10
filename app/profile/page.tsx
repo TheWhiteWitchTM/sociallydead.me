@@ -879,22 +879,24 @@ function ProfileContent() {
             ) : (
               <div className="space-y-2">
                 {starterPacks.map((sp) => (
-                  <Card key={sp.uri} className="hover:bg-accent/50 transition-colors">
-                    <CardContent className="p-3 flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Package className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{sp.record.name}</p>
-                        {sp.record.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">{sp.record.description}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {formatDistanceToNow(new Date(sp.record.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <Link key={sp.uri} href={`/starter-packs/${encodeURIComponent(sp.uri)}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Package className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{sp.record.name}</p>
+                          {sp.record.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">{sp.record.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {formatDistanceToNow(new Date(sp.record.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
             )}
