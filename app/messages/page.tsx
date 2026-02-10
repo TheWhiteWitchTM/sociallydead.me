@@ -657,9 +657,13 @@ export default function MessagesPage() {
                         )}
                       </div>
                       <span className="font-semibold truncate max-w-[150px] sm:max-w-none">
-                        {getMemberDisplayName(member)}
+                        <UserHoverCard handle={member.handle}>
+                          <Link href={`/profile/${member.handle}`} className="hover:underline">
+                            {getMemberDisplayName(member)}
+                          </Link>
+                        </UserHoverCard>
                       </span>
-                      {!isInvalidHandle(member.handle) && <VerifiedBadge handle={member.handle} did={member.did} className="ml-0.5" />}
+                      {!isInvalidHandle(member.handle) && <VerifiedBadge handle={member.handle} did={member.did} />}
                       {selectedConvo.muted && (
                         <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Muted</span>
                       )}
@@ -763,10 +767,11 @@ export default function MessagesPage() {
                                     className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
                                   />
                                 </div>
-                                <div>
-                                  <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
-                                  <HandleLink handle={actor.handle} className="text-sm" />
-                                </div>
+                                <UserHoverCard handle={actor.handle}>
+                                  <Link href={`/profile/${actor.handle}`} className="font-semibold flex items-center gap-1 hover:underline">
+                                    {actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} did={actor.did} />
+                                  </Link>
+                                </UserHoverCard>
                               </div>
                             </button>
                           ))}
@@ -889,7 +894,7 @@ export default function MessagesPage() {
                                 {validMembers.map(m => getMemberDisplayName(m)).join(", ") || "Deleted Account"}
                               </p>
                               {validMembers.map(m => (
-                                <VerifiedBadge key={m.did} handle={m.handle} did={m.did} className="shrink-0 ml-0.5" />
+                                <VerifiedBadge key={m.did} handle={m.handle} did={m.did} className="shrink-0" />
                               ))}
                               {convo.muted && (
                                 <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -983,21 +988,23 @@ export default function MessagesPage() {
                           >
                             <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : ''}`}>
                               {!isOwn && (
-                                <div className="relative mt-1 shrink-0">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
-                                    <AvatarFallback className="text-xs">
-                                      {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  {sender?.handle && (
-                                    <VerifiedBadge 
-                                      handle={sender.handle} 
-                                      did={sender.did}
-                                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                                    />
-                                  )}
-                                </div>
+                                <UserHoverCard handle={sender.handle}>
+                                  <Link href={`/profile/${sender.handle}`} className="relative mt-1 shrink-0 block">
+                                    <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                                      <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
+                                      <AvatarFallback className="text-xs">
+                                        {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {sender?.handle && (
+                                      <VerifiedBadge 
+                                        handle={sender.handle} 
+                                        did={sender.did}
+                                        className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                                      />
+                                    )}
+                                  </Link>
+                                </UserHoverCard>
                               )}
                               <div>
                                 <div 

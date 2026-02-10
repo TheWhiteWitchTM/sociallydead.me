@@ -74,7 +74,7 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                     {post.author.displayName || post.author.handle}
                   </Link>
                 </UserHoverCard>
-                <VerifiedBadge handle={post.author.handle} did={post.author.did} className="ml-0.5" />
+                <VerifiedBadge handle={post.author.handle} did={post.author.did} />
                 <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
                 <span className="text-muted-foreground hidden sm:inline">·</span>
                 <span className="text-xs sm:text-sm text-muted-foreground">

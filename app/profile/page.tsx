@@ -454,7 +454,7 @@ function ProfileContent() {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
               {user.displayName || user.handle}
-              <VerifiedBadge handle={user.handle} did={user.did} className="ml-0.5" />
+              <VerifiedBadge handle={user.handle} did={user.did} />
             </h1>
             <p className="text-xs text-muted-foreground">{user.postsCount || 0} posts</p>
           </div>
@@ -513,7 +513,7 @@ function ProfileContent() {
         <div className="px-4 pt-20 pb-4">
           <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
             {user.displayName || user.handle}
-            <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5 ml-0.5" />
+            <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
           </h2>
           <HandleLink handle={user.handle} />
           
@@ -1125,7 +1125,7 @@ function UserCard({ user, onNavigate }: { user: UserProfile & { viewer?: { follo
                   {user.displayName || user.handle}
                 </Link>
               </UserHoverCard>
-              <VerifiedBadge handle={user.handle} did={user.did} className="ml-0.5" />
+              <VerifiedBadge handle={user.handle} did={user.did} />
             </div>
             <HandleLink handle={user.handle} className="text-sm" />
             {user.description && (

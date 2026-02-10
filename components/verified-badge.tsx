@@ -98,7 +98,7 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 	if (!type) return null
 
 	const badgeStyles = {
-		bluesky: "text-yellow-600 ",
+		bluesky: "text-yellow-600",
 		gold: "text-yellow-500",
 		green: "text-green-500",
 		blue: "text-blue-500",
@@ -115,7 +115,14 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>
-          <span className={`inline-flex items-center text-xs font-medium shrink-0 ${badgeStyles[type]} ${className}`} style={{ width: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1rem', height: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1rem' }}>
+          <span 
+            className={`inline-flex items-center justify-center font-medium shrink-0 ${badgeStyles[type]} ${className}`} 
+            style={{ 
+              width: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1.1em', 
+              height: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1.1em',
+              marginLeft: (className?.includes('ml-')) ? undefined : '0.125rem'
+            }}
+          >
 	          <BadgeCheck className="h-full w-full" />
           </span>
 				</TooltipTrigger>

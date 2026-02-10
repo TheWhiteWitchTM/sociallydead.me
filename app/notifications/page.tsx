@@ -411,21 +411,23 @@ export default function NotificationsPage() {
                           <div className="flex items-center mb-1.5">
                             <div className="flex -space-x-2">
                               {group.authors.slice(0, 6).map((author) => (
-                                <Link key={author.did} href={`/profile/${author.handle || author.did}`} className="relative">
-                                  <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
-                                    <AvatarImage src={author.avatar || "/placeholder.svg"} />
-                                    <AvatarFallback className="text-[10px]">
-                                      {(author.displayName || author.handle || '?').slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  {author.handle && (
-                                    <VerifiedBadge 
-                                      handle={author.handle} 
-                                      did={author.did}
-                                      className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm" 
-                                    />
-                                  )}
-                                </Link>
+                                <UserHoverCard handle={author.handle}>
+                                  <Link key={author.did} href={`/profile/${author.handle || author.did}`} className="relative block">
+                                    <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
+                                      <AvatarImage src={author.avatar || "/placeholder.svg"} />
+                                      <AvatarFallback className="text-[10px]">
+                                        {(author.displayName || author.handle || '?').slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {author.handle && (
+                                      <VerifiedBadge 
+                                        handle={author.handle} 
+                                        did={author.did}
+                                        className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm" 
+                                      />
+                                    )}
+                                  </Link>
+                                </UserHoverCard>
                               ))}
                               {count > 6 && (
                                 <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] text-muted-foreground font-medium">
@@ -437,12 +439,14 @@ export default function NotificationsPage() {
 
                           {/* Description */}
                             <p className="text-sm">
-                              <Link
-                                href={`/profile/${firstAuthor.handle || firstAuthor.did}`}
-                                className="font-semibold hover:underline"
-                              >
-                                {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
-                              </Link>
+                              <UserHoverCard handle={firstAuthor.handle}>
+                                <Link
+                                  href={`/profile/${firstAuthor.handle || firstAuthor.did}`}
+                                  className="font-semibold hover:underline"
+                                >
+                                  {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
+                                </Link>
+                              </UserHoverCard>
                               {firstAuthor.handle && <VerifiedBadge handle={firstAuthor.handle} did={firstAuthor.did} className="ml-0.5" />}
                               {othersCount > 0 && (
                               <span className="text-muted-foreground">
@@ -531,34 +535,38 @@ export default function NotificationsPage() {
                       <div className={`mt-1 ${colorClass}`}>
                         <Icon className="h-5 w-5" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/profile/${notification.author.handle || notification.author.did}`} className="relative">
-                            <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-                              <AvatarImage src={notification.author.avatar || "/placeholder.svg"} />
-                              <AvatarFallback className="text-xs">
-                                {(notification.author.displayName || notification.author.handle || '?').slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            {notification.author.handle && (
-                              <VerifiedBadge 
-                                handle={notification.author.handle} 
-                                did={notification.author.did}
-                                className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm" 
-                              />
-                            )}
-                          </Link>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm">
-                              <Link
-                                href={`/profile/${notification.author.handle || notification.author.did}`}
-                                className="font-semibold hover:underline"
-                              >
-                                {notification.author.displayName || notification.author.handle || 'Unknown'}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <UserHoverCard handle={notification.author.handle}>
+                              <Link href={`/profile/${notification.author.handle || notification.author.did}`} className="relative block">
+                                <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                                  <AvatarImage src={notification.author.avatar || "/placeholder.svg"} />
+                                  <AvatarFallback className="text-xs">
+                                    {(notification.author.displayName || notification.author.handle || '?').slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {notification.author.handle && (
+                                  <VerifiedBadge 
+                                    handle={notification.author.handle} 
+                                    did={notification.author.did}
+                                    className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm" 
+                                  />
+                                )}
                               </Link>
-                              {notification.author.handle && <VerifiedBadge handle={notification.author.handle} did={notification.author.did} className="ml-0.5" />}
-                              <span className="text-muted-foreground ml-1">{text}</span>
-                            </p>
+                            </UserHoverCard>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm">
+                                <UserHoverCard handle={notification.author.handle}>
+                                  <Link
+                                    href={`/profile/${notification.author.handle || notification.author.did}`}
+                                    className="font-semibold hover:underline"
+                                  >
+                                    {notification.author.displayName || notification.author.handle || 'Unknown'}
+                                  </Link>
+                                </UserHoverCard>
+                                {notification.author.handle && <VerifiedBadge handle={notification.author.handle} did={notification.author.did} className="ml-0.5" />}
+                                <span className="text-muted-foreground ml-1">{text}</span>
+                              </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(notification.indexedAt), { addSuffix: true })}
                             </p>
@@ -566,17 +574,17 @@ export default function NotificationsPage() {
                         </div>
                         
                         {/* Show reply/quote content and link to the actual reply */}
-                        {['reply', 'quote'].includes(notification.reason) && (() => {
-                          // The notification's record contains the reply/quote text
-                          const replyRecord = notification.record as { text?: string } | undefined
-                          const replyText = replyRecord?.text || ''
+                        {['reply', 'quote', 'mention'].includes(notification.reason) && (() => {
+                          // The notification's record contains the reply/quote/mention text
+                          const record = notification.record as { text?: string } | undefined
+                          const contentText = record?.text || ''
                           
-                          // The notification's URI is the reply/quote post itself
-                          const replyParsed = parseAtUri(notification.uri)
-                          const replyHandle = notification.author.handle || replyParsed?.handle || ''
-                          const replyRkey = replyParsed?.rkey || ''
+                          // The notification's URI is the post itself
+                          const parsed = parseAtUri(notification.uri)
+                          const handle = notification.author.handle || parsed?.handle || ''
+                          const rkey = parsed?.rkey || ''
                           
-                          // The reasonSubject is the original post that was replied to
+                          // The reasonSubject is the original post that was replied to (for replies)
                           const originalParsed = notification.reasonSubject ? parseAtUri(notification.reasonSubject) : null
                           const originalHandle = notification.reasonSubject ? (profileHandles[notification.reasonSubject] || originalParsed?.handle || '') : ''
                           const originalRkey = originalParsed?.rkey || ''
@@ -584,12 +592,12 @@ export default function NotificationsPage() {
                           
                           return (
                             <div className="mt-2 space-y-1.5">
-                              {/* The reply/quote itself - primary content */}
+                              {/* The post itself - primary content */}
                               <Link 
-                                href={`/profile/${replyHandle}/post/${replyRkey}`}
+                                href={`/profile/${handle}/post/${rkey}`}
                                 className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
                               >
-                                <p className="text-foreground line-clamp-3">{replyText}</p>
+                                <p className="text-foreground line-clamp-3">{contentText}</p>
                               </Link>
                               {/* The original post being replied to - context */}
                               {originalText && notification.reasonSubject && (

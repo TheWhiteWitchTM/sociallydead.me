@@ -497,7 +497,7 @@ const handleTabChange = (tab: string) => {
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
                 {profile.displayName || profile.handle}
-                <VerifiedBadge handle={profile.handle} did={profile.did} className="ml-0.5" />
+                <VerifiedBadge handle={profile.handle} did={profile.did} />
               </h1>
               <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
             </div>
@@ -594,7 +594,7 @@ const handleTabChange = (tab: string) => {
               <div>
                 <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
                   {profile.displayName || profile.handle}
-                  <VerifiedBadge handle={profile.handle} did={profile.did} className="h-5 w-5 ml-0.5" />
+                  <VerifiedBadge handle={profile.handle} did={profile.did} className="h-5 w-5" />
                 </h2>
                 <HandleLink handle={profile.handle} />
               </div>
