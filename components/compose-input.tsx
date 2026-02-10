@@ -60,7 +60,7 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 function extractUrl(text: string): string | null {
-  const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])/g
+  const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/g
   const matches = text.match(urlRegex)
   if (!matches || matches.length === 0) return null
   
@@ -71,6 +71,7 @@ function extractUrl(text: string): string | null {
   const lastLine = lines[lines.length - 1]
   
   // Find matches in first and last line
+  // We need to be careful with broad domain matching here to avoid false positives for simple words
   const firstLineMatch = firstLine.match(urlRegex)
   const lastLineMatch = lastLine.match(urlRegex)
   
@@ -238,7 +239,7 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
-    const mentionMatch = textBeforeCursor.match(/@(\w*)$/)
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       setAutocompletePosition(cursorPos - mentionMatch[1].length - 1)
       setShowMentionSuggestions(true)

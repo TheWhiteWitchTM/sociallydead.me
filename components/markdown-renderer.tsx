@@ -21,13 +21,17 @@ interface MarkdownRendererProps {
  */
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   // Regex for hashtags, mentions and URLs
-  const mentionRegex = /@([a-zA-Z0-9.-]+)/g
-  const hashtagRegex = /#(\w+)/g
-  const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])/g
+  // mentionRegex: @ followed by handle (alphanumeric, dots, hyphens)
+  // hashtagRegex: # followed by word characters
+  // urlRegex: http(s)://... OR www.... OR domain.tld/...
+  const mentionRegex = /@([a-zA-Z0-9.-]+)/
+  const hashtagRegex = /#(\w+)/
+  const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
 
   // Combined regex to find all special elements
+  // We use capturing groups for each type
   const combinedRegex = new RegExp(
-    `${mentionRegex.source}|${hashtagRegex.source}|${urlRegex.source}`,
+    `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
     'g'
   )
 
@@ -41,16 +45,16 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
       parts.push(content.slice(lastIndex, match.index))
     }
 
-    const [fullMatch, mention, hashtag, url] = match
+    const [fullMatch, mentionMatch, mention, hashtagMatch, hashtag, urlMatch] = match
 
     if (mention) {
       parts.push(
         <a
           key={match.index}
           href={`/profile/${mention}`}
-          className="text-primary hover:underline"
+          className="text-primary hover:underline font-medium"
         >
-          @{mention}
+          {mentionMatch}
         </a>
       )
     } else if (hashtag) {
@@ -58,21 +62,22 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         <a
           key={match.index}
           href={`/search?q=${encodeURIComponent('#' + hashtag)}`}
-          className="text-primary hover:underline"
+          className="text-primary hover:underline font-medium"
         >
-          #{hashtag}
+          {hashtagMatch}
         </a>
       )
-    } else if (url) {
+    } else if (urlMatch) {
+      const href = urlMatch.startsWith('http') ? urlMatch : urlMatch.startsWith('www.') ? `https://${urlMatch}` : `https://${urlMatch}`
       parts.push(
         <a
           key={match.index}
-          href={url}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
           className="text-primary hover:underline break-all"
         >
-          {url}
+          {urlMatch}
         </a>
       )
     }
