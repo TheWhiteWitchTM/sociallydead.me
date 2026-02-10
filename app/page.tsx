@@ -260,8 +260,11 @@ export default function HomePage() {
             <h1 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
               Welcome to SociallyDead
             </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              The <span className="text-primary font-semibold">better</span> Bluesky client with unique features you'll love
+            <p className="text-lg text-muted-foreground mb-4">
+              An <span className="text-primary font-semibold">alternative Bluesky client</span> with powerful features
+            </p>
+            <p className="text-sm text-muted-foreground mb-8">
+              Uses your existing Bluesky account • All your posts, followers, and data stay on Bluesky
             </p>
 
             {/* Login Card */}
