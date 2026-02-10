@@ -45,6 +45,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import {UserHoverCard} from "@/components/user-hover-card";
+import Link from "next/link";
 
 // Emoji categories (same as compose-input for consistency)
 const EMOJI_CATEGORIES = {
