@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus } from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,6 +10,10 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
   // Common emoji categories like X/Twitter
@@ -400,6 +404,17 @@ export function ComposeInput({
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
 
+  // Mention picker dialog state
+  const [mentionPickerOpen, setMentionPickerOpen] = useState(false)
+  const [mentionSearch, setMentionSearch] = useState("")
+  const [mentionPickerResults, setMentionPickerResults] = useState<MentionSuggestion[]>([])
+  const [selectedMentions, setSelectedMentions] = useState<Set<string>>(new Set())
+  const [isSearchingPicker, setIsSearchingPicker] = useState(false)
+
+  // Hashtag picker dialog state
+  const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
+  const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
+
   const insertEmoji = (emoji: string) => {
     const cursorPos = textareaRef.current?.selectionStart || text.length
     const before = text.slice(0, cursorPos)
@@ -414,6 +429,67 @@ export function ComposeInput({
       }
     }, 0)
   }
+
+  // Search mentions for picker dialog
+  const searchMentionsPicker = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setMentionPickerResults([])
+      return
+    }
+    setIsSearchingPicker(true)
+    try {
+      const typeahead = await searchActorsTypeahead(query)
+      let actors = typeahead.actors
+      if ((!actors || actors.length === 0) && query.length > 0) {
+        const result = await searchActors(query)
+        actors = result.actors
+      }
+      setMentionPickerResults((actors || []).slice(0, 20))
+    } catch (error) {
+      console.error('Error searching mentions:', error)
+      setMentionPickerResults([])
+    } finally {
+      setIsSearchingPicker(false)
+    }
+  }, [searchActors, searchActorsTypeahead])
+
+  // Insert selected mentions at cursor
+  const insertSelectedMentions = () => {
+    if (selectedMentions.size === 0) return
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const before = text.slice(0, cursorPos)
+    const after = text.slice(cursorPos)
+    const mentions = Array.from(selectedMentions).map(h => `@${h}`).join(' ')
+    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + mentions + ' ' + after
+    onTextChange(newText)
+    setSelectedMentions(new Set())
+    setMentionPickerOpen(false)
+    setMentionSearch("")
+    setTimeout(() => textareaRef.current?.focus(), 100)
+  }
+
+  // Insert selected hashtags at cursor
+  const insertSelectedHashtags = () => {
+    if (selectedHashtags.size === 0) return
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const before = text.slice(0, cursorPos)
+    const after = text.slice(cursorPos)
+    const hashtags = Array.from(selectedHashtags).map(h => `#${h}`).join(' ')
+    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + hashtags + ' ' + after
+    onTextChange(newText)
+    setSelectedHashtags(new Set())
+    setHashtagPickerOpen(false)
+    setTimeout(() => textareaRef.current?.focus(), 100)
+  }
+
+  // Debounced search for picker
+  useEffect(() => {
+    if (!mentionPickerOpen) return
+    const timer = setTimeout(() => {
+      searchMentionsPicker(mentionSearch)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [mentionSearch, mentionPickerOpen, searchMentionsPicker])
 
   // Markdown formatting helpers
   const wrapSelection = (prefix: string, suffix: string) => {
@@ -912,8 +988,182 @@ export function ComposeInput({
               </div>
             </PopoverContent>
           </Popover>
+
+          {/* Mention Picker Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setMentionPickerOpen(true)}
+              >
+                <AtSign className="h-3.5 w-3.5" />
+                <span className="sr-only">Add Mentions</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Add Mentions</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Hashtag Picker Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setHashtagPickerOpen(true)}
+              >
+                <Hash className="h-3.5 w-3.5" />
+                <span className="sr-only">Add Hashtags</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Add Hashtags</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
+
+      {/* Mention Picker Dialog */}
+      <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Mentions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Search for people..."
+              value={mentionSearch}
+              onChange={(e) => setMentionSearch(e.target.value)}
+              autoFocus
+            />
+            <ScrollArea className="h-[400px] border rounded-lg">
+              {isSearchingPicker ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : mentionPickerResults.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  {mentionSearch ? "No users found" : "Type to search for people"}
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {mentionPickerResults.map((user) => (
+                    <div
+                      key={user.did}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        const newSelected = new Set(selectedMentions)
+                        if (newSelected.has(user.handle)) {
+                          newSelected.delete(user.handle)
+                        } else {
+                          newSelected.add(user.handle)
+                        }
+                        setSelectedMentions(newSelected)
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedMentions.has(user.handle)}
+                        onCheckedChange={() => {}}
+                      />
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback>
+                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate flex items-center gap-1">
+                          {user.displayName || user.handle}
+                          <VerifiedBadge handle={user.handle} />
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedMentions.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setMentionPickerOpen(false)
+                  setSelectedMentions(new Set())
+                  setMentionSearch("")
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={insertSelectedMentions} disabled={selectedMentions.size === 0}>
+                  Add {selectedMentions.size > 0 && `(${selectedMentions.size})`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hashtag Picker Dialog */}
+      <Dialog open={hashtagPickerOpen} onOpenChange={setHashtagPickerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Hashtags</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ScrollArea className="h-[400px] border rounded-lg">
+              <div className="p-2 space-y-1">
+                {POPULAR_HASHTAGS.map((tag) => (
+                  <div
+                    key={tag}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                    onClick={() => {
+                      const newSelected = new Set(selectedHashtags)
+                      if (newSelected.has(tag)) {
+                        newSelected.delete(tag)
+                      } else {
+                        newSelected.add(tag)
+                      }
+                      setSelectedHashtags(newSelected)
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedHashtags.has(tag)}
+                      onCheckedChange={() => {}}
+                    />
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                      <Hash className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm font-medium">#{tag}</span>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedHashtags.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setHashtagPickerOpen(false)
+                  setSelectedHashtags(new Set())
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={insertSelectedHashtags} disabled={selectedHashtags.size === 0}>
+                  Add {selectedHashtags.size > 0 && `(${selectedHashtags.size})`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Media Toolbar */}
       <div className="flex items-center justify-between">
