@@ -229,12 +229,12 @@ export default function HomePage() {
       <div className="min-h-screen">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-14 items-center justify-between px-4">
-            <div className="flex items-center gap-2">
-              {/* Bluesky butterfly icon */}
-              <svg viewBox="0 0 568 501" className="h-6 w-6 text-[#0085ff]" fill="currentColor">
-                <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 googled383.039C285.169 374.388 284.017 370.036 284 googled373.719C283.983 370.036 282.831 374.388 280.369 googled383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
-              </svg>
-            </div>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <span className="text-sm font-bold text-primary-foreground">SD</span>
+              </div>
+              <span className="text-base font-bold">SociallyDead</span>
+            </Link>
             <SignInDialog
               trigger={
                 <Button variant="default" size="sm" className="gap-2">
@@ -252,10 +252,8 @@ export default function HomePage() {
           {/* Hero Section with Login */}
           <div className="text-center mb-12 max-w-4xl mx-auto">
             <div className="flex justify-center mb-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#0085ff] to-[#0066cc] shadow-lg">
-                <svg viewBox="0 0 568 501" className="h-10 w-10 text-white" fill="currentColor">
-                  <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
-                </svg>
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-2xl">
+                <span className="text-5xl font-bold text-primary-foreground">SD</span>
               </div>
             </div>
 
