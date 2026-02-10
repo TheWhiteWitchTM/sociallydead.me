@@ -256,48 +256,36 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
-    const updateAutocompletePosition = (triggerIndex: number) => {
-      setAutocompletePosition(triggerIndex)
-      
-      // Calculate visual coordinates for the popup
-      if (textareaRef.current) {
-        const { selectionStart } = textareaRef.current
-        // Create a dummy element to measure text position or use a simpler approach:
-        // Since we have a highlighter layer that mirrors the textarea, we can use it.
-        // But for now, let's just show it below the textarea or at a fixed position if it's too complex.
-        // Better: Position it relative to the trigger character in the highlighter.
-        
-        // A simple way to get coordinates is to use a hidden span in the highlighter
-        const textBeforeTrigger = newText.slice(0, triggerIndex)
-        // We'll just set it to appear below the textarea for now to ensure visibility, 
-        // then try to refine it.
-        setAutocompleteCoords({ top: 0, left: 0 }) 
-      }
-    }
-
-    const mentionMatch = textBeforeCursor.match(/(?:\s|^)@([a-zA-Z0-9.-]*)$/)
+    // Match @ followed by partial handle (allow at start, after space, or after any char)
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('@')
-      updateAutocompletePosition(triggerIndex)
+      setAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
-      // Show suggestions even if user typed only '@'
+      console.log('Mention detected:', matchText, 'Searching...')
       searchMentions(matchText)
       return
     }
 
-    const hashtagMatch = textBeforeCursor.match(/(?:\s|^)#(\w*)$/)
+    // Match # followed by partial hashtag
+    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
     if (hashtagMatch) {
       const matchText = hashtagMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('#')
-      updateAutocompletePosition(triggerIndex)
+      setAutocompletePosition(triggerIndex)
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
-      // If empty after '#', show popular list; else filter
-      searchHashtags(matchText)
+      console.log('Hashtag detected:', matchText, 'Filtering...')
+      // Always show suggestions, even for empty query
+      if (matchText.length === 0) {
+        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
+      } else {
+        searchHashtags(matchText)
+      }
       return
     }
 
@@ -655,22 +643,23 @@ export function ComposeInput({
     <div className="space-y-4">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         <div className="relative">
-          {/* Highlighter Layer */}
-          <div 
+          {/* Highlighter Layer - Renders styled markdown */}
+          <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 bg-transparent whitespace-pre-wrap break-words text-sm border border-transparent overflow-hidden",
+              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-auto",
               minHeight
             )}
             aria-hidden="true"
-            style={{ 
-              color: 'transparent',
+            style={{
               fontFamily: 'inherit',
-              lineHeight: 'inherit',
+              lineHeight: '1.5',
+              fontSize: '0.875rem',
             }}
           >
             {renderHighlightedText()}
           </div>
+          {/* Textarea Layer - Transparent text so we only see the highlighter */}
           <Textarea
             ref={textareaRef}
             placeholder={placeholder}
@@ -683,7 +672,9 @@ export function ComposeInput({
               minHeight
             )}
             style={{
-              caretColor: 'currentColor'
+              color: 'transparent',
+              caretColor: 'var(--foreground)',
+              lineHeight: '1.5',
             }}
           />
 
