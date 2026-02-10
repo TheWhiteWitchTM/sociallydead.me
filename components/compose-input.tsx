@@ -121,6 +121,15 @@ export function ComposeInput({
   const [autocompletePosition, setAutocompletePosition] = useState(0)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
+  const highlighterRef = useRef<HTMLDivElement>(null)
+
+  // Sync scroll between textarea and highlighter
+  const syncScroll = () => {
+    if (textareaRef.current && highlighterRef.current) {
+      highlighterRef.current.scrollTop = textareaRef.current.scrollTop
+      highlighterRef.current.scrollLeft = textareaRef.current.scrollLeft
+    }
+  }
 
   // Link card state
   const [linkCardLoading, setLinkCardLoading] = useState(false)
@@ -239,23 +248,29 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
-    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
+    const mentionMatch = textBeforeCursor.match(/(?:\s|^)@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
-      setAutocompletePosition(cursorPos - mentionMatch[1].length - 1)
+      const matchText = mentionMatch[1]
+      // Fix: the match includes the whitespace or start of line if it's there
+      // We want the position of the '@'
+      const triggerIndex = textBeforeCursor.lastIndexOf('@')
+      setAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
-      searchMentions(mentionMatch[1])
+      searchMentions(matchText)
       return
     }
 
-    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
+    const hashtagMatch = textBeforeCursor.match(/(?:\s|^)#(\w*)$/)
     if (hashtagMatch) {
-      setAutocompletePosition(cursorPos - hashtagMatch[1].length - 1)
+      const matchText = hashtagMatch[1]
+      const triggerIndex = textBeforeCursor.lastIndexOf('#')
+      setAutocompletePosition(triggerIndex)
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
-      searchHashtags(hashtagMatch[1])
+      searchHashtags(matchText)
       return
     }
 
@@ -433,20 +448,85 @@ export function ComposeInput({
   const charCount = text.length
   const isOverLimit = charCount > maxChars
 
+  // Highlighting for the editor
+  const renderHighlightedText = () => {
+    const mentionRegex = /@([a-zA-Z0-9.-]+)/
+    const hashtagRegex = /#(\w+)/
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
+    
+    const combinedRegex = new RegExp(
+      `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
+      'g'
+    )
+
+    const parts: React.ReactNode[] = []
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = combinedRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index))
+      }
+
+      const [fullMatch, mentionMatch, mention, hashtagMatch, hashtag, urlMatch] = match
+
+      if (mention) {
+        parts.push(<span key={match.index} className="text-blue-500 font-medium">{mentionMatch}</span>)
+      } else if (hashtag) {
+        parts.push(<span key={match.index} className="text-blue-500 font-medium">{hashtagMatch}</span>)
+      } else if (urlMatch) {
+        parts.push(<span key={match.index} className="text-blue-500 underline">{urlMatch}</span>)
+      }
+
+      lastIndex = combinedRegex.lastIndex
+    }
+    
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex))
+    }
+    
+    // Add a trailing newline if needed to match textarea scroll
+    if (text.endsWith('\n')) {
+      parts.push('\n')
+    }
+
+    return parts
+  }
+
   return (
     <div className="space-y-4">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         <div className="relative">
+          {/* Highlighter Layer */}
+          <div 
+            ref={highlighterRef}
+            className={cn(
+              "absolute inset-0 pointer-events-none px-4 py-3 bg-transparent whitespace-pre-wrap break-words text-sm border border-transparent overflow-hidden",
+              minHeight
+            )}
+            aria-hidden="true"
+            style={{ 
+              color: 'transparent',
+              fontFamily: 'inherit',
+              lineHeight: 'inherit',
+            }}
+          >
+            {renderHighlightedText()}
+          </div>
           <Textarea
             ref={textareaRef}
             placeholder={placeholder}
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
+            style={{
+              caretColor: 'currentColor'
+            }}
           />
 
         {/* Mention Suggestions Dropdown */}

@@ -35,6 +35,14 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     'g'
   )
 
+  return (
+    <div className={cn("whitespace-pre-wrap break-words text-sm", className)}>
+      {renderContent(content, combinedRegex)}
+    </div>
+  )
+}
+
+function renderContent(content: string, combinedRegex: RegExp) {
   const parts: React.ReactNode[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
@@ -52,7 +60,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         <a
           key={match.index}
           href={`/profile/${mention}`}
-          className="text-primary hover:underline font-medium"
+          className="text-blue-500 hover:underline font-medium"
         >
           {mentionMatch}
         </a>
@@ -62,7 +70,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         <a
           key={match.index}
           href={`/search?q=${encodeURIComponent('#' + hashtag)}`}
-          className="text-primary hover:underline font-medium"
+          className="text-blue-500 hover:underline font-medium"
         >
           {hashtagMatch}
         </a>
@@ -75,7 +83,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary hover:underline break-all"
+          className="text-blue-500 hover:underline break-all"
         >
           {urlMatch}
         </a>
@@ -88,12 +96,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   if (lastIndex < content.length) {
     parts.push(content.slice(lastIndex))
   }
-
-  return (
-    <div className={cn("whitespace-pre-wrap break-words text-sm", className)}>
-      {parts}
-    </div>
-  )
+  return parts
 }
 
 /**
@@ -183,10 +186,34 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
               {children}
             </a>
           ),
-          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          p: ({ children }) => {
+            if (typeof children === 'string') {
+              const mentionRegex = /@([a-zA-Z0-9.-]+)/
+              const hashtagRegex = /#(\w+)/
+              const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
+              const combinedRegex = new RegExp(
+                `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
+                'g'
+              )
+              return <p className="mb-2 last:mb-0">{renderContent(children, combinedRegex)}</p>
+            }
+            return <p className="mb-2 last:mb-0">{children}</p>
+          },
           ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
           ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
-          li: ({ children }) => <li className="mb-1">{children}</li>,
+          li: ({ children }) => {
+            if (typeof children === 'string') {
+              const mentionRegex = /@([a-zA-Z0-9.-]+)/
+              const hashtagRegex = /#(\w+)/
+              const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
+              const combinedRegex = new RegExp(
+                `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
+                'g'
+              )
+              return <li className="mb-1">{renderContent(children, combinedRegex)}</li>
+            }
+            return <li className="mb-1">{children}</li>
+          },
           code: ({ className: codeClassName, children }) => {
             // Detect if this is a fenced code block (inside a <pre>)
             const match = /language-(\w+)/.exec(codeClassName || "")
@@ -212,9 +239,45 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
               {children}
             </blockquote>
           ),
-          h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+          h1: ({ children }) => {
+            if (typeof children === 'string') {
+              const mentionRegex = /@([a-zA-Z0-9.-]+)/
+              const hashtagRegex = /#(\w+)/
+              const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
+              const combinedRegex = new RegExp(
+                `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
+                'g'
+              )
+              return <h1 className="text-xl font-bold mb-2">{renderContent(children, combinedRegex)}</h1>
+            }
+            return <h1 className="text-xl font-bold mb-2">{children}</h1>
+          },
+          h2: ({ children }) => {
+            if (typeof children === 'string') {
+              const mentionRegex = /@([a-zA-Z0-9.-]+)/
+              const hashtagRegex = /#(\w+)/
+              const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
+              const combinedRegex = new RegExp(
+                `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
+                'g'
+              )
+              return <h2 className="text-lg font-bold mb-2">{renderContent(children, combinedRegex)}</h2>
+            }
+            return <h2 className="text-lg font-bold mb-2">{children}</h2>
+          },
+          h3: ({ children }) => {
+            if (typeof children === 'string') {
+              const mentionRegex = /@([a-zA-Z0-9.-]+)/
+              const hashtagRegex = /#(\w+)/
+              const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/
+              const combinedRegex = new RegExp(
+                `(${mentionRegex.source})|(${hashtagRegex.source})|(${urlRegex.source})`,
+                'g'
+              )
+              return <h3 className="text-base font-bold mb-2">{renderContent(children, combinedRegex)}</h3>
+            }
+            return <h3 className="text-base font-bold mb-2">{children}</h3>
+          },
           strong: ({ children }) => <strong className="font-bold">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
         }}
