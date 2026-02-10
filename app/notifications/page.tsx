@@ -411,8 +411,8 @@ export default function NotificationsPage() {
                           <div className="flex items-center mb-1.5">
                             <div className="flex -space-x-2">
                               {group.authors.slice(0, 6).map((author) => (
-                                <UserHoverCard handle={author.handle}>
-                                  <Link key={author.did} href={`/profile/${author.handle || author.did}`} className="relative block">
+                                <UserHoverCard key={author.did} handle={author.handle}>
+                                  <Link href={`/profile/${author.handle || author.did}`} className="relative block">
                                     <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
                                       <AvatarImage src={author.avatar || "/placeholder.svg"} />
                                       <AvatarFallback className="text-[10px]">
@@ -538,7 +538,7 @@ export default function NotificationsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <UserHoverCard handle={notification.author.handle}>
-                              <Link href={`/profile/${notification.author.handle || notification.author.did}`} className="relative block">
+                              <Link href={`/profile/${notification.author.handle || notification.author.did}`} className="relative block shrink-0">
                                 <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
                                   <AvatarImage src={notification.author.avatar || "/placeholder.svg"} />
                                   <AvatarFallback className="text-xs">
@@ -577,7 +577,7 @@ export default function NotificationsPage() {
                         {['reply', 'quote', 'mention'].includes(notification.reason) && (() => {
                           // The notification's record contains the reply/quote/mention text
                           const record = notification.record as { text?: string } | undefined
-                          const contentText = record?.text || ''
+                          const contentText = record?.text || postPreviews[notification.uri] || ''
                           
                           // The notification's URI is the post itself
                           const parsed = parseAtUri(notification.uri)
@@ -590,15 +590,19 @@ export default function NotificationsPage() {
                           const originalRkey = originalParsed?.rkey || ''
                           const originalText = notification.reasonSubject ? (postPreviews[notification.reasonSubject] || '') : ''
                           
+                          if (!contentText && !originalText) return null
+
                           return (
                             <div className="mt-2 space-y-1.5">
                               {/* The post itself - primary content */}
-                              <Link 
-                                href={`/profile/${handle}/post/${rkey}`}
-                                className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
-                              >
-                                <p className="text-foreground line-clamp-3">{contentText}</p>
-                              </Link>
+                              {contentText && (
+                                <Link 
+                                  href={`/profile/${handle}/post/${rkey}`}
+                                  className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
+                                >
+                                  <p className="text-foreground line-clamp-3">{contentText}</p>
+                                </Link>
+                              )}
                               {/* The original post being replied to - context */}
                               {originalText && notification.reasonSubject && (
                                 <Link 
