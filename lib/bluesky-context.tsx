@@ -1851,6 +1851,26 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
+	// Prefer the official typeahead endpoint for mention suggestions; it prioritizes follows
+	const searchActorsTypeahead = async (query: string): Promise<{ actors: BlueskyUser[] }> => {
+		const agentToUse = agent || publicAgent
+		try {
+			const response = await agentToUse.app.bsky.actor.searchActorsTypeahead({ q: query || "", limit: 25 })
+			return {
+				actors: (response.data.actors || []).map((actor) => ({
+					did: actor.did,
+					handle: actor.handle,
+					displayName: actor.displayName,
+					avatar: actor.avatar,
+					description: actor.description,
+				})),
+			}
+		} catch {
+			// Fallback silently to empty on failure; caller may try full search
+			return { actors: [] }
+		}
+	}
+
 	const searchByHashtag = async (hashtag: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
 		// Remove # if present and search for the hashtag
 		const tag = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag
@@ -2261,7 +2281,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				addToStarterPack,
 				removeFromStarterPack,
 				searchPosts,
-				searchActors,
+  		searchActors,
+  		searchActorsTypeahead,
 				searchByHashtag,
 				getListFeed,
 				uploadImage,

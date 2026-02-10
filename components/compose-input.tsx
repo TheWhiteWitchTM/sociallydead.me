@@ -110,7 +110,7 @@ export function ComposeInput({
   compact = false,
   autoFocus = false,
 }: ComposeInputProps) {
-  const { searchActors } = useBluesky()
+  const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -197,20 +197,22 @@ export function ComposeInput({
   }, [linkCardDismissed, onLinkCardChange])
 
   const searchMentions = useCallback(async (query: string) => {
-    if (query.length < 1) {
-      setMentionSuggestions([])
-      return
-    }
     setIsSearchingMentions(true)
     try {
-      const result = await searchActors(query)
-      setMentionSuggestions(result.actors.slice(0, 5))
+      // Prefer typeahead (prioritizes follows); fallback to full search
+      const typeahead = await searchActorsTypeahead(query)
+      let actors = typeahead.actors
+      if ((!actors || actors.length === 0) && query.length > 0) {
+        const result = await searchActors(query)
+        actors = result.actors
+      }
+      setMentionSuggestions((actors || []).slice(0, 5))
     } catch {
       setMentionSuggestions([])
     } finally {
       setIsSearchingMentions(false)
     }
-  }, [searchActors])
+  }, [searchActors, searchActorsTypeahead])
 
   const searchHashtags = useCallback((query: string) => {
     if (query.length < 1) {
@@ -272,13 +274,12 @@ export function ComposeInput({
     const mentionMatch = textBeforeCursor.match(/(?:\s|^)@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
-      // Fix: the match includes the whitespace or start of line if it's there
-      // We want the position of the '@'
       const triggerIndex = textBeforeCursor.lastIndexOf('@')
       updateAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
+      // Show suggestions even if user typed only '@'
       searchMentions(matchText)
       return
     }
@@ -291,6 +292,7 @@ export function ComposeInput({
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
+      // If empty after '#', show popular list; else filter
       searchHashtags(matchText)
       return
     }
