@@ -8,6 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
 import useSWR from "swr"
+import { useSociallyDeadRepo } from "@/lib/sociallydead-repo-context"
 
 interface VerifiedBadgeProps {
 	handle: string
@@ -58,6 +59,8 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 
 	const staticType = getVerificationType(handle)
 
+	const { getRecord } = useSociallyDeadRepo()
+
 	const { data: isBlueskyVerified } = useSWR(
 		did ? `bsky-verified:${did}` : null,
 		() => checkBlueskyVerification(did!),
@@ -69,24 +72,8 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 	)
 
 	const shouldCheckAppRepo = !staticType && !isBlueskyVerified && !!did
-	const { data: isAppVerified } = useSWR(
-		shouldCheckAppRepo ? `app-verified:${did}` : null,
-		async () => {
-			try {
-				const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(did!)}`);
-				if (!res.ok) return false
-				const json = await res.json()
-				return json.record?.verified === true
-			} catch {
-				return false
-			}
-		},
-		{
-			revalidateOnFocus: false,
-			revalidateOnReconnect: false,
-			dedupingInterval: 300000,
-		}
-	)
+	const { record } = getRecord(shouldCheckAppRepo ? did! : "")
+	const isAppVerified = record?.verified === true
 
 	// Precedence: Bluesky > Gold > Green > Blue (only if none above)
 	let type: VerificationType = staticType || (isBlueskyVerified ? "bluesky" : null)
