@@ -6,8 +6,6 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { ComposeInput, type LinkCardData, type MediaFile } from "@/components/compose-input"
 import { Loader2, Send, PenSquare } from "lucide-react"
 
@@ -99,13 +97,8 @@ export default function ComposePage() {
           </Card>
         )}
 
-        <Tabs defaultValue="write" className="w-full px-3 sm:px-0">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="write">Write</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="write" className="mt-4">
+        <div className="w-full px-3 sm:px-0">
+          <div className="mt-4">
             <div className="bg-background rounded-xl border-none sm:border shadow-sm overflow-hidden">
               <ComposeInput
                 text={text}
@@ -126,42 +119,12 @@ export default function ComposePage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium">Pro Tip</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Paste a URL at the very start or end of your post to automatically generate a rich link preview card. Mentions and hashtags work too!
+                  Type @ to mention someone or # for hashtags. Paste a URL at the start or end to generate a rich link preview card.
                 </p>
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="preview" className="mt-4">
-            <Card>
-              <CardContent className="p-4">
-                {text.trim() ? (
-                  <MarkdownRenderer content={text} />
-                ) : (
-                  <p className="text-muted-foreground">Nothing to preview yet...</p>
-                )}
-                {linkCard && (
-                  <a href={linkCard.url} target="_blank" rel="noopener noreferrer" className="block mt-3">
-                    <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
-                      {linkCard.image && (
-                        <div className="aspect-video relative">
-                          <img src={linkCard.image} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                        </div>
-                      )}
-                      <CardContent className="p-3">
-                        <p className="font-medium line-clamp-2">{linkCard.title}</p>
-                        {linkCard.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{linkCard.description}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2 truncate">{linkCard.url}</p>
-                      </CardContent>
-                    </Card>
-                  </a>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </main>
     </div>
   )

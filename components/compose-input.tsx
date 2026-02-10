@@ -205,12 +205,18 @@ export function ComposeInput({
       // Prefer typeahead (prioritizes follows); fallback to full search
       const typeahead = await searchActorsTypeahead(query)
       let actors = typeahead.actors
+      console.log('Typeahead results for "' + query + '":', actors)
       if ((!actors || actors.length === 0) && query.length > 0) {
+        console.log('No typeahead results, trying full search...')
         const result = await searchActors(query)
         actors = result.actors
+        console.log('Full search results:', actors)
       }
-      setMentionSuggestions((actors || []).slice(0, 5))
-    } catch {
+      const suggestions = (actors || []).slice(0, 5)
+      console.log('Setting mention suggestions:', suggestions)
+      setMentionSuggestions(suggestions)
+    } catch (error) {
+      console.error('Error searching mentions:', error)
       setMentionSuggestions([])
     } finally {
       setIsSearchingMentions(false)
