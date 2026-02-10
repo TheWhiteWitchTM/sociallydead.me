@@ -103,15 +103,20 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
 
       // 5. Verify and write the supporter record
       const session = agent?.sessionManager?.session
+      
+      if (!session?.accessJwt || !user?.handle || !user?.did) {
+        throw new Error("Required session information is missing. Please sign in again.")
+      }
+
       const verifyRes = await fetch("/api/paypal/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId,
-          handle: user?.handle,
-          did: user?.did,
-          accessJwt: session?.accessJwt,
-          pdsUrl: session?.pdsUri || "https://bsky.social",
+          handle: user.handle,
+          did: user.did,
+          accessJwt: session.accessJwt,
+          pdsUrl: session.pdsUri || "https://bsky.social",
         }),
       })
 

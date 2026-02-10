@@ -422,7 +422,7 @@ export default function NotificationsPage() {
                                     <VerifiedBadge 
                                       handle={author.handle} 
                                       did={author.did}
-                                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                                      className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm" 
                                     />
                                   )}
                                 </Link>
@@ -544,7 +544,7 @@ export default function NotificationsPage() {
                               <VerifiedBadge 
                                 handle={notification.author.handle} 
                                 did={notification.author.did}
-                                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                                className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm" 
                               />
                             )}
                           </Link>

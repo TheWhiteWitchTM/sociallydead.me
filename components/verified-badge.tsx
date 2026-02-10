@@ -115,8 +115,8 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>
-          <span className={`inline-flex items-center text-xs font-medium rounded-full ${badgeStyles[type]} ${className}`}>
-	          <BadgeCheck className="h-4 w-4" />
+          <span className={`inline-flex items-center text-xs font-medium shrink-0 ${badgeStyles[type]} ${className}`} style={{ width: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1rem', height: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1rem' }}>
+	          <BadgeCheck className="h-full w-full" />
           </span>
 				</TooltipTrigger>
 				<TooltipContent>
