@@ -104,13 +104,18 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
         ) : profile ? (
           <div className="space-y-3">
             <div className="flex items-start justify-between">
-              <Link href={`/profile/${profile.handle}`}>
+              <Link href={`/profile/${profile.handle}`} className="relative">
                 <Avatar className="h-14 w-14 cursor-pointer hover:opacity-80">
                   <AvatarImage src={profile.avatar || "/placeholder.svg"} />
                   <AvatarFallback>
                     {(profile.displayName || profile.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
+                <VerifiedBadge 
+                  handle={profile.handle} 
+                  did={profile.did}
+                  className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full" 
+                />
               </Link>
               {isAuthenticated && (
                 <Button

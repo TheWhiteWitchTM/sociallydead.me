@@ -641,16 +641,25 @@ export default function MessagesPage() {
                 <div className="flex items-center gap-2">
                   {selectedConvo.members.filter(m => m.did !== user?.did).map((member) => (
                     <div key={member.did} className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={member.avatar || "/placeholder.svg"} />
-                        <AvatarFallback className="text-xs">
-                          {getMemberDisplayName(member).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={member.avatar || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs">
+                            {getMemberDisplayName(member).slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {!isInvalidHandle(member.handle) && (
+                          <VerifiedBadge 
+                            handle={member.handle} 
+                            did={member.did}
+                            className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                          />
+                        )}
+                      </div>
                       <span className="font-semibold truncate max-w-[150px] sm:max-w-none">
                         {getMemberDisplayName(member)}
                       </span>
-                      {!isInvalidHandle(member.handle) && <VerifiedBadge handle={member.handle} did={member.did} />}
+                      {!isInvalidHandle(member.handle) && <VerifiedBadge handle={member.handle} did={member.did} className="ml-0.5" />}
                       {selectedConvo.muted && (
                         <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Muted</span>
                       )}
@@ -741,12 +750,19 @@ export default function MessagesPage() {
                               }}
                             >
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={actor.avatar || "/placeholder.svg"} />
-                                  <AvatarFallback>
-                                    {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <div className="relative">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage src={actor.avatar || "/placeholder.svg"} />
+                                    <AvatarFallback>
+                                      {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <VerifiedBadge 
+                                    handle={actor.handle} 
+                                    did={actor.did}
+                                    className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                                  />
+                                </div>
                                 <div>
                                   <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
                                   <HandleLink handle={actor.handle} className="text-sm" />
@@ -854,6 +870,13 @@ export default function MessagesPage() {
                                 {getMemberDisplayName(validMembers[0] || otherMembers[0]).slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
+                            {validMembers[0] && (
+                              <VerifiedBadge 
+                                handle={validMembers[0].handle} 
+                                did={validMembers[0].did}
+                                className="absolute -right-0 -bottom-0 scale-75 origin-bottom-right bg-background rounded-full" 
+                              />
+                            )}
                             {hasUnread && (
                               <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                                 {convo.unreadCount}
@@ -866,7 +889,7 @@ export default function MessagesPage() {
                                 {validMembers.map(m => getMemberDisplayName(m)).join(", ") || "Deleted Account"}
                               </p>
                               {validMembers.map(m => (
-                                <VerifiedBadge key={m.did} handle={m.handle} did={m.did} className="shrink-0" />
+                                <VerifiedBadge key={m.did} handle={m.handle} did={m.did} className="shrink-0 ml-0.5" />
                               ))}
                               {convo.muted && (
                                 <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -960,12 +983,21 @@ export default function MessagesPage() {
                           >
                             <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : ''}`}>
                               {!isOwn && (
-                                <Avatar className="h-8 w-8 shrink-0 mt-1">
-                                  <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
-                                  <AvatarFallback className="text-xs">
-                                    {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <div className="relative mt-1 shrink-0">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
+                                    <AvatarFallback className="text-xs">
+                                      {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {sender?.handle && (
+                                    <VerifiedBadge 
+                                      handle={sender.handle} 
+                                      did={sender.did}
+                                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                                    />
+                                  )}
+                                </div>
                               )}
                               <div>
                                 <div 

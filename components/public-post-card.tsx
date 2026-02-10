@@ -52,13 +52,18 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
         <CardContent className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
             <UserHoverCard handle={post.author.handle}>
-              <Link href={`/profile/${post.author.handle}`} className="shrink-0">
+              <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
                   <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
                   <AvatarFallback className="text-sm">
                     {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
+                <VerifiedBadge 
+                  handle={post.author.handle} 
+                  did={post.author.did}
+                  className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                />
               </Link>
             </UserHoverCard>
             
@@ -69,7 +74,7 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                     {post.author.displayName || post.author.handle}
                   </Link>
                 </UserHoverCard>
-                <VerifiedBadge handle={post.author.handle} />
+                <VerifiedBadge handle={post.author.handle} did={post.author.did} className="ml-0.5" />
                 <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
                 <span className="text-muted-foreground hidden sm:inline">·</span>
                 <span className="text-xs sm:text-sm text-muted-foreground">

@@ -454,7 +454,7 @@ function ProfileContent() {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
               {user.displayName || user.handle}
-              <VerifiedBadge handle={user.handle} did={user.did} />
+              <VerifiedBadge handle={user.handle} did={user.did} className="ml-0.5" />
             </h1>
             <p className="text-xs text-muted-foreground">{user.postsCount || 0} posts</p>
           </div>
@@ -476,12 +476,19 @@ function ProfileContent() {
           
           {/* Avatar */}
           <div className="absolute -bottom-16 left-4">
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
-              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
-              <AvatarFallback className="text-2xl sm:text-3xl">
-                {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
+                <AvatarFallback className="text-2xl sm:text-3xl">
+                  {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <VerifiedBadge 
+                handle={user.handle} 
+                did={user.did}
+                className="absolute right-0 bottom-0 scale-125 origin-bottom-right bg-background rounded-full border-2 border-background" 
+              />
+            </div>
           </div>
           
           {/* Edit Button */}
@@ -506,7 +513,7 @@ function ProfileContent() {
         <div className="px-4 pt-20 pb-4">
           <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
             {user.displayName || user.handle}
-            <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
+            <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5 ml-0.5" />
           </h2>
           <HandleLink handle={user.handle} />
           
@@ -1097,13 +1104,18 @@ function UserCard({ user, onNavigate }: { user: UserProfile & { viewer?: { follo
       <CardContent className="p-3">
         <div className="flex items-center gap-3">
           <UserHoverCard handle={user.handle}>
-            <Link href={`/profile/${user.handle}`} onClick={onNavigate} className="shrink-0">
+            <Link href={`/profile/${user.handle}`} onClick={onNavigate} className="shrink-0 relative">
               <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
                 <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
                 <AvatarFallback>
                   {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
+              <VerifiedBadge 
+                handle={user.handle} 
+                did={user.did}
+                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+              />
             </Link>
           </UserHoverCard>
           <div className="flex-1 min-w-0">
@@ -1113,7 +1125,7 @@ function UserCard({ user, onNavigate }: { user: UserProfile & { viewer?: { follo
                   {user.displayName || user.handle}
                 </Link>
               </UserHoverCard>
-              <VerifiedBadge handle={user.handle} did={user.did} />
+              <VerifiedBadge handle={user.handle} did={user.did} className="ml-0.5" />
             </div>
             <HandleLink handle={user.handle} className="text-sm" />
             {user.description && (

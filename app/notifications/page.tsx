@@ -411,13 +411,20 @@ export default function NotificationsPage() {
                           <div className="flex items-center mb-1.5">
                             <div className="flex -space-x-2">
                               {group.authors.slice(0, 6).map((author) => (
-                                <Link key={author.did} href={`/profile/${author.handle || author.did}`}>
+                                <Link key={author.did} href={`/profile/${author.handle || author.did}`} className="relative">
                                   <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
                                     <AvatarImage src={author.avatar || "/placeholder.svg"} />
                                     <AvatarFallback className="text-[10px]">
                                       {(author.displayName || author.handle || '?').slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
+                                  {author.handle && (
+                                    <VerifiedBadge 
+                                      handle={author.handle} 
+                                      did={author.did}
+                                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                                    />
+                                  )}
                                 </Link>
                               ))}
                               {count > 6 && (
@@ -429,15 +436,15 @@ export default function NotificationsPage() {
                           </div>
 
                           {/* Description */}
-                          <p className="text-sm">
-                            <Link
-                              href={`/profile/${firstAuthor.handle || firstAuthor.did}`}
-                              className="font-semibold hover:underline"
-                            >
-                              {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
-                            </Link>
-                            {firstAuthor.handle && <VerifiedBadge handle={firstAuthor.handle} className="ml-0.5" />}
-                            {othersCount > 0 && (
+                            <p className="text-sm">
+                              <Link
+                                href={`/profile/${firstAuthor.handle || firstAuthor.did}`}
+                                className="font-semibold hover:underline"
+                              >
+                                {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
+                              </Link>
+                              {firstAuthor.handle && <VerifiedBadge handle={firstAuthor.handle} did={firstAuthor.did} className="ml-0.5" />}
+                              {othersCount > 0 && (
                               <span className="text-muted-foreground">
                                 {' '}and {othersCount} {othersCount === 1 ? 'other' : 'others'}
                               </span>
@@ -526,13 +533,20 @@ export default function NotificationsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <Link href={`/profile/${notification.author.handle || notification.author.did}`}>
+                          <Link href={`/profile/${notification.author.handle || notification.author.did}`} className="relative">
                             <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
                               <AvatarImage src={notification.author.avatar || "/placeholder.svg"} />
                               <AvatarFallback className="text-xs">
                                 {(notification.author.displayName || notification.author.handle || '?').slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
+                            {notification.author.handle && (
+                              <VerifiedBadge 
+                                handle={notification.author.handle} 
+                                did={notification.author.did}
+                                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                              />
+                            )}
                           </Link>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm">
@@ -542,7 +556,7 @@ export default function NotificationsPage() {
                               >
                                 {notification.author.displayName || notification.author.handle || 'Unknown'}
                               </Link>
-                              {notification.author.handle && <VerifiedBadge handle={notification.author.handle} className="ml-0.5" />}
+                              {notification.author.handle && <VerifiedBadge handle={notification.author.handle} did={notification.author.did} className="ml-0.5" />}
                               <span className="text-muted-foreground ml-1">{text}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">

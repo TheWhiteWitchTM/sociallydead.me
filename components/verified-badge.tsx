@@ -115,12 +115,8 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>
-          <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${badgeStyles[type]} ${className}`}>
-            {type === "blue" ? (
-	            <BadgeCheck className="h-4 w-4" />
-            ) : (
-	            <BadgeCheck className="h-4 w-4" />
-            )}
+          <span className={`inline-flex items-center text-xs font-medium rounded-full ${badgeStyles[type]} ${className}`}>
+	          <BadgeCheck className="h-4 w-4" />
           </span>
 				</TooltipTrigger>
 				<TooltipContent>

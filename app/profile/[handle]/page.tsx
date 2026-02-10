@@ -497,7 +497,7 @@ const handleTabChange = (tab: string) => {
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-bold truncate inline-flex items-center gap-1">
                 {profile.displayName || profile.handle}
-                <VerifiedBadge handle={profile.handle} did={profile.did} />
+                <VerifiedBadge handle={profile.handle} did={profile.did} className="ml-0.5" />
               </h1>
               <p className="text-xs text-muted-foreground">{profile.postsCount || 0} posts</p>
             </div>
@@ -519,12 +519,19 @@ const handleTabChange = (tab: string) => {
           
           {/* Avatar */}
           <div className="absolute -bottom-16 left-4">
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
-              <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.displayName || profile.handle} />
-              <AvatarFallback className="text-2xl sm:text-3xl">
-                {(profile.displayName || profile.handle).slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+                <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.displayName || profile.handle} />
+                <AvatarFallback className="text-2xl sm:text-3xl">
+                  {(profile.displayName || profile.handle).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <VerifiedBadge 
+                handle={profile.handle} 
+                did={profile.did}
+                className="absolute right-0 bottom-0 scale-125 origin-bottom-right bg-background rounded-full border-2 border-background" 
+              />
+            </div>
           </div>
           
           {/* Action Buttons */}
@@ -587,7 +594,7 @@ const handleTabChange = (tab: string) => {
               <div>
                 <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
                   {profile.displayName || profile.handle}
-                  <VerifiedBadge handle={profile.handle} did={profile.did} className="h-5 w-5" />
+                  <VerifiedBadge handle={profile.handle} did={profile.did} className="h-5 w-5 ml-0.5" />
                 </h2>
                 <HandleLink handle={profile.handle} />
               </div>
