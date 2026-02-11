@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { UserHoverCard } from "@/components/user-hover-card"
-import { Loader2, RefreshCw, Package, ArrowLeft, UserPlus, UserMinus, Users, MoreHorizontal, Pencil, Trash2, Check, Rss } from "lucide-react"
+import { Loader2, RefreshCw, Package, ArrowLeft, UserPlus, UserMinus, Users, MoreHorizontal, Pencil, Trash2, Check, Rss, Plus } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,

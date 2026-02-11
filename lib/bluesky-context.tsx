@@ -279,6 +279,7 @@ interface BlueskyContextType {
 	// Lists
 	getLists: (actor?: string) => Promise<BlueskyList[]>
 	getList: (uri: string, cursor?: string) => Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }>; cursor?: string }>
+	getListFeed: (listUri: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
 	createList: (name: string, purpose: 'modlist' | 'curatelist', description?: string) => Promise<{ uri: string; cid: string }>
 	updateList: (uri: string, name: string, description?: string) => Promise<void>
 	deleteList: (uri: string) => Promise<void>
