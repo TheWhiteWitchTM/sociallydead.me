@@ -113,24 +113,27 @@ export async function POST(req: NextRequest) {
       console.error("[PayPal] Error writing to PDS:", e)
     }
 
-    // 3. Also update the SociallyDead app-record for the blue badge
+    // 3. Update the SociallyDead app-record
     try {
       const { upsertAppRecord, getAppRecord } = await import('@/lib/sociallydead-app-repo');
-      
-      // Determine supporter tier and star flag
-      const isStar = amount >= 50
-      const tier = isStar ? "star" : "blue"
 
       // Get existing record if any to preserve other fields
       const existing = await getAppRecord(did);
-      await upsertAppRecord(did, {
+
+      // Build the update
+      const update: any = {
         ...existing,
-        verified: true,
+        verified: true, // Any payment $1+ sets verified to true
         verifiedAt: new Date().toISOString(),
-        supporterTier: tier,
-        star: isStar,
-      });
-      console.log(`[PayPal] Successfully updated app-record for DID: ${did} (tier=${tier})`);
+      };
+
+      // If $50 or more, also set supporter to true
+      if (amount >= 50) {
+        update.supporter = true;
+      }
+
+      await upsertAppRecord(did, update);
+      console.log(`[PayPal] Successfully updated app-record for DID: ${did} (verified=true, supporter=${amount >= 50})`);
     } catch (err) {
       console.error("[PayPal] Failed to update app-record:", err);
       // If this fails, the user won't get the badge immediately in SociallyDead
