@@ -446,7 +446,6 @@ export default function NotificationsPage() {
                                   {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
                                 </Link>
                               </UserHoverCard>
-                              {firstAuthor.handle && <VerifiedBadge handle={firstAuthor.handle} did={firstAuthor.did} className="ml-0.5" />}
                               {othersCount > 0 && (
                               <span className="text-muted-foreground">
                                 {' '}and {othersCount} {othersCount === 1 ? 'other' : 'others'}
@@ -563,7 +562,6 @@ export default function NotificationsPage() {
                                     {notification.author.displayName || notification.author.handle || 'Unknown'}
                                   </Link>
                                 </UserHoverCard>
-                                {notification.author.handle && <VerifiedBadge handle={notification.author.handle} did={notification.author.did} className="ml-0.5" />}
                                 <span className="text-muted-foreground ml-1">{text}</span>
                               </p>
                             <p className="text-xs text-muted-foreground">

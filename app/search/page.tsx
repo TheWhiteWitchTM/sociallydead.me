@@ -135,16 +135,22 @@ export default function SearchPage() {
                   <Card className="hover:bg-accent/50 transition-colors">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={actor.avatar || "/placeholder.svg"} alt={actor.displayName || actor.handle} />
-                          <AvatarFallback>
-                            {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                          <Avatar>
+                            <AvatarImage src={actor.avatar || "/placeholder.svg"} alt={actor.displayName || actor.handle} />
+                            <AvatarFallback>
+                              {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <VerifiedBadge 
+                            handle={actor.handle} 
+                            did={actor.did}
+                            className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                          />
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate inline-flex items-center gap-1">
+                          <p className="font-semibold truncate">
                             {actor.displayName || actor.handle}
-                            <VerifiedBadge handle={actor.handle} />
                           </p>
                           <HandleLink handle={actor.handle} className="text-sm" />
                           {actor.description && (

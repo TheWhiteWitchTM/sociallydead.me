@@ -1075,13 +1075,18 @@ function UserCard({ user, onNavigate, showUnfollow }: { user: UserProfile; onNav
       <CardContent className="p-3">
         <div className="flex items-center gap-3">
           <UserHoverCard handle={user.handle}>
-            <Link href={`/profile/${user.handle}`} onClick={onNavigate} className="shrink-0">
+            <Link href={`/profile/${user.handle}`} onClick={onNavigate} className="shrink-0 relative">
               <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
                 <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
                 <AvatarFallback>
                   {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
+              <VerifiedBadge 
+                handle={user.handle} 
+                did={user.did}
+                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+              />
             </Link>
           </UserHoverCard>
           <div className="flex-1 min-w-0">
@@ -1091,7 +1096,6 @@ function UserCard({ user, onNavigate, showUnfollow }: { user: UserProfile; onNav
                   {user.displayName || user.handle}
                 </Link>
               </UserHoverCard>
-              <VerifiedBadge handle={user.handle} did={user.did} />
             </div>
             <HandleLink handle={user.handle} className="text-sm" />
             {user.description && (
