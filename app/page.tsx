@@ -229,12 +229,6 @@ export default function HomePage() {
       <div className="min-h-screen">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-14 items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">SD</span>
-              </div>
-              <span className="text-base font-bold">SociallyDead</span>
-            </Link>
             <SignInDialog
               trigger={
                 <Button variant="default" size="sm" className="gap-2">
