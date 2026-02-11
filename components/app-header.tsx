@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils"
 const mainNavItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
+  { id: "news", href: "/news", icon: Newspaper, label: "News" },
 ]
 
 const feedCategories = [
@@ -162,7 +163,6 @@ export function AppHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuLabel>Feeds</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {feedCategories.map((category) => {
                 const isActive = pathname === category.href
