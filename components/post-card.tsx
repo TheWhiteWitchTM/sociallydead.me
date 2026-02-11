@@ -121,8 +121,12 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     user,
     isAuthenticated,
     login,
+    addBookmark,
+    removeBookmark,
+    isBookmarked: checkIsBookmarked,
   } = useBluesky()
   
+  const isBookmarked = checkIsBookmarked(post.uri)
   const [isLiked, setIsLiked] = useState(!!post.viewer?.like)
   const [isReposted, setIsReposted] = useState(!!post.viewer?.repost)
   const [likeCount, setLikeCount] = useState(post.likeCount)
@@ -163,11 +167,11 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   const [isFactCheckOpen, setIsFactCheckOpen] = useState(false)
   const [factCheckResult, setFactCheckResult] = useState<string | null>(null)
   const [isFactChecking, setIsFactChecking] = useState(false)
-  const [isBookmarked, setIsBookmarked] = useState(false)
   const [isPinning, setIsPinning] = useState(false)
   const [isHighlighting, setIsHighlighting] = useState(false)
   const [viewCount, setViewCount] = useState(0)
   const [linkClickCount, setLinkClickCount] = useState(0)
+  const [isBookmarking, setIsBookmarking] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const hasTrackedView = useRef(false)
 
@@ -352,17 +356,20 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     }
   }
 
-  const handleBookmark = () => {
-    // Store in localStorage for bookmarks
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
-    if (isBookmarked) {
-      const filtered = bookmarks.filter((b: string) => b !== post.uri)
-      localStorage.setItem('bookmarked_posts', JSON.stringify(filtered))
-      setIsBookmarked(false)
-    } else {
-      bookmarks.push(post.uri)
-      localStorage.setItem('bookmarked_posts', JSON.stringify(bookmarks))
-      setIsBookmarked(true)
+  const handleBookmark = async () => {
+    if (!handleAuthRequired()) return
+    
+    setIsBookmarking(true)
+    try {
+      if (isBookmarked) {
+        await removeBookmark(post.uri)
+      } else {
+        await addBookmark(post.uri)
+      }
+    } catch (error) {
+      console.error("Failed to bookmark/unbookmark:", error)
+    } finally {
+      setIsBookmarking(false)
     }
   }
 
@@ -413,12 +420,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
       setIsHighlighting(false)
     }
   }
-
-  // Check if bookmarked on mount
-  useEffect(() => {
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
-    setIsBookmarked(bookmarks.includes(post.uri))
-  }, [post.uri])
 
   // Track view when post becomes visible (IntersectionObserver)
   useEffect(() => {
@@ -578,8 +579,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                       <Sparkles className="mr-2 h-4 w-4" />
                       AI Fact-Check
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleBookmark}>
-                      {isBookmarked ? (
+                    <DropdownMenuItem onClick={handleBookmark} disabled={isBookmarking}>
+                      {isBookmarking ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : isBookmarked ? (
                         <>
                           <Bookmark className="mr-2 h-4 w-4 fill-current" />
                           Remove Bookmark

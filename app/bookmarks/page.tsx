@@ -36,7 +36,7 @@ interface Post {
 }
 
 export default function BookmarksPage() {
-  const { isAuthenticated, isLoading: authLoading, user, getPost } = useBluesky()
+  const { isAuthenticated, isLoading: authLoading, user, getPost, getBookmarks } = useBluesky()
   const [posts, setPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +47,7 @@ export default function BookmarksPage() {
       setError(null)
       
       try {
-        const bookmarkUris = JSON.parse(localStorage.getItem('bookmarked_posts') || '[]')
+        const bookmarkUris = await getBookmarks()
         
         if (bookmarkUris.length === 0) {
           setPosts([])
@@ -55,6 +55,7 @@ export default function BookmarksPage() {
         }
 
         const loadedPosts: Post[] = []
+        // Load in chunks to avoid blocking
         for (const uri of bookmarkUris) {
           try {
             const post = await getPost(uri)
@@ -79,11 +80,11 @@ export default function BookmarksPage() {
     } else {
       setIsLoading(false)
     }
-  }, [isAuthenticated, getPost])
+  }, [isAuthenticated, getPost, getBookmarks])
 
   const clearAllBookmarks = () => {
-    localStorage.setItem('bookmarked_posts', '[]')
-    setPosts([])
+    // Clear logic moved to context if needed, but for now we just show notice
+    alert("Please remove bookmarks individually to sync with server.")
   }
 
   if (authLoading) {

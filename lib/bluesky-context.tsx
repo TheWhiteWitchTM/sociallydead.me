@@ -278,7 +278,7 @@ interface BlueskyContextType {
 	getFeedGenerator: (uri: string) => Promise<BlueskyFeedGenerator>
 	// Lists
 	getLists: (actor?: string) => Promise<BlueskyList[]>
-	getList: (uri: string) => Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }> }>
+	getList: (uri: string, cursor?: string) => Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }>; cursor?: string }>
 	createList: (name: string, purpose: 'modlist' | 'curatelist', description?: string) => Promise<{ uri: string; cid: string }>
 	updateList: (uri: string, name: string, description?: string) => Promise<void>
 	deleteList: (uri: string) => Promise<void>
@@ -308,6 +308,11 @@ interface BlueskyContextType {
 	addBookmark: (uri: string) => Promise<void>
 	removeBookmark: (uri: string) => Promise<void>
 	isBookmarked: (uri: string) => boolean
+	// Feeds
+	getSavedFeeds: () => Promise<any[]>
+	saveFeed: (uri: string) => Promise<void>
+	unsaveFeed: (uri: string) => Promise<void>
+	isFeedSaved: (uri: string) => boolean
 	// Search
 	searchPosts: (query: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
 	searchActors: (query: string, cursor?: string) => Promise<{ actors: BlueskyUser[]; cursor?: string }>
@@ -353,6 +358,8 @@ async function getOAuthClient(): Promise<BrowserOAuthClient> {
 
 export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	const [agent, setAgent] = useState<Agent | null>(null)
+	const [bookmarks, setBookmarks] = useState<string[]>([])
+	const [savedFeeds, setSavedFeeds] = useState<string[]>([])
 	const [user, setUser] = useState<BlueskyUser | null>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [publicAgent] = useState(() => new Agent("https://api.bsky.app"))
@@ -378,6 +385,30 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 						followersCount: profile.data.followersCount,
 						followsCount: profile.data.followsCount,
 						postsCount: profile.data.postsCount,
+					})
+
+					// Trigger migration and fetch bookmarks
+					migrateBookmarks(oauthAgent, result.session.did).then(() => {
+						// Small delay to ensure records are listable
+						setTimeout(() => {
+							const response = oauthAgent.com.atproto.repo.listRecords({
+								repo: result.session.did,
+								collection: 'me.sociallydead.bookmark',
+								limit: 100,
+							})
+							response.then(res => {
+								const uris = res.data.records.map((r: any) => r.value.uri as string)
+								setBookmarks(uris)
+							})
+
+							// Fetch saved feeds
+							oauthAgent.app.bsky.actor.getPreferences({}).then(res => {
+								const pref = res.data.preferences.find(
+									(p: any) => p.$type === 'app.bsky.actor.defs#savedFeedsPref'
+								) as any
+								if (pref) setSavedFeeds(pref.saved || [])
+							})
+						}, 1000)
 					})
 				}
 			} catch (error) {
@@ -1356,10 +1387,9 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}))
 	}
 
-	const getList = async (uri: string): Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }> }> => {
-		if (!agent) throw new Error("Not authenticated")
-
-		const response = await agent.app.bsky.graph.getList({ list: uri, limit: 100 })
+	const getList = async (uri: string, cursor?: string): Promise<{ list: BlueskyList; items: Array<{ uri: string; subject: BlueskyUser }>; cursor?: string }> => {
+		const agentToUse = agent || publicAgent
+		const response = await agentToUse.app.bsky.graph.getList({ list: uri, limit: 100, cursor })
 
 		return {
 			list: {
@@ -1388,6 +1418,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 					description: item.subject.description,
 				},
 			})),
+			cursor: response.data.cursor,
 		}
 	}
 
@@ -1823,6 +1854,151 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 			} catch (e) {
 				console.error(`Failed to follow ${did}:`, e)
 			}
+		}
+	}
+
+	// Bookmarks
+	const getBookmarks = useCallback(async (): Promise<string[]> => {
+		if (!agent || !user) return []
+		try {
+			const response = await agent.com.atproto.repo.listRecords({
+				repo: user.did,
+				collection: 'me.sociallydead.bookmark',
+				limit: 100,
+			})
+			const uris = response.data.records.map((r: any) => r.value.uri as string)
+			setBookmarks(uris)
+			return uris
+		} catch (err) {
+			console.error("Failed to fetch bookmarks:", err)
+			return []
+		}
+	}, [agent, user])
+
+	const addBookmark = async (uri: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+		
+		// Use a hash or encoded URI as rkey to ensure uniqueness and avoid conflicts
+		const rkey = Buffer.from(uri).toString('hex').slice(0, 15)
+		
+		await agent.com.atproto.repo.putRecord({
+			repo: user.did,
+			collection: 'me.sociallydead.bookmark',
+			rkey,
+			record: {
+				uri,
+				createdAt: new Date().toISOString(),
+			}
+		})
+		setBookmarks(prev => [...prev, uri])
+	}
+
+	const removeBookmark = async (uri: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+		
+		const rkey = Buffer.from(uri).toString('hex').slice(0, 15)
+		
+		await agent.com.atproto.repo.deleteRecord({
+			repo: user.did,
+			collection: 'me.sociallydead.bookmark',
+			rkey,
+		})
+		setBookmarks(prev => prev.filter(b => b !== uri))
+	}
+
+	const isBookmarked = (uri: string) => bookmarks.includes(uri)
+
+	// Feeds
+	const getSavedFeeds = useCallback(async (): Promise<any[]> => {
+		if (!agent || !user) return []
+		try {
+			// official bsky client uses preferences for saved feeds
+			const response = await agent.app.bsky.actor.getPreferences({})
+			const savedFeedsPref = response.data.preferences.find(
+				(p: any) => p.$type === 'app.bsky.actor.defs#savedFeedsPref'
+			) as any
+			
+			if (savedFeedsPref) {
+				setSavedFeeds(savedFeedsPref.saved || [])
+				return savedFeedsPref.saved || []
+			}
+			return []
+		} catch (err) {
+			console.error("Failed to fetch saved feeds:", err)
+			return []
+		}
+	}, [agent, user])
+
+	const saveFeed = async (uri: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+		
+		const response = await agent.app.bsky.actor.getPreferences({})
+		let preferences = response.data.preferences
+		let savedFeedsPref = preferences.find(
+			(p: any) => p.$type === 'app.bsky.actor.defs#savedFeedsPref'
+		) as any
+
+		if (!savedFeedsPref) {
+			savedFeedsPref = { $type: 'app.bsky.actor.defs#savedFeedsPref', saved: [uri], pinned: [] }
+			preferences.push(savedFeedsPref)
+		} else if (!savedFeedsPref.saved.includes(uri)) {
+			savedFeedsPref.saved.push(uri)
+		}
+
+		await agent.app.bsky.actor.putPreferences({ preferences })
+		setSavedFeeds([...savedFeedsPref.saved])
+	}
+
+	const unsaveFeed = async (uri: string) => {
+		if (!agent || !user) throw new Error("Not authenticated")
+		
+		const response = await agent.app.bsky.actor.getPreferences({})
+		let preferences = response.data.preferences
+		const savedFeedsPref = preferences.find(
+			(p: any) => p.$type === 'app.bsky.actor.defs#savedFeedsPref'
+		) as any
+
+		if (savedFeedsPref) {
+			savedFeedsPref.saved = savedFeedsPref.saved.filter((s: string) => s !== uri)
+			savedFeedsPref.pinned = savedFeedsPref.pinned.filter((s: string) => s !== uri)
+			await agent.app.bsky.actor.putPreferences({ preferences })
+			setSavedFeeds([...savedFeedsPref.saved])
+		}
+	}
+
+	const isFeedSaved = (uri: string) => savedFeeds.includes(uri)
+
+	const migrateBookmarks = async (currentAgent: Agent, did: string) => {
+		try {
+			const local = localStorage.getItem('bookmarked_posts')
+			if (!local) return
+			
+			const uris = JSON.parse(local)
+			if (!Array.isArray(uris) || uris.length === 0) return
+
+			console.log(`Migrating ${uris.length} bookmarks to PDS...`)
+			
+			for (const uri of uris) {
+				const rkey = Buffer.from(uri).toString('hex').slice(0, 15)
+				try {
+					await currentAgent.com.atproto.repo.putRecord({
+						repo: did,
+						collection: 'me.sociallydead.bookmark',
+						rkey,
+						record: {
+							uri,
+							createdAt: new Date().toISOString(),
+						}
+					})
+				} catch (e) {
+					console.error(`Failed to migrate bookmark ${uri}:`, e)
+				}
+			}
+			
+			localStorage.removeItem('bookmarked_posts')
+			console.log("Migration complete.")
+		} catch (err) {
+			console.error("Bookmark migration failed:", err)
 		}
 	}
 
@@ -2297,9 +2473,17 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				updateStarterPack,
 				deleteStarterPack,
 				addToStarterPack,
-  		removeFromStarterPack,
-  		followAllMembers,
-  		searchPosts,
+				removeFromStarterPack,
+				followAllMembers,
+				getBookmarks,
+				addBookmark,
+				removeBookmark,
+				isBookmarked,
+				getSavedFeeds,
+				saveFeed,
+				unsaveFeed,
+				isFeedSaved,
+				searchPosts,
   		searchActors,
   		searchActorsTypeahead,
 				searchByHashtag,

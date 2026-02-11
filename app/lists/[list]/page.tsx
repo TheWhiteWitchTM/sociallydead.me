@@ -55,7 +55,11 @@ export default function ListPage() {
   const [list, setList] = useState<any>(null)
   const [members, setMembers] = useState<any[]>([])
   const [posts, setPosts] = useState<any[]>([])
+  const [postsCursor, setPostsCursor] = useState<string | undefined>(undefined)
+  const [membersCursor, setMembersCursor] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false)
+  const [loadingMoreMembers, setLoadingMoreMembers] = useState(false)
   const [postsLoading, setPostsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("posts")
@@ -73,37 +77,55 @@ export default function ListPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true)
+  const loadData = useCallback(async (isMoreMembers = false) => {
+    if (!isMoreMembers) setIsLoading(true)
+    else setLoadingMoreMembers(true)
+    
     setError(null)
     try {
-      const result = await getList(listUri)
-      setList(result.list)
-      setEditName(result.list.name)
-      setEditDescription(result.list.description || "")
-      setMembers(result.items.map(item => ({
-        ...item.subject,
-        itemUri: item.uri // Keep the item URI for removal
-      })))
-      
-      await loadPosts()
+      const result = await getList(listUri, isMoreMembers ? membersCursor : undefined)
+      if (isMoreMembers) {
+        setMembers(prev => [...prev, ...result.items.map(item => ({
+          ...item.subject,
+          itemUri: item.uri
+        }))])
+      } else {
+        setList(result.list)
+        setEditName(result.list.name)
+        setEditDescription(result.list.description || "")
+        setMembers(result.items.map(item => ({
+          ...item.subject,
+          itemUri: item.uri
+        })))
+        await loadPosts()
+      }
+      setMembersCursor(result.cursor)
     } catch (err) {
       console.error("Failed to load list:", err)
       setError(err instanceof Error ? err.message : "Failed to load list")
     } finally {
       setIsLoading(false)
+      setLoadingMoreMembers(false)
     }
-  }, [listUri, getList])
+  }, [listUri, getList, membersCursor])
 
-  const loadPosts = async () => {
-    setPostsLoading(true)
+  const loadPosts = async (isMore = false) => {
+    if (isMore) setLoadingMorePosts(true)
+    else setPostsLoading(true)
+    
     try {
-      const result = await getListFeed(listUri)
-      setPosts(result.posts)
+      const result = await getListFeed(listUri, isMore ? postsCursor : undefined)
+      if (isMore) {
+        setPosts(prev => [...prev, ...result.posts])
+      } else {
+        setPosts(result.posts)
+      }
+      setPostsCursor(result.cursor)
     } catch (err) {
       console.error("Failed to load list feed:", err)
     } finally {
       setPostsLoading(false)
+      setLoadingMorePosts(false)
     }
   }
 
@@ -389,6 +411,18 @@ export default function ListPage() {
                 ))}
               </div>
             )}
+            {postsCursor && (
+              <div className="p-4 flex justify-center border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => loadPosts(true)}
+                  disabled={loadingMorePosts}
+                >
+                  {loadingMorePosts && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Load More
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="people" className="p-0 m-0">
@@ -406,6 +440,18 @@ export default function ListPage() {
                     onRemove={() => handleRemoveFromList(member.itemUri)}
                   />
                 ))}
+              </div>
+            )}
+            {membersCursor && (
+              <div className="p-4 flex justify-center border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => loadData(true)}
+                  disabled={loadingMoreMembers}
+                >
+                  {loadingMoreMembers && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Load More
+                </Button>
               </div>
             )}
           </TabsContent>

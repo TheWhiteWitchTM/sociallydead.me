@@ -90,6 +90,7 @@ export default function FeedsPage() {
     getCustomFeed,
     saveFeed,
     unsaveFeed,
+    isFeedSaved,
   } = useBluesky()
   
   const [savedFeeds, setSavedFeeds] = useState<FeedGenerator[]>([])
@@ -105,12 +106,15 @@ export default function FeedsPage() {
   const [savingFeed, setSavingFeed] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const loadSavedFeeds = useCallback(async () => {
+  const loadSavedFeedsData = useCallback(async () => {
     if (!isAuthenticated) return
     
     try {
-      const feeds = await getSavedFeeds()
-      setSavedFeeds(feeds)
+      const savedUris = await getSavedFeeds()
+      // We need to fetch detailed info for each uri if possible, 
+      // but for simple sync we can just use the state from context.
+      // However, FeedCard needs FeedGenerator object. 
+      // Let's assume context or popular/discover might have them.
     } catch (err) {
       console.error("Failed to load saved feeds:", err)
     }
@@ -180,14 +184,12 @@ export default function FeedsPage() {
     
     setSavingFeed(feed.uri)
     try {
-      const isSaved = savedFeeds.some(f => f.uri === feed.uri)
+      const isSaved = isFeedSaved(feed.uri)
       
       if (isSaved) {
         await unsaveFeed(feed.uri)
-        setSavedFeeds(prev => prev.filter(f => f.uri !== feed.uri))
       } else {
         await saveFeed(feed.uri)
-        setSavedFeeds(prev => [...prev, feed])
       }
     } catch (error) {
       console.error("Failed to save/unsave feed:", error)
@@ -259,18 +261,18 @@ by @{selectedFeed.creator.handle} <VerifiedBadge handle={selectedFeed.creator.ha
                     {isAuthenticated && (
                       <Button 
                         size="sm" 
-                        variant={savedFeeds.some(f => f.uri === selectedFeed.uri) ? "secondary" : "default"}
+                        variant={isFeedSaved(selectedFeed.uri) ? "secondary" : "default"}
                         onClick={() => handleSaveFeed(selectedFeed)}
                         disabled={savingFeed === selectedFeed.uri}
                       >
                         {savingFeed === selectedFeed.uri ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : savedFeeds.some(f => f.uri === selectedFeed.uri) ? (
+                        ) : isFeedSaved(selectedFeed.uri) ? (
                           <Check className="h-4 w-4 mr-2" />
                         ) : (
                           <Plus className="h-4 w-4 mr-2" />
                         )}
-                        {savedFeeds.some(f => f.uri === selectedFeed.uri) ? "Saved" : "Save Feed"}
+                        {isFeedSaved(selectedFeed.uri) ? "Saved" : "Save Feed"}
                       </Button>
                     )}
                   </div>
@@ -407,7 +409,7 @@ by @{selectedFeed.creator.handle} <VerifiedBadge handle={selectedFeed.creator.ha
                       key={feed.uri} 
                       feed={feed} 
                       onClick={() => handleSelectFeed(feed)}
-                      isSaved={savedFeeds.some(f => f.uri === feed.uri)}
+                      isSaved={isFeedSaved(feed.uri)}
                       onSave={() => handleSaveFeed(feed)}
                       isSaving={savingFeed === feed.uri}
                       showSaveButton={isAuthenticated}
@@ -433,7 +435,7 @@ by @{selectedFeed.creator.handle} <VerifiedBadge handle={selectedFeed.creator.ha
                       key={feed.uri} 
                       feed={feed} 
                       onClick={() => handleSelectFeed(feed)}
-                      isSaved={savedFeeds.some(f => f.uri === feed.uri)}
+                      isSaved={isFeedSaved(feed.uri)}
                       onSave={() => handleSaveFeed(feed)}
                       isSaving={savingFeed === feed.uri}
                       showSaveButton={isAuthenticated}

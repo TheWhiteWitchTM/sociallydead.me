@@ -29,11 +29,11 @@ export default function FeedPage() {
     getSavedFeeds,
     saveFeed,
     unsaveFeed,
+    isFeedSaved,
   } = useBluesky()
 
   const [feed, setFeed] = useState<any>(null)
   const [posts, setPosts] = useState<any[]>([])
-  const [savedFeeds, setSavedFeeds] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [postsLoading, setPostsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,8 +48,7 @@ export default function FeedPage() {
       setFeed(feedData)
       
       if (isAuthenticated) {
-        const saved = await getSavedFeeds()
-        setSavedFeeds(saved)
+        await getSavedFeeds()
       }
       
       await loadPosts()
@@ -78,13 +77,11 @@ export default function FeedPage() {
     
     setSavingFeed(feed.uri)
     try {
-      const isSaved = savedFeeds.some(f => f.uri === feed.uri)
+      const isSaved = isFeedSaved(feed.uri)
       if (isSaved) {
         await unsaveFeed(feed.uri)
-        setSavedFeeds(prev => prev.filter(f => f.uri !== feed.uri))
       } else {
         await saveFeed(feed.uri)
-        setSavedFeeds(prev => [...prev, feed])
       }
     } catch (error) {
       console.error("Failed to save/unsave feed:", error)
@@ -119,7 +116,7 @@ export default function FeedPage() {
     )
   }
 
-  const isSaved = savedFeeds.some(f => f.uri === feed.uri)
+  const isSaved = isFeedSaved(feed.uri)
 
   return (
     <div className="min-h-screen">

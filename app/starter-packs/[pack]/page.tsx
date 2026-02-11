@@ -57,7 +57,9 @@ export default function StarterPackPage() {
   const [pack, setPack] = useState<any>(null)
   const [members, setMembers] = useState<any[]>([])
   const [posts, setPosts] = useState<any[]>([])
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [postsLoading, setPostsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("posts")
@@ -108,18 +110,26 @@ export default function StarterPackPage() {
     }
   }, [packUri, getStarterPack, getList])
 
-  const loadPosts = async (listUri?: string) => {
+  const loadPosts = async (listUri?: string, isMore = false) => {
     const uri = listUri || pack?.list?.uri
     if (!uri) return
 
-    setPostsLoading(true)
+    if (isMore) setLoadingMore(true)
+    else setPostsLoading(true)
+    
     try {
-      const result = await getListFeed(uri)
-      setPosts(result.posts)
+      const result = await getListFeed(uri, isMore ? cursor : undefined)
+      if (isMore) {
+        setPosts(prev => [...prev, ...result.posts])
+      } else {
+        setPosts(result.posts)
+      }
+      setCursor(result.cursor)
     } catch (err) {
       console.error("Failed to load starter pack feed:", err)
     } finally {
       setPostsLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -412,6 +422,14 @@ export default function StarterPackPage() {
             >
               People
             </TabsTrigger>
+            {pack?.feeds && pack.feeds.length > 0 && (
+              <TabsTrigger 
+                value="feeds" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 h-full"
+              >
+                Feeds
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="posts" className="p-0 m-0">
@@ -439,6 +457,18 @@ export default function StarterPackPage() {
                 ))}
               </div>
             )}
+            {cursor && (
+              <div className="p-4 flex justify-center border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => loadPosts(undefined, true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Load More
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="people" className="p-0 m-0">
@@ -459,6 +489,25 @@ export default function StarterPackPage() {
               </div>
             )}
           </TabsContent>
+
+          {pack?.feeds && pack.feeds.length > 0 && (
+            <TabsContent value="feeds" className="p-4 space-y-3">
+              {pack.feeds.map((feed: any) => (
+                <Card key={feed.uri} className="hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => router.push(`/feeds/${encodeURIComponent(feed.uri)}`)}>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={feed.avatar || "/placeholder.svg"} />
+                      <AvatarFallback><Rss className="h-6 w-6" /></AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">{feed.displayName}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-1">{feed.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
