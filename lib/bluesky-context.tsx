@@ -389,13 +389,9 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 					migrateBookmarks(oauthAgent, result.session.did).then(() => {
 						// Small delay to ensure records are listable
 						setTimeout(() => {
-							const response = oauthAgent.com.atproto.repo.listRecords({
-								repo: result.session.did,
-								collection: 'me.sociallydead.bookmark',
-								limit: 100,
-							})
+							const response = oauthAgent.app.bsky.bookmark.getBookmarks({ limit: 100 })
 							response.then(res => {
-								const uris = res.data.records.map((r: any) => r.value.uri as string)
+								const uris = res.data.bookmarks.map((b: any) => b.subject.uri as string)
 								setBookmarks(uris)
 							})
 
@@ -1850,12 +1846,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	const getBookmarks = useCallback(async (): Promise<string[]> => {
 		if (!agent || !user) return []
 		try {
-			const response = await agent.com.atproto.repo.listRecords({
-				repo: user.did,
-				collection: 'me.sociallydead.bookmark',
-				limit: 100,
-			})
-			const uris = response.data.records.map((r: any) => r.value.uri as string)
+			const response = await agent.app.bsky.bookmark.getBookmarks({ limit: 100 })
+			const uris = response.data.bookmarks.map((b: any) => b.subject.uri as string)
 			setBookmarks(uris)
 			return uris
 		} catch (err) {
@@ -1866,32 +1858,25 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const addBookmark = async (uri: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
-		
-		// Use a hash or encoded URI as rkey to ensure uniqueness and avoid conflicts
-		const rkey = Buffer.from(uri).toString('hex').slice(0, 15)
-		
-		await agent.com.atproto.repo.putRecord({
-			repo: user.did,
-			collection: 'me.sociallydead.bookmark',
-			rkey,
-			record: {
-				uri,
-				createdAt: new Date().toISOString(),
-			}
+
+		await agent.app.bsky.bookmark.createBookmark({
+			subject: { uri }
 		})
 		setBookmarks(prev => [...prev, uri])
 	}
 
 	const removeBookmark = async (uri: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
-		
-		const rkey = Buffer.from(uri).toString('hex').slice(0, 15)
-		
-		await agent.com.atproto.repo.deleteRecord({
-			repo: user.did,
-			collection: 'me.sociallydead.bookmark',
-			rkey,
-		})
+
+		// Get the bookmark to find its record URI
+		const response = await agent.app.bsky.bookmark.getBookmarks({ limit: 100 })
+		const bookmark = response.data.bookmarks.find((b: any) => b.subject.uri === uri)
+
+		if (bookmark) {
+			await agent.app.bsky.bookmark.deleteBookmark({
+				bookmarkUri: bookmark.uri
+			})
+		}
 		setBookmarks(prev => prev.filter(b => b !== uri))
 	}
 
@@ -1942,29 +1927,22 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		try {
 			const local = localStorage.getItem('bookmarked_posts')
 			if (!local) return
-			
+
 			const uris = JSON.parse(local)
 			if (!Array.isArray(uris) || uris.length === 0) return
 
-			console.log(`Migrating ${uris.length} bookmarks to PDS...`)
-			
+			console.log(`Migrating ${uris.length} bookmarks to official Bluesky bookmarks...`)
+
 			for (const uri of uris) {
-				const rkey = Buffer.from(uri).toString('hex').slice(0, 15)
 				try {
-					await currentAgent.com.atproto.repo.putRecord({
-						repo: did,
-						collection: 'me.sociallydead.bookmark',
-						rkey,
-						record: {
-							uri,
-							createdAt: new Date().toISOString(),
-						}
+					await currentAgent.app.bsky.bookmark.createBookmark({
+						subject: { uri }
 					})
 				} catch (e) {
 					console.error(`Failed to migrate bookmark ${uri}:`, e)
 				}
 			}
-			
+
 			localStorage.removeItem('bookmarked_posts')
 			console.log("Migration complete.")
 		} catch (err) {

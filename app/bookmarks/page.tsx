@@ -41,46 +41,47 @@ export default function BookmarksPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadBookmarks = async () => {
-      setIsLoading(true)
-      setError(null)
-      
-      try {
-        const bookmarkUris = await getBookmarks()
-        
-        if (bookmarkUris.length === 0) {
-          setPosts([])
-          return
-        }
+  const loadBookmarks = async () => {
+    setIsLoading(true)
+    setError(null)
 
-        const loadedPosts: Post[] = []
-        // Load in chunks to avoid blocking
-        for (const uri of bookmarkUris) {
-          try {
-            const post = await getPost(uri)
-            if (post) {
-              loadedPosts.push(post as Post)
-            }
-          } catch {
-            // Post may have been deleted, skip it
-          }
-        }
-        
-        setPosts(loadedPosts)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load bookmarks")
-      } finally {
-        setIsLoading(false)
+    try {
+      const bookmarkUris = await getBookmarks()
+
+      if (bookmarkUris.length === 0) {
+        setPosts([])
+        return
       }
-    }
 
+      const loadedPosts: Post[] = []
+      // Load in chunks to avoid blocking
+      for (const uri of bookmarkUris) {
+        try {
+          const post = await getPost(uri)
+          if (post) {
+            loadedPosts.push(post as Post)
+          }
+        } catch {
+          // Post may have been deleted, skip it
+        }
+      }
+
+      setPosts(loadedPosts)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load bookmarks")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     if (isAuthenticated) {
       loadBookmarks()
     } else {
       setIsLoading(false)
     }
-  }, [isAuthenticated, getPost, getBookmarks])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
   const clearAllBookmarks = () => {
     // Clear logic moved to context if needed, but for now we just show notice
@@ -136,10 +137,11 @@ export default function BookmarksPage() {
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <PostCard 
-                key={post.uri} 
+              <PostCard
+                key={post.uri}
                 post={post}
                 isOwnPost={post.author.did === user?.did}
+                onPostUpdated={loadBookmarks}
               />
             ))}
           </div>
