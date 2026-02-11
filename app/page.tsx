@@ -313,34 +313,6 @@ export default function HomePage() {
   // Signed in - show profile and timeline
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          {/* User avatar and handle */}
-          {user && (
-            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.displayName || user.handle} />
-                <AvatarFallback className="text-xs">
-                  {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-semibold text-sm hidden sm:inline">@{user.handle}</span>
-            </Link>
-          )}
-          <div className="flex items-center gap-2">
-            <Button onClick={() => handleTabChange(activeTab)} variant="ghost" size="icon" disabled={feedLoading}>
-              <RefreshCw className={`h-4 w-4 ${feedLoading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button asChild variant="default" size="sm">
-              <Link href="/compose">
-                <PenSquare className="h-4 w-4 mr-2" />
-                Post
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {/* User Profile Card */}
         {user && (
