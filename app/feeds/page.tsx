@@ -132,10 +132,10 @@ export default function FeedsPage() {
   const loadAll = useCallback(async () => {
     setIsLoading(true)
     setError(null)
-    
+
     try {
       await Promise.all([
-        isAuthenticated ? loadSavedFeeds() : Promise.resolve(),
+        isAuthenticated ? loadSavedFeedsData() : Promise.resolve(),
         loadPopularFeeds(),
       ])
     } catch (err) {
@@ -143,7 +143,7 @@ export default function FeedsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [isAuthenticated, loadSavedFeeds, loadPopularFeeds])
+  }, [isAuthenticated, loadSavedFeedsData, loadPopularFeeds])
 
   const loadFeedPosts = useCallback(async (feedUri: string) => {
     setPostsLoading(true)

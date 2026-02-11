@@ -309,9 +309,6 @@ interface BlueskyContextType {
 	removeBookmark: (uri: string) => Promise<void>
 	isBookmarked: (uri: string) => boolean
 	// Feeds
-	getSavedFeeds: () => Promise<any[]>
-	saveFeed: (uri: string) => Promise<void>
-	unsaveFeed: (uri: string) => Promise<void>
 	isFeedSaved: (uri: string) => boolean
 	// Search
 	searchPosts: (query: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
@@ -1122,15 +1119,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
-	const saveFeed = async (uri: string) => {
-		if (!agent) throw new Error("Not authenticated")
-		await agent.addSavedFeed({ type: 'feed', value: uri, pinned: false })
-	}
-
-	const unsaveFeed = async (uri: string) => {
-		if (!agent) throw new Error("Not authenticated")
-		await agent.removeSavedFeed(uri)
-	}
 
 	// Interactions
 	const likePost = async (uri: string, cid: string) => {
@@ -1201,11 +1189,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const unpinPost = async () => {
 		if (!agent || !user) throw new Error("Not authenticated")
-
+		
 		await agent.upsertProfile((existing) => {
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			const { pinnedPost, ...rest } = existing as Record<string, unknown>
-			return rest as Parameters<typeof agent.upsertProfile>[0] extends (existing: infer T) => unknown ? T : never
+			const clone: any = { ...(existing as any) }
+			delete clone.pinnedPost
+			return clone as any
 		})
 	}
 
@@ -1909,25 +1897,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	const isBookmarked = (uri: string) => bookmarks.includes(uri)
 
 	// Feeds
-	const getSavedFeeds = useCallback(async (): Promise<any[]> => {
-		if (!agent || !user) return []
-		try {
-			// official bsky client uses preferences for saved feeds
-			const response = await agent.app.bsky.actor.getPreferences({})
-			const savedFeedsPref = response.data.preferences.find(
-				(p: any) => p.$type === 'app.bsky.actor.defs#savedFeedsPref'
-			) as any
-			
-			if (savedFeedsPref) {
-				setSavedFeeds(savedFeedsPref.saved || [])
-				return savedFeedsPref.saved || []
-			}
-			return []
-		} catch (err) {
-			console.error("Failed to fetch saved feeds:", err)
-			return []
-		}
-	}, [agent, user])
 
 	const saveFeed = async (uri: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
@@ -2479,9 +2448,6 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				addBookmark,
 				removeBookmark,
 				isBookmarked,
-				getSavedFeeds,
-				saveFeed,
-				unsaveFeed,
 				isFeedSaved,
 				searchPosts,
   		searchActors,
