@@ -13,7 +13,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { UserHoverCard } from "@/components/user-hover-card"
-import { Loader2, RefreshCw, Package, ArrowLeft, UserPlus, UserMinus, Users } from "lucide-react"
+import { Loader2, RefreshCw, Package, ArrowLeft, UserPlus, UserMinus, Users, MoreHorizontal, Pencil, Trash2, Check } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useRouter } from "next/navigation"
 
 export default function StarterPackPage() {
   const params = useParams()
@@ -26,8 +45,15 @@ export default function StarterPackPage() {
     getStarterPack,
     getList,
     getListFeed,
+    updateStarterPack,
+    deleteStarterPack,
+    addToStarterPack,
+    removeFromStarterPack,
+    searchActors,
+    followAllMembers,
   } = useBluesky()
 
+  const router = useRouter()
   const [pack, setPack] = useState<any>(null)
   const [members, setMembers] = useState<any[]>([])
   const [posts, setPosts] = useState<any[]>([])
@@ -36,17 +62,39 @@ export default function StarterPackPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("posts")
 
+  // Edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editName, setEditName] = useState("")
+  const [editDescription, setEditDescription] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Add user dialog
+  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
+
+  // Follow all state
+  const [isFollowingAll, setIsFollowingAll] = useState(false)
+  const [followedAll, setFollowedAll] = useState(false)
+
   const loadData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
       const sp = await getStarterPack(packUri)
       setPack(sp)
+      setEditName(sp.record.name)
+      setEditDescription(sp.record.description || "")
       
       // Fetch full member list if possible
       if (sp.list?.uri) {
         const listData = await getList(sp.list.uri)
-        setMembers(listData.items.map(item => item.subject))
+        setMembers(listData.items.map(item => ({
+          ...item.subject,
+          itemUri: item.uri // Keep the item URI for removal
+        })))
       } else if (sp.listItemsSample) {
         setMembers(sp.listItemsSample.map((item: any) => item.subject))
       }
@@ -72,6 +120,91 @@ export default function StarterPackPage() {
       console.error("Failed to load starter pack feed:", err)
     } finally {
       setPostsLoading(false)
+    }
+  }
+
+  const handleEditPack = async () => {
+    if (!pack || !editName.trim()) return
+    
+    setIsEditing(true)
+    try {
+      await updateStarterPack(pack.uri, editName, editDescription || undefined)
+      setEditDialogOpen(false)
+      loadData()
+    } catch (error) {
+      console.error("Failed to update starter pack:", error)
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const handleDeletePack = async () => {
+    if (!pack || !confirm(`Are you sure you want to delete "${pack.record.name}"?`)) return
+    
+    try {
+      await deleteStarterPack(pack.uri)
+      router.push("/starter-packs")
+    } catch (error) {
+      console.error("Failed to delete starter pack:", error)
+    }
+  }
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return
+    
+    setIsSearching(true)
+    try {
+      const result = await searchActors(searchQuery)
+      setSearchResults(result.actors)
+    } catch (error) {
+      console.error("Search failed:", error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleAddToPack = async (did: string) => {
+    if (!pack) return
+    
+    setIsAdding(true)
+    try {
+      await addToStarterPack(pack.uri, did)
+      setAddUserDialogOpen(false)
+      setSearchQuery("")
+      setSearchResults([])
+      loadData()
+    } catch (error) {
+      console.error("Failed to add user to starter pack:", error)
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
+  const handleRemoveFromPack = async (did: string) => {
+    if (!pack) return
+    
+    try {
+      await removeFromStarterPack(pack.uri, did)
+      setMembers((prev) => prev.filter(m => m.did !== did))
+    } catch (error) {
+      console.error("Failed to remove from starter pack:", error)
+    }
+  }
+
+  const handleFollowAll = async () => {
+    if (members.length === 0) return
+    
+    setIsFollowingAll(true)
+    try {
+      const dids = members.map(m => m.did)
+      await followAllMembers(dids)
+      setFollowedAll(true)
+      // Success state for a few seconds
+      setTimeout(() => setFollowedAll(false), 3000)
+    } catch (error) {
+      console.error("Failed to follow all members:", error)
+    } finally {
+      setIsFollowingAll(false)
     }
   }
 
@@ -116,9 +249,33 @@ export default function StarterPackPage() {
               {pack.record.name}
             </h1>
           </div>
-          <Button onClick={() => loadPosts()} variant="ghost" size="icon" disabled={postsLoading}>
-            <RefreshCw className={`h-4 w-4 ${postsLoading ? 'animate-spin' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button onClick={() => loadPosts()} variant="ghost" size="icon" disabled={postsLoading}>
+              <RefreshCw className={`h-4 w-4 ${postsLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            {pack.creator.did === user?.did && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleDeletePack}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </header>
 
@@ -131,18 +288,35 @@ export default function StarterPackPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold">{pack.record.name}</h2>
+                <div className="min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate">{pack.record.name}</h2>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                     <span>by</span>
                     <UserHoverCard handle={pack.creator.handle}>
-                      <Link href={`/profile/${pack.creator.handle}`} className="font-medium hover:underline flex items-center gap-1">
-                        {pack.creator.displayName || pack.creator.handle}
+                      <Link href={`/profile/${pack.creator.handle}`} className="font-medium hover:underline flex items-center gap-1 min-w-0">
+                        <span className="truncate">{pack.creator.displayName || pack.creator.handle}</span>
                         <VerifiedBadge handle={pack.creator.handle} did={pack.creator.did} />
                       </Link>
                     </UserHoverCard>
                   </div>
                 </div>
+                {isAuthenticated && (
+                  <Button 
+                    size="sm" 
+                    className="shrink-0"
+                    disabled={isFollowingAll || followedAll || members.length === 0}
+                    onClick={handleFollowAll}
+                  >
+                    {isFollowingAll ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : followedAll ? (
+                      <Check className="h-4 w-4 mr-2" />
+                    ) : (
+                      <UserPlus className="h-4 w-4 mr-2" />
+                    )}
+                    {followedAll ? "Followed All" : "Follow All"}
+                  </Button>
+                )}
               </div>
               
               {pack.record.description && (
@@ -156,6 +330,68 @@ export default function StarterPackPage() {
                 </div>
                 {pack.joinedAllTimeCount !== undefined && (
                   <span>{pack.joinedAllTimeCount.toLocaleString()} joins</span>
+                )}
+                {pack.creator.did === user?.did && (
+                  <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
+                    <DialogTrigger asChild>
+                      <button className="text-primary hover:underline font-medium flex items-center gap-1 ml-auto">
+                        <Plus className="h-3.5 w-3.5" />
+                        Add People
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add People to Starter Pack</DialogTitle>
+                        <DialogDescription>
+                          Search for users to add to your starter pack.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Search for a user..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                          />
+                          <Button onClick={handleSearch} disabled={isSearching}>
+                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                          </Button>
+                        </div>
+                        {searchResults.length > 0 && (
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {searchResults.map((actor) => (
+                              <Card 
+                                key={actor.did} 
+                                className="cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => handleAddToPack(actor.did)}
+                              >
+                                <CardContent className="p-3">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10">
+                                      <AvatarImage src={actor.avatar || "/placeholder.svg"} />
+                                      <AvatarFallback>
+                                        {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                      <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
+                                      <HandleLink handle={actor.handle} className="text-sm" />
+                                    </div>
+                                    {isAdding ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <UserPlus className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 )}
               </div>
             </div>
@@ -213,18 +449,59 @@ export default function StarterPackPage() {
             ) : (
               <div className="divide-y divide-border">
                 {members.map((member) => (
-                  <UserCard key={member.did} user={member} />
+                  <UserCard 
+                    key={member.did} 
+                    user={member} 
+                    canRemove={pack.creator.did === user?.did}
+                    onRemove={() => handleRemoveFromPack(member.did)}
+                  />
                 ))}
               </div>
             )}
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Starter Pack</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-description">Description (optional)</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditPack} disabled={isEditing || !editName.trim()}>
+              {isEditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function UserCard({ user }: { user: any }) {
+function UserCard({ user, canRemove, onRemove }: { user: any, canRemove?: boolean, onRemove?: () => void }) {
   const { followUser, unfollowUser, isAuthenticated } = useBluesky()
   const [followUri, setFollowUri] = useState<string | undefined>(user.viewer?.following)
   const [isToggling, setIsToggling] = useState(false)
@@ -281,29 +558,41 @@ function UserCard({ user }: { user: any }) {
               <p className="text-sm mt-1 line-clamp-1 text-muted-foreground">{user.description}</p>
             )}
           </div>
-          {isAuthenticated && (
-            <Button
-              variant={followUri ? "outline" : "default"}
-              size="sm"
-              className="shrink-0"
-              onClick={handleToggleFollow}
-              disabled={isToggling}
-            >
-              {isToggling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : followUri ? (
-                <>
-                  <UserMinus className="h-4 w-4 mr-1" />
-                  Unfollow
-                </>
-              ) : (
-                <>
-                  <UserPlus className="h-4 w-4 mr-1" />
-                  Follow
-                </>
-              )}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <Button
+                variant={followUri ? "outline" : "default"}
+                size="sm"
+                className="shrink-0 h-8"
+                onClick={handleToggleFollow}
+                disabled={isToggling}
+              >
+                {isToggling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : followUri ? (
+                  <>
+                    <UserMinus className="h-4 w-4 mr-1" />
+                    Unfollow
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
+            {canRemove && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={onRemove}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

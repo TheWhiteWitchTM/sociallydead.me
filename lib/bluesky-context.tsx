@@ -302,6 +302,12 @@ interface BlueskyContextType {
 	deleteStarterPack: (uri: string) => Promise<void>
 	addToStarterPack: (starterPackUri: string, did: string) => Promise<void>
 	removeFromStarterPack: (starterPackUri: string, did: string) => Promise<void>
+	followAllMembers: (dids: string[]) => Promise<void>
+	// Bookmarks
+	getBookmarks: () => Promise<string[]>
+	addBookmark: (uri: string) => Promise<void>
+	removeBookmark: (uri: string) => Promise<void>
+	isBookmarked: (uri: string) => boolean
 	// Search
 	searchPosts: (query: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
 	searchActors: (query: string, cursor?: string) => Promise<{ actors: BlueskyUser[]; cursor?: string }>
@@ -1808,6 +1814,18 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
+	const followAllMembers = async (dids: string[]) => {
+		if (!agent) throw new Error("Not authenticated")
+		
+		for (const did of dids) {
+			try {
+				await agent.follow(did)
+			} catch (e) {
+				console.error(`Failed to follow ${did}:`, e)
+			}
+		}
+	}
+
 	// Search
 	const searchPosts = async (query: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
 		const agentToUse = agent || publicAgent
@@ -2279,8 +2297,9 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				updateStarterPack,
 				deleteStarterPack,
 				addToStarterPack,
-				removeFromStarterPack,
-				searchPosts,
+  		removeFromStarterPack,
+  		followAllMembers,
+  		searchPosts,
   		searchActors,
   		searchActorsTypeahead,
 				searchByHashtag,

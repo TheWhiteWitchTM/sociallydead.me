@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { SignInPrompt } from "@/components/sign-in-prompt"
@@ -76,6 +76,7 @@ interface StarterPack {
 }
 
 export default function StarterPacksPage() {
+  const router = useRouter()
   const { 
     isAuthenticated, 
     isLoading: authLoading, 
@@ -626,7 +627,7 @@ export default function StarterPacksPage() {
               <Card 
                 key={pack.uri}
                 className="cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => handleSelectPack(pack)}
+                onClick={() => router.push(`/starter-packs/${encodeURIComponent(pack.uri)}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">

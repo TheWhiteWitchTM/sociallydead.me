@@ -13,7 +13,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { UserHoverCard } from "@/components/user-hover-card"
-import { Loader2, RefreshCw, ListIcon, ArrowLeft, UserPlus, UserMinus, ShieldAlert } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Loader2, RefreshCw, ListIcon, ArrowLeft, UserPlus, UserMinus, ShieldAlert, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function ListPage() {
   const params = useParams()
@@ -25,8 +44,14 @@ export default function ListPage() {
     user,
     getList,
     getListFeed,
+    updateList,
+    deleteList,
+    addToList,
+    removeFromList,
+    searchActors,
   } = useBluesky()
 
+  const router = useRouter()
   const [list, setList] = useState<any>(null)
   const [members, setMembers] = useState<any[]>([])
   const [posts, setPosts] = useState<any[]>([])
@@ -35,13 +60,31 @@ export default function ListPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("posts")
 
+  // Edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editName, setEditName] = useState("")
+  const [editDescription, setEditDescription] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Add user dialog
+  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
+
   const loadData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
       const result = await getList(listUri)
       setList(result.list)
-      setMembers(result.items.map(item => item.subject))
+      setEditName(result.list.name)
+      setEditDescription(result.list.description || "")
+      setMembers(result.items.map(item => ({
+        ...item.subject,
+        itemUri: item.uri // Keep the item URI for removal
+      })))
       
       await loadPosts()
     } catch (err) {
@@ -61,6 +104,72 @@ export default function ListPage() {
       console.error("Failed to load list feed:", err)
     } finally {
       setPostsLoading(false)
+    }
+  }
+
+  const handleEditList = async () => {
+    if (!list || !editName.trim()) return
+    
+    setIsEditing(true)
+    try {
+      await updateList(list.uri, editName, editDescription || undefined)
+      setEditDialogOpen(false)
+      loadData()
+    } catch (error) {
+      console.error("Failed to update list:", error)
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const handleDeleteList = async () => {
+    if (!list || !confirm(`Are you sure you want to delete "${list.name}"?`)) return
+    
+    try {
+      await deleteList(list.uri)
+      router.push("/lists")
+    } catch (error) {
+      console.error("Failed to delete list:", error)
+    }
+  }
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return
+    
+    setIsSearching(true)
+    try {
+      const result = await searchActors(searchQuery)
+      setSearchResults(result.actors)
+    } catch (error) {
+      console.error("Search failed:", error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleAddToList = async (did: string) => {
+    if (!list) return
+    
+    setIsAdding(true)
+    try {
+      await addToList(list.uri, did)
+      setAddUserDialogOpen(false)
+      setSearchQuery("")
+      setSearchResults([])
+      loadData()
+    } catch (error) {
+      console.error("Failed to add user to list:", error)
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
+  const handleRemoveFromList = async (itemUri: string) => {
+    try {
+      await removeFromList(itemUri)
+      setMembers((prev) => prev.filter(m => m.itemUri !== itemUri))
+    } catch (error) {
+      console.error("Failed to remove from list:", error)
     }
   }
 
@@ -107,9 +216,33 @@ export default function ListPage() {
               {list.name}
             </h1>
           </div>
-          <Button onClick={loadPosts} variant="ghost" size="icon" disabled={postsLoading}>
-            <RefreshCw className={`h-4 w-4 ${postsLoading ? 'animate-spin' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button onClick={loadPosts} variant="ghost" size="icon" disabled={postsLoading}>
+              <RefreshCw className={`h-4 w-4 ${postsLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            {list.creator.did === user?.did && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleDeleteList}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </header>
 
@@ -125,20 +258,20 @@ export default function ListPage() {
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold">{list.name}</h2>
+                <div className="min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate">{list.name}</h2>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                     <span>by</span>
                     <UserHoverCard handle={list.creator.handle}>
-                      <Link href={`/profile/${list.creator.handle}`} className="font-medium hover:underline flex items-center gap-1">
-                        {list.creator.displayName || list.creator.handle}
+                      <Link href={`/profile/${list.creator.handle}`} className="font-medium hover:underline flex items-center gap-1 min-w-0">
+                        <span className="truncate">{list.creator.displayName || list.creator.handle}</span>
                         <VerifiedBadge handle={list.creator.handle} did={list.creator.did} />
                       </Link>
                     </UserHoverCard>
                   </div>
                 </div>
                 {isModList && (
-                  <div className="flex items-center gap-1 text-destructive bg-destructive/10 px-2 py-1 rounded text-xs font-medium">
+                  <div className="flex items-center gap-1 text-destructive bg-destructive/10 px-2 py-1 rounded text-xs font-medium shrink-0">
                     <ShieldAlert className="h-3 w-3" />
                     Moderation List
                   </div>
@@ -151,6 +284,65 @@ export default function ListPage() {
               
               <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                 <span>{members.length} {members.length === 1 ? 'member' : 'members'}</span>
+                {list.creator.did === user?.did && (
+                  <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
+                    <DialogTrigger asChild>
+                      <button className="text-primary hover:underline font-medium flex items-center gap-1 ml-auto">
+                        <Plus className="h-3.5 w-3.5" />
+                        Add People
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add User to List</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Search for a user..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                          />
+                          <Button onClick={handleSearch} disabled={isSearching}>
+                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                          </Button>
+                        </div>
+                        {searchResults.length > 0 && (
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {searchResults.map((actor) => (
+                              <Card 
+                                key={actor.did} 
+                                className="cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => handleAddToList(actor.did)}
+                              >
+                                <CardContent className="p-3">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10">
+                                      <AvatarImage src={actor.avatar || "/placeholder.svg"} />
+                                      <AvatarFallback>
+                                        {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                      <p className="font-semibold flex items-center gap-1">{actor.displayName || actor.handle} <VerifiedBadge handle={actor.handle} /></p>
+                                      <HandleLink handle={actor.handle} className="text-sm" />
+                                    </div>
+                                    {isAdding ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <UserPlus className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             </div>
           </div>
@@ -207,18 +399,59 @@ export default function ListPage() {
             ) : (
               <div className="divide-y divide-border">
                 {members.map((member) => (
-                  <UserCard key={member.did} user={member} />
+                  <UserCard 
+                    key={member.did} 
+                    user={member} 
+                    canRemove={list.creator.did === user?.did}
+                    onRemove={() => handleRemoveFromList(member.itemUri)}
+                  />
                 ))}
               </div>
             )}
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-description">Description (optional)</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditList} disabled={isEditing || !editName.trim()}>
+              {isEditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function UserCard({ user }: { user: any }) {
+function UserCard({ user, canRemove, onRemove }: { user: any, canRemove?: boolean, onRemove?: () => void }) {
   const { followUser, unfollowUser, isAuthenticated } = useBluesky()
   const [followUri, setFollowUri] = useState<string | undefined>(user.viewer?.following)
   const [isToggling, setIsToggling] = useState(false)
@@ -275,29 +508,41 @@ function UserCard({ user }: { user: any }) {
               <p className="text-sm mt-1 line-clamp-1 text-muted-foreground">{user.description}</p>
             )}
           </div>
-          {isAuthenticated && (
-            <Button
-              variant={followUri ? "outline" : "default"}
-              size="sm"
-              className="shrink-0"
-              onClick={handleToggleFollow}
-              disabled={isToggling}
-            >
-              {isToggling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : followUri ? (
-                <>
-                  <UserMinus className="h-4 w-4 mr-1" />
-                  Unfollow
-                </>
-              ) : (
-                <>
-                  <UserPlus className="h-4 w-4 mr-1" />
-                  Follow
-                </>
-              )}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <Button
+                variant={followUri ? "outline" : "default"}
+                size="sm"
+                className="shrink-0 h-8"
+                onClick={handleToggleFollow}
+                disabled={isToggling}
+              >
+                {isToggling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : followUri ? (
+                  <>
+                    <UserMinus className="h-4 w-4 mr-1" />
+                    Unfollow
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
+            {canRemove && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={onRemove}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

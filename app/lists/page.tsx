@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
@@ -57,6 +58,7 @@ interface ListItem {
 }
 
 export default function ListsPage() {
+  const router = useRouter()
   const { 
     isAuthenticated, 
     isLoading: authLoading, 
@@ -349,7 +351,7 @@ export default function ListsPage() {
                     <Card 
                       key={list.uri}
                       className={`cursor-pointer transition-colors ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
-                      onClick={() => handleSelectList(list)}
+                      onClick={() => router.push(`/lists/${encodeURIComponent(list.uri)}`)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
