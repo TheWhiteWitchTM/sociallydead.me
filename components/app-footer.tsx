@@ -12,9 +12,11 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { VerificationCheckout } from "@/components/verification-checkout"
+import { useBluesky } from "@/lib/bluesky-context"
 
 export function AppFooter() {
   const currentYear = new Date().getFullYear()
+  const { isAuthenticated } = useBluesky()
   
   return (
     <footer className="border-t border-border bg-background py-4 mt-auto">
@@ -57,13 +59,19 @@ export function AppFooter() {
             </Link>
           </span>
           <span className="hidden sm:inline">|</span>
-          <VerificationCheckout
-            trigger={
-              <button className="font-medium text-primary hover:underline">
-                Support Us & Get Verified
-              </button>
-            }
-          />
+          {isAuthenticated ? (
+            <VerificationCheckout
+              trigger={
+                <button className="font-medium text-primary hover:underline">
+                  Support Us & Get Verified
+                </button>
+              }
+            />
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Support is welcome — sign in to get verification benefits before using PayPal
+            </span>
+          )}
         </div>
         
         {/* Legal links row */}

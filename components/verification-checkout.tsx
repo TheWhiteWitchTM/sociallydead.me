@@ -67,40 +67,102 @@ export function VerificationCheckout({ trigger, onSuccess }: VerificationCheckou
         "width=500,height=700,scrollbars=yes"
       )
 
-      // 3. Poll for popup close (user completed or cancelled)
-      await new Promise<void>((resolve, reject) => {
-        const interval = setInterval(() => {
-          if (popup?.closed) {
-            clearInterval(interval)
-            resolve()
+      // Helper to attempt capture and then verify + finalize UI
+      const attemptCaptureAndVerify = async () => {
+        try {
+          const captureRes = await fetch("/api/paypal/capture-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId }),
+          })
+
+          if (!captureRes.ok) {
+            return false
           }
-        }, 500)
 
-        // Timeout after 10 minutes
-        setTimeout(() => {
-          clearInterval(interval)
-          popup?.close()
-          reject(new Error("Payment timed out"))
-        }, 600000)
-      })
+          const captureData = await captureRes.json()
+          if (captureData.status !== "COMPLETED") {
+            return false
+          }
 
-      // 4. Capture the order
-      const captureRes = await fetch("/api/paypal/capture-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      })
+          // Proceed to verify and write the supporter record
+          const session = agent?.sessionManager?.session
+          if (!session?.accessJwt || !user?.handle || !user?.did) {
+            throw new Error("Required session information is missing. Please sign in again.")
+          }
 
-      if (!captureRes.ok) {
-        const captureErr = await captureRes.json().catch(() => ({ error: "Payment was not completed." }))
-        throw new Error(captureErr.error || "Payment was not completed. If you approved the payment, please try again.")
+          const verifyRes = await fetch("/api/paypal/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId,
+              handle: user.handle,
+              did: user.did,
+              accessJwt: session.accessJwt,
+              pdsUrl: session.pdsUri || "https://bsky.social",
+            }),
+          })
+
+          if (!verifyRes.ok) {
+            const errData = await verifyRes.json().catch(() => ({}))
+            throw new Error(errData.error || "Verification failed")
+          }
+
+          // Success
+          setStep("success")
+          onSuccess?.()
+          try { popup?.close() } catch {}
+          return true
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Something went wrong")
+          setStep("error")
+          try { popup?.close() } catch {}
+          return true // stop polling on hard error
+        }
       }
 
-      const captureData = await captureRes.json()
-      if (captureData.status !== "COMPLETED") {
-        throw new Error("Payment was not completed. Please try again.")
-      }
+      // 3. Poll for PayPal completion: either popup navigates back to our origin or the user closes it
+      await new Promise<void>((resolve, reject) => {
+        const start = Date.now()
+        const timeoutMs = 600000 // 10 minutes
 
+        const interval = setInterval(async () => {
+          // If timed out
+          if (Date.now() - start > timeoutMs) {
+            clearInterval(interval)
+            try { popup?.close() } catch {}
+            reject(new Error("Payment timed out"))
+            return
+          }
+
+          // Try to detect if the popup is at our origin now (after PayPal redirect)
+          let atOurOrigin = false
+          try {
+            if (popup && !popup.closed) {
+              // Accessing href will throw until it's same-origin; catch and ignore
+              const href = popup.location.href
+              if (href && href.startsWith(window.location.origin)) {
+                atOurOrigin = true
+              }
+            }
+          } catch {
+            // still on PayPal, ignore
+          }
+
+          // If window closed by user, or we reached our origin in popup → attempt capture+verify once
+          if (!popup || popup.closed || atOurOrigin) {
+            clearInterval(interval)
+            attemptCaptureAndVerify()
+              .then(() => resolve())
+              .catch(reject)
+          }
+        }, 1500)
+      })
+
+      // Done here; success or error step already set in attemptCaptureAndVerify
+      return
+
+      // (legacy) Verify and write the supporter record (kept for reference but unreachable)
       // 5. Verify and write the supporter record
       const session = agent?.sessionManager?.session
       

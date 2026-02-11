@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { VerificationCheckout } from "@/components/verification-checkout"
 import { useTheme } from "next-themes"
+import { useBluesky } from "@/lib/bluesky-context"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -60,6 +61,7 @@ const feedCategories = [
 export function AppHeader() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const { isAuthenticated } = useBluesky()
   const [canInstall, setCanInstall] = React.useState(false)
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
@@ -215,14 +217,20 @@ export function AppHeader() {
           </DropdownMenu>
 
           {/* Get Verified / Support Button */}
-          <VerificationCheckout
-            trigger={
-              <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified - Support SociallyDead">
-                <BadgeCheck className="h-5 w-5 text-blue-500" />
-                <span className="sr-only">Get Verified</span>
-              </Button>
-            }
-          />
+          {isAuthenticated ? (
+            <VerificationCheckout
+              trigger={
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified - Support SociallyDead">
+                  <BadgeCheck className="h-5 w-5 text-blue-500" />
+                  <span className="sr-only">Get Verified</span>
+                </Button>
+              }
+            />
+          ) : (
+            <span className="hidden sm:inline text-xs text-muted-foreground">
+              Support is welcome — sign in to get verification benefits
+            </span>
+          )}
 
           {canInstall && (
             <Button

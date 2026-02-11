@@ -117,15 +117,20 @@ export async function POST(req: NextRequest) {
     try {
       const { upsertAppRecord, getAppRecord } = await import('@/lib/sociallydead-app-repo');
       
+      // Determine supporter tier and star flag
+      const isStar = amount >= 50
+      const tier = isStar ? "star" : "blue"
+
       // Get existing record if any to preserve other fields
       const existing = await getAppRecord(did);
       await upsertAppRecord(did, {
         ...existing,
         verified: true,
         verifiedAt: new Date().toISOString(),
-        supporterTier: "blue",
+        supporterTier: tier,
+        star: isStar,
       });
-      console.log(`[PayPal] Successfully updated app-record for DID: ${did}`);
+      console.log(`[PayPal] Successfully updated app-record for DID: ${did} (tier=${tier})`);
     } catch (err) {
       console.error("[PayPal] Failed to update app-record:", err);
       // If this fails, the user won't get the badge immediately in SociallyDead

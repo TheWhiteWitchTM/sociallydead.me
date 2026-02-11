@@ -769,14 +769,61 @@ export function ComposeInput({
     <div className="space-y-4">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         {/* Title Bar - Shows what you're composing */}
-        {!compact && (
-          <div className="border-b border-border bg-muted/30 px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <PenSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{composeType}</span>
-            </div>
+        <div className="border-b border-border bg-muted/30 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {!compact ? (
+              <>
+                <PenSquare className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{composeType}</span>
+              </>
+            ) : (
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{composeType}</span>
+            )}
           </div>
-        )}
+
+          {/* Action Buttons in Title Bar */}
+          <div className="flex items-center gap-2">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs font-medium"
+                onClick={onCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            )}
+            {!isDM && effectiveMaxChars !== Infinity && (
+              <span className={cn(
+                "font-medium tabular-nums transition-colors text-xs mr-1",
+                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
+                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
+                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
+              )}>
+                {charCount}/{effectiveMaxChars}
+              </span>
+            )}
+            {onSubmit && (
+              <Button
+                onClick={onSubmit}
+                disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0)}
+                size="sm"
+                className="gap-1.5 h-8 text-xs font-bold"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5" />
+                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Text Input Area */}
         <div className="relative">
@@ -1012,47 +1059,8 @@ export function ComposeInput({
             </Tooltip>
           </div>
 
-          {/* Right side: Cancel + Character count + Post */}
+          {/* Right side: Tools */}
           <div className="flex items-center gap-2 shrink-0">
-            {onCancel && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7"
-                onClick={onCancel}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-            )}
-            {!isDM && effectiveMaxChars !== Infinity && (
-              <span className={cn(
-                "font-medium tabular-nums transition-colors text-sm",
-                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
-                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
-                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
-              )}>
-                {charCount}/{effectiveMaxChars}
-              </span>
-            )}
-            {onSubmit && (
-              <Button
-                onClick={onSubmit}
-                disabled={isSubmitting || !text.trim()}
-                size="sm"
-                className="gap-1.5 h-7"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="h-3.5 w-3.5" />
-                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </div>
       </TooltipProvider>

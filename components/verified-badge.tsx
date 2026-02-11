@@ -1,6 +1,6 @@
 "use client"
 
-import { BadgeCheck, ShieldCheck } from "lucide-react"
+import { BadgeCheck, ShieldCheck, Star } from "lucide-react"
 import {
 	Tooltip,
 	TooltipContent,
@@ -74,6 +74,32 @@ export function VerifiedBadge({ handle, did, className = "" }: VerifiedBadgeProp
 	const shouldCheckAppRepo = !staticType && !isBlueskyVerified && !!did
 	const { record } = getRecord(shouldCheckAppRepo ? did! : "")
 	const isAppVerified = record?.verified === true
+	const hasStar = record?.star === true
+
+	// If user is a star supporter, show a gold star regardless of other types
+	if (hasStar) {
+		return (
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+	          <span 
+	            className={`inline-flex items-center justify-center font-medium shrink-0 text-yellow-500 ${className}`} 
+	            style={{ 
+	              width: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1.1em', 
+	              height: (className?.includes('h-') || className?.includes('w-')) ? undefined : '1.1em',
+	              marginLeft: (className?.includes('ml-')) ? undefined : '0.125rem'
+	            }}
+	          >
+		          <Star className="h-full w-full fill-yellow-500/30" />
+	          </span>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Gold Star Supporter</p>
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+		)
+	}
 
 	// Precedence: Bluesky > Gold > Green > Blue (only if none above)
 	let type: VerificationType = staticType || (isBlueskyVerified ? "bluesky" : null)
