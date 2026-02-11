@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useBluesky } from "@/lib/bluesky-context"
@@ -18,10 +18,11 @@ import { ComposePlaceholder } from "@/components/compose-placeholder"
 
 export default function FeedPage() {
   const params = useParams()
+  const router = useRouter()
   const feedUri = decodeURIComponent(params.feed as string)
-  
-  const { 
-    isAuthenticated, 
+
+  const {
+    isAuthenticated,
     isLoading: authLoading,
     user,
     getFeedGenerator,
@@ -122,11 +123,9 @@ export default function FeedPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center gap-4 px-4">
-          <Link href="/feeds">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold truncate flex items-center gap-2">
               <Rss className="h-4 w-4 shrink-0" />

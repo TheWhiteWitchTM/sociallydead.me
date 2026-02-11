@@ -14,7 +14,7 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { useRouter } from "next/navigation"
-import { Loader2, RefreshCw, ListIcon, ArrowLeft, UserPlus, UserMinus, ShieldAlert, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Loader2, RefreshCw, ListIcon, ArrowLeft, UserPlus, UserMinus, ShieldAlert, Plus, MoreHorizontal, Pencil, Trash2, Check, Users } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,8 +38,8 @@ export default function ListPage() {
   const params = useParams()
   const listUri = decodeURIComponent(params.list as string)
   
-  const { 
-    isAuthenticated, 
+  const {
+    isAuthenticated,
     isLoading: authLoading,
     user,
     getList,
@@ -49,6 +49,7 @@ export default function ListPage() {
     addToList,
     removeFromList,
     searchActors,
+    followAllMembers,
   } = useBluesky()
 
   const router = useRouter()
@@ -76,6 +77,10 @@ export default function ListPage() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
+
+  // Follow all state
+  const [isFollowingAll, setIsFollowingAll] = useState(false)
+  const [followedAll, setFollowedAll] = useState(false)
 
   const loadData = useCallback(async (isMoreMembers = false) => {
     if (!isMoreMembers) setIsLoading(true)
@@ -195,6 +200,23 @@ export default function ListPage() {
     }
   }
 
+  const handleFollowAll = async () => {
+    if (members.length === 0) return
+
+    setIsFollowingAll(true)
+    try {
+      const dids = members.map(m => m.did)
+      await followAllMembers(dids)
+      setFollowedAll(true)
+      // Success state for a few seconds
+      setTimeout(() => setFollowedAll(false), 3000)
+    } catch (error) {
+      console.error("Failed to follow all members:", error)
+    } finally {
+      setIsFollowingAll(false)
+    }
+  }
+
   useEffect(() => {
     loadData()
   }, [loadData])
@@ -227,11 +249,9 @@ export default function ListPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center gap-4 px-4">
-          <Link href="/lists">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold truncate flex items-center gap-2">
               <ListIcon className="h-4 w-4 shrink-0" />
@@ -305,11 +325,32 @@ export default function ListPage() {
               )}
               
               <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
-                <span>{members.length} {members.length === 1 ? 'member' : 'members'}</span>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>{members.length} {members.length === 1 ? 'person' : 'people'}</span>
+                </div>
+                {isAuthenticated && !isModList && members.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 ml-auto"
+                    disabled={isFollowingAll || followedAll}
+                    onClick={handleFollowAll}
+                  >
+                    {isFollowingAll ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : followedAll ? (
+                      <Check className="h-4 w-4 mr-2" />
+                    ) : (
+                      <UserPlus className="h-4 w-4 mr-2" />
+                    )}
+                    {followedAll ? "Followed All" : "Follow All"}
+                  </Button>
+                )}
                 {list.creator.did === user?.did && (
                   <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
                     <DialogTrigger asChild>
-                      <button className="text-primary hover:underline font-medium flex items-center gap-1 ml-auto">
+                      <button className="text-primary hover:underline font-medium flex items-center gap-1">
                         <Plus className="h-3.5 w-3.5" />
                         Add People
                       </button>

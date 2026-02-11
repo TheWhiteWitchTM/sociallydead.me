@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { UserHoverCard } from "@/components/user-hover-card"
-import { Loader2, RefreshCw, Package, ArrowLeft, UserPlus, UserMinus, Users, MoreHorizontal, Pencil, Trash2, Check } from "lucide-react"
+import { Loader2, RefreshCw, Package, ArrowLeft, UserPlus, UserMinus, Users, MoreHorizontal, Pencil, Trash2, Check, Rss } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,25 +85,32 @@ export default function StarterPackPage() {
     setIsLoading(true)
     setError(null)
     try {
+      console.log("Loading starter pack:", packUri)
       const sp = await getStarterPack(packUri)
+      console.log("Starter pack loaded:", sp)
       setPack(sp)
       setEditName(sp.record.name)
       setEditDescription(sp.record.description || "")
-      
+
       // Fetch full member list if possible
       if (sp.list?.uri) {
+        console.log("Loading list members:", sp.list.uri)
         const listData = await getList(sp.list.uri)
+        console.log("List data loaded:", listData)
         setMembers(listData.items.map(item => ({
           ...item.subject,
           itemUri: item.uri // Keep the item URI for removal
         })))
       } else if (sp.listItemsSample) {
+        console.log("Using sample members:", sp.listItemsSample.length)
         setMembers(sp.listItemsSample.map((item: any) => item.subject))
       }
-      
+
       await loadPosts(sp.list?.uri)
     } catch (err) {
       console.error("Failed to load starter pack:", err)
+      const errorMessage = err instanceof Error ? `${err.message}${err.stack ? '\n' + err.stack : ''}` : "Failed to load starter pack"
+      console.error("Full error details:", errorMessage)
       setError(err instanceof Error ? err.message : "Failed to load starter pack")
     } finally {
       setIsLoading(false)
@@ -248,11 +255,9 @@ export default function StarterPackPage() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center gap-4 px-4">
-          <Link href="/starter-packs">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold truncate flex items-center gap-2">
               <Package className="h-4 w-4 shrink-0" />
