@@ -100,6 +100,7 @@ interface ComposeInputProps {
   compact?: boolean
   autoFocus?: boolean
   onSubmit?: () => void
+  onCancel?: () => void
   showSubmitButton?: boolean
   submitButtonText?: string
   isSubmitting?: boolean
@@ -119,6 +120,7 @@ export function ComposeInput({
   compact = false,
   autoFocus = false,
   onSubmit,
+  onCancel,
   showSubmitButton = false,
   submitButtonText = "Send",
   isSubmitting = false,
@@ -341,6 +343,18 @@ export function ComposeInput({
       return
     }
 
+    // ESC: close suggestions if open, otherwise trigger cancel (close composer)
+    if (e.key === 'Escape') {
+      if (showMentionSuggestions || showHashtagSuggestions) {
+        setShowMentionSuggestions(false)
+        setShowHashtagSuggestions(false)
+      } else if (onCancel) {
+        e.preventDefault()
+        onCancel()
+      }
+      return
+    }
+
     // Handle autocomplete suggestions
     if (!showMentionSuggestions && !showHashtagSuggestions) return
     const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
@@ -358,9 +372,6 @@ export function ComposeInput({
       } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
         insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
       }
-    } else if (e.key === 'Escape') {
-      setShowMentionSuggestions(false)
-      setShowHashtagSuggestions(false)
     }
   }
 
@@ -806,7 +817,7 @@ export function ComposeInput({
 
         {/* Mention Suggestions Dropdown */}
         {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-          <Card className="absolute left-4 right-4 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
             <CardContent className="p-1 max-h-60 overflow-y-auto">
               {isSearchingMentions ? (
                 <div className="flex items-center justify-center p-4">
@@ -814,7 +825,7 @@ export function ComposeInput({
                 </div>
               ) : (
                 mentionSuggestions.map((user, idx) => (
-                  <button
+                  <div
                     key={user.did}
                     className={cn(
                       "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
@@ -837,7 +848,11 @@ export function ComposeInput({
                         @{user.handle}
                       </p>
                     </div>
-                  </button>
+                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                      onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
+                      Add
+                    </Button>
+                  </div>
                 ))
               )}
             </CardContent>
@@ -846,10 +861,10 @@ export function ComposeInput({
 
         {/* Hashtag Suggestions Dropdown */}
         {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-          <Card className="absolute left-4 right-4 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
             <CardContent className="p-1 max-h-60 overflow-y-auto">
               {hashtagSuggestions.map((tag, idx) => (
-                <button
+                <div
                   key={tag}
                   className={cn(
                     "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
@@ -860,8 +875,12 @@ export function ComposeInput({
                   <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
                     <Hash className="h-4 w-4" />
                   </div>
-                  <span className="text-sm font-medium">#{tag}</span>
-                </button>
+                  <span className="text-sm font-medium flex-1">#{tag}</span>
+                  <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                    onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
+                    Add
+                  </Button>
+                </div>
               ))}
             </CardContent>
           </Card>
@@ -993,8 +1012,20 @@ export function ComposeInput({
             </Tooltip>
           </div>
 
-          {/* Right side: Character count and submit button */}
+          {/* Right side: Cancel + Character count + Post */}
           <div className="flex items-center gap-2 shrink-0">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7"
+                onClick={onCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            )}
             {!isDM && effectiveMaxChars !== Infinity && (
               <span className={cn(
                 "font-medium tabular-nums transition-colors text-sm",
@@ -1116,7 +1147,7 @@ export function ComposeInput({
 
       {/* Mention Picker Dialog */}
       <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Add Mentions</DialogTitle>
           </DialogHeader>
@@ -1126,8 +1157,9 @@ export function ComposeInput({
               value={mentionSearch}
               onChange={(e) => setMentionSearch(e.target.value)}
               autoFocus
+              className="h-10 text-base"
             />
-            <ScrollArea className="h-[400px] border rounded-lg">
+            <ScrollArea className="h-72 border rounded-lg">
               {isSearchingPicker ? (
                 <div className="flex items-center justify-center p-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -1197,7 +1229,7 @@ export function ComposeInput({
 
       {/* Hashtag Picker Dialog */}
       <Dialog open={hashtagPickerOpen} onOpenChange={setHashtagPickerOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Add Hashtags</DialogTitle>
           </DialogHeader>
@@ -1207,8 +1239,9 @@ export function ComposeInput({
               value={hashtagSearch}
               onChange={(e) => setHashtagSearch(e.target.value)}
               autoFocus
+              className="h-10 text-base"
             />
-            <ScrollArea className="h-[400px] border rounded-lg">
+            <ScrollArea className="h-72 border rounded-lg">
               {filteredHashtags.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground text-sm">
                   No hashtags found
