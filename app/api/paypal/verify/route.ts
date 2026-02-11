@@ -76,46 +76,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2. Write the supporter record to the user's PDS
-    const pds = pdsUrl || "https://bsky.social"
+    // 2. Update the SociallyDead app-record and add to lists
     try {
-      const recordRes = await fetch(
-        `${pds}/xrpc/com.atproto.repo.putRecord`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessJwt}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            repo: did,
-            collection: "me.sociallydead.supporter",
-            rkey: "self",
-            record: {
-              $type: "me.sociallydead.supporter",
-              verifiedAt: new Date().toISOString(),
-              amount: amount.toString(),
-              paypalOrderId: orderId,
-              payerEmail: payerEmail || "",
-              tier: "blue",
-              createdAt: new Date().toISOString(),
-            },
-          }),
-        }
-      )
-
-      if (!recordRes.ok) {
-        const errText = await recordRes.text()
-        console.error("[PayPal] Failed to write supporter record to PDS:", errText)
-        // We continue even if PDS write fails, as long as we can write to our own repo
-      }
-    } catch (e) {
-      console.error("[PayPal] Error writing to PDS:", e)
-    }
-
-    // 3. Update the SociallyDead app-record
-    try {
-      const { upsertAppRecord, getAppRecord } = await import('@/lib/sociallydead-app-repo');
+      const { upsertAppRecord, getAppRecord, getAppAgent } = await import('@/lib/sociallydead-app-repo');
 
       // Get existing record if any to preserve other fields
       const existing = await getAppRecord(did);
@@ -128,12 +91,61 @@ export async function POST(req: NextRequest) {
       };
 
       // If $50 or more, also set supporter to true
-      if (amount >= 50) {
+      const isSupporter = amount >= 50;
+      if (isSupporter) {
         update.supporter = true;
       }
 
       await upsertAppRecord(did, update);
-      console.log(`[PayPal] Successfully updated app-record for DID: ${did} (verified=true, supporter=${amount >= 50})`);
+      console.log(`[PayPal] Successfully updated app-record for DID: ${did} (verified=true, supporter=${isSupporter})`);
+
+      // 3. Add user to appropriate lists using the app agent
+      const appAgent = await getAppAgent();
+
+      const verifiedListUri = "at://did:plc:ranzwz5adtvnl2pphevoujhx/app.bsky.graph.list/3memjc3ndqn2m";
+      const supportersListUri = "at://did:plc:ranzwz5adtvnl2pphevoujhx/app.bsky.graph.list/3memjmwrzmc2g";
+
+      // Add to verified list (all payments $1+)
+      try {
+        await appAgent.com.atproto.repo.createRecord({
+          repo: appAgent.session!.did,
+          collection: 'app.bsky.graph.listitem',
+          record: {
+            $type: 'app.bsky.graph.listitem',
+            subject: did,
+            list: verifiedListUri,
+            createdAt: new Date().toISOString(),
+          }
+        });
+        console.log(`[PayPal] Added ${did} to verified list`);
+      } catch (err: any) {
+        // Ignore if already in list
+        if (!err?.message?.includes('already exists')) {
+          console.error("[PayPal] Failed to add to verified list:", err);
+        }
+      }
+
+      // Add to supporters list if $50+
+      if (isSupporter) {
+        try {
+          await appAgent.com.atproto.repo.createRecord({
+            repo: appAgent.session!.did,
+            collection: 'app.bsky.graph.listitem',
+            record: {
+              $type: 'app.bsky.graph.listitem',
+              subject: did,
+              list: supportersListUri,
+              createdAt: new Date().toISOString(),
+            }
+          });
+          console.log(`[PayPal] Added ${did} to supporters list`);
+        } catch (err: any) {
+          // Ignore if already in list
+          if (!err?.message?.includes('already exists')) {
+            console.error("[PayPal] Failed to add to supporters list:", err);
+          }
+        }
+      }
     } catch (err) {
       console.error("[PayPal] Failed to update app-record:", err);
       // If this fails, the user won't get the badge immediately in SociallyDead
