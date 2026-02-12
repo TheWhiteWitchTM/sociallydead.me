@@ -146,9 +146,9 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
                   <div className={"flex flex-col"}>
                     <h4 className="font-semibold">
                       {profile.displayName}
+                      <VerifiedBadge handle={profile.handle} did={profile.did} />
                     </h4>
                   <h5>
-                    <VerifiedBadge handle={profile.handle} did={profile.did} />
                     <span className={"text-muted"}>@{profile.handle}</span>
                   </h5>
                   </div>
