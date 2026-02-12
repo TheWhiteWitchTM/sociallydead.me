@@ -406,8 +406,12 @@ export default function MessagesPage() {
   }, [isAuthenticated])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    // Only auto-scroll if we just loaded or sent a message
+    // Don't scroll if messages are being loaded for the first time (prevents animation)
+    if (messages.length > 0 && !messagesLoading) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+    }
+  }, [messages, messagesLoading])
 
   if (authLoading) {
     return (
