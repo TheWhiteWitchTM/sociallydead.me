@@ -142,18 +142,17 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
             </div>
 
             <div className="flex items-center gap-1">
-              User Info
-              <div>
                 <Link href={`/profile/${profile.handle}`} className="hover:underline">
-                  <h4 className="font-semibold inline-flex items-center gap-1">
-                    {profile.displayName}
-                  </h4>
+                  <div className={"flex flex-col"}>
+                    <h4 className="font-semibold">
+                      {profile.displayName}
+                    </h4>
                   <h5>
                     <VerifiedBadge handle={profile.handle} did={profile.did} />
-                    {profile.handle}
+                    <span className={"text-muted"}>@{profile.handle}</span>
                   </h5>
+                  </div>
                 </Link>
-              </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <HandleLink handle={profile.handle} className="text-sm" />
                 {followsYou && (
