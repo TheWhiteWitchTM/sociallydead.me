@@ -6,6 +6,8 @@ const categorySearchTerms: Record<string, string[]> = {
   games: ["gaming", "videogames", "playstation", "xbox", "nintendo", "gaming news"],
   tech: ["technology", "programming", "coding", "software", "ai", "tech news"],
   health: ["health", "fitness", "wellness", "nutrition", "mental health", "exercise"],
+  video: ["video", "youtube", "instagram", "tictok"],
+  adult: ["adult", "sexy", "porn", "nsfw"],
 }
 
 export async function GET(request: NextRequest) {
