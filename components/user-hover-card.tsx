@@ -145,10 +145,11 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
               <UserHoverCard handle={profile.handle}>
                 <Link href={`/profile/${profile.handle}`} className="hover:underline">
                   <h4 className="font-semibold inline-flex items-center gap-1">
-                    {profile.displayName || profile.handle}
+                    {profile.displayName}
                   </h4>
                   <h5>
                     <VerifiedBadge handle={profile.handle} did={profile.did} />
+                    {profile.handle}
                   </h5>
                 </Link>
               </UserHoverCard>
