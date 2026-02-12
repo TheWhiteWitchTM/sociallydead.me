@@ -56,8 +56,8 @@ const feedCategories = [
   { id: "politics", href: "/feed/politics", icon: Vote, label: "Politics" },
   { id: "games", href: "/feed/games", icon: Gamepad2, label: "Games" },
   { id: "tech", href: "/feed/tech", icon: Cpu, label: "Tech" },
-  { id: "health", href: "/feed/health", icon: Heart, label: "Health" }
-  { id: "nsfw", href: "/feed/nsfw", icon: BeerOff, label: "NSFW (18+)" },,
+  { id: "health", href: "/feed/health", icon: Heart, label: "Health" },
+  { id: "nsfw", href: "/feed/nsfw", icon: BeerOff, label: "NSFW (18+)" },
 ]
 
 export function AppHeader() {
