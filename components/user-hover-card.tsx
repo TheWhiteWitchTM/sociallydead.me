@@ -141,7 +141,7 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
               )}
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-0">
                 <Link href={`/profile/${profile.handle}`} className="hover:underline">
                   <div className={"flex flex-col"}>
                       <h4 className="font-semibold">
