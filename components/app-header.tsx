@@ -58,6 +58,7 @@ const feedCategories = [
   { id: "tech", href: "/feed/tech", icon: Cpu, label: "Tech" },
   { id: "health", href: "/feed/health", icon: Heart, label: "Health" },
   { id: "video", href: "/feed/video", icon: BeerOff, label: "Video" },
+  { id: "adult", href: "/feed/adult", icon: BeerOff, label: "Adult" },
 ]
 
 export function AppHeader() {
