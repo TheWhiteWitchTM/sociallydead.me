@@ -331,12 +331,12 @@ export default function HomePage() {
           onSuccess={() => handleTabChange(activeTab)}
         />
 
-        {/* New Posts Indicator */}
+        {/* New Posts Indicator - Fixed at top below header */}
         {newPostsAvailable && (
-          <div className="sticky top-16 z-20 flex justify-center mb-4">
+          <div className="fixed top-14 left-0 right-0 z-30 flex justify-center pt-2 pointer-events-none">
             <Button
               onClick={handleShowNewPosts}
-              className="rounded-full shadow-lg animate-bounce"
+              className="rounded-full shadow-lg animate-bounce pointer-events-auto"
               size="sm"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
