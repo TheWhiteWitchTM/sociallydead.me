@@ -16,6 +16,7 @@ import {
   Home,
   Menu,
   BeerOff,
+  Video,
   X,
   CreditCard,
   HelpCircle,
@@ -57,8 +58,8 @@ const feedCategories = [
   { id: "games", href: "/feed/games", icon: Gamepad2, label: "Games" },
   { id: "tech", href: "/feed/tech", icon: Cpu, label: "Tech" },
   { id: "health", href: "/feed/health", icon: Heart, label: "Health" },
-  { id: "video", href: "/feed/video", icon: BeerOff, label: "Video" },
-  { id: "adult", href: "/feed/adult", icon: BeerOff, label: "Adult" },
+  { id: "video", href: "/feed/video", icon: Video, label: "Video" },
+  { id: "adult", href: "/feed/adult", icon: BeerOff, label: "Adult", adult: true },
 ]
 
 export function AppHeader() {
@@ -182,6 +183,11 @@ export function AppHeader() {
                     >
                       <category.icon className="h-4 w-4" />
                       <span>{category.label}</span>
+                      {category.adult && (
+                        <span className={"text-red-600"}>
+                          18+
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
                 )
