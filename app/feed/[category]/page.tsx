@@ -34,10 +34,15 @@ const categoryConfig: Record<string, { label: string; icon: React.ElementType; s
     icon: Cpu,
     searchQuery: "tech",
   },
-  health: {
-    label: "Health",
+  video: {
+    label: "Video",
     icon: Heart,
-    searchQuery: "health",
+    searchQuery: "video",
+  },
+  adult: {
+    label: "Adult",
+    icon: Heart,
+    searchQuery: "adult",
   },
 }
 
