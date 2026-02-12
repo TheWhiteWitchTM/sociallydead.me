@@ -50,6 +50,7 @@ const mainNavItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
   { id: "news", href: "/news", icon: Newspaper, label: "News" },
+  { id: "politics", href: "/politics", icon: Vote, label: "Politics" },
 ]
 
 const feedCategories = [
