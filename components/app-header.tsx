@@ -51,6 +51,7 @@ const mainNavItems = [
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
   { id: "news", href: "/news", icon: Newspaper, label: "News" },
   { id: "politics", href: "/politics", icon: Vote, label: "Politics" },
+  { id: "video", href: "/video", icon: Video, label: "Video" },
 ]
 
 const feedCategories = [
