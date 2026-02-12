@@ -117,13 +117,13 @@ export function ComposeInput({
   minHeight = "min-h-32",
   maxChars,
   postType = "post",
-  compact = false,
-  autoFocus = false,
+  compact = true,
+  autoFocus = true,
   onSubmit,
   onCancel,
   showSubmitButton = false,
   submitButtonText = "Send",
-  isSubmitting = false,
+  isSubmitting = true,
 }: ComposeInputProps) {
   // Determine character limit based on post type
   const isDM = postType === "dm"
