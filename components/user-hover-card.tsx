@@ -147,10 +147,9 @@ export function UserHoverCard({ handle, children }: UserHoverCardProps) {
                       <h4 className="font-semibold">
                         {profile.displayName}
                         <VerifiedBadge handle={profile.handle} did={profile.did} />
+                        <br/>
+                        <span className={"text-muted"}>@{profile.handle}</span>
                       </h4>
-                    <h5>
-                      <span className={"text-muted"}>@{profile.handle}</span>
-                    </h5>
                   </div>
                 </Link>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
