@@ -109,27 +109,7 @@ export function ComposePlaceholder({
 
   if (isExpanded) {
     return (
-      <>
-        <div className={cn("mb-6", className)}>
-          <Card>
-            {/* Cancel button in top right */}
-            <div className="flex items-center justify-between p-2 border-b">
-              <span className="text-sm font-medium text-muted-foreground px-2">
-                Composing
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleCancel}
-                disabled={isSubmitting}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <CardContent className="p-0">
-              <ComposeInput
+      <ComposeInput
                 text={text}
                 onTextChange={setText}
                 mediaFiles={mediaFiles}
@@ -142,32 +122,7 @@ export function ComposePlaceholder({
                 isSubmitting={isSubmitting}
                 autoFocus={true}
                 compact={true}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Discard confirmation dialog */}
-        <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Discard post?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This can't be undone and you'll lose your draft.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Continue editing</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDiscard}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Discard
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </>
+      />
     )
   }
 
