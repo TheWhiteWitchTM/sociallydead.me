@@ -189,9 +189,7 @@ export function ComposeInput({
       composed: true,
     })
     document.dispatchEvent(esc)
-    if (document.activeElement) {
-      document.activeElement.dispatchEvent(esc)
-    }
+    if (document.activeElement) document.activeElement.dispatchEvent(esc)
   }, [])
 
   const cleanup = useCallback(() => {
@@ -614,7 +612,7 @@ export function ComposeInput({
       let currentText = line
       const lineKey = `line-${lineIdx}`
 
-      const headingMatch = currentText.match(/^(#{1,6})\s+(.+)$/)
+      const headingMatch = currentText.match(headingRegex)
       if (headingMatch) {
         const [, hashes, content] = headingMatch
         lineParts.push(
@@ -628,22 +626,23 @@ export function ComposeInput({
 
       let lastIndex = 0
       const patterns = [
-        { regex: /(\*\*)((?:(?!\*\*).)+?)(\*\*)/g, type: 'bold' },
-        { regex: /(\*)([^*n]+?)(\*)/g, type: 'italic' },
-        { regex: /(~~)((?:(?!~~).)+?)(~~)/g, type: 'strikethrough' },
-        { regex: /(`)((?:(?!`).)+?)(`)/g, type: 'code' },
-        { regex: /(\[)((?:(?!\]).)+?)(\]\()((?:(?!\)).)+?)(\))/g, type: 'link' },
-        { regex: /@([a-zA-Z0-9.-]+)/g, type: 'mention' },
-        { regex: /#(\w+)/g, type: 'hashtag' },
-        { regex: /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})(?:\/[^\s<]*)?)/g, type: 'url' },
+        { regex: boldRegex, type: 'bold' },
+        { regex: italicRegex, type: 'italic' },
+        { regex: strikethroughRegex, type: 'strikethrough' },
+        { regex: codeRegex, type: 'code' },
+        { regex: linkRegex, type: 'link' },
+        { regex: mentionRegex, type: 'mention' },
+        { regex: hashtagRegex, type: 'hashtag' },
+        { regex: urlRegex, type: 'url' },
       ]
 
       const allMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
 
       patterns.forEach(({ regex, type }) => {
-        const matches = [...currentText.matchAll(regex)]
-        matches.forEach((match) => {
-          const index = match.index!
+        let match
+        regex.lastIndex = 0 // reset regex state
+        while ((match = regex.exec(currentText)) !== null) {
+          const index = match.index
           const fullMatch = match[0]
           let element: React.ReactNode
 
@@ -712,31 +711,20 @@ export function ComposeInput({
             case 'url':
               element = (
                 <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
-                  {match[1]}
+                  {match[0]}
                 </span>
               )
               break
-            default:
-              element = fullMatch
           }
 
           allMatches.push({ index, length: fullMatch.length, element })
-        })
+        }
       })
 
       allMatches.sort((a, b) => a.index - b.index)
 
       lastIndex = 0
-
       allMatches.forEach((match) => {
-        if (match.index >= lastIndex) {
-          lineParts.push(currentText.slice(lastIndex, match.index))
-          lastIndex = match.index + match.length
-        }
-      })
-
-      lastIndex = 0
-      finalMatches.forEach((match) => {
         if (match.index > lastIndex) {
           lineParts.push(currentText.slice(lastIndex, match.index))
         }
