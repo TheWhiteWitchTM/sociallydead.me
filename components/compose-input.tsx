@@ -27,7 +27,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-// Common emoji categories like X/Twitter
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
   "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
@@ -38,7 +37,6 @@ const EMOJI_CATEGORIES = {
   "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
 
-// Popular hashtags for suggestions
 const POPULAR_HASHTAGS = [
   "art", "music", "photography", "gaming", "tech", "news", "politics",
   "sports", "science", "health", "food", "travel", "fashion", "movies",
@@ -66,13 +64,11 @@ export type MediaFile = {
   type: "image" | "video"
 }
 
-// Bluesky supported media types
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
 const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
 const MAX_IMAGES = 4
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
-
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024
 
 function extractUrl(text: string): string | null {
   const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/g
@@ -178,6 +174,9 @@ export function ComposeInput({
   const canAddMedia = !hasVideo && imageCount < MAX_IMAGES
 
   const charCount = text.length
+  const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
+  const isNearLimit = progress >= 70
+  const isWarning = progress >= 90
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
@@ -756,14 +755,44 @@ export function ComposeInput({
 
           <div className="flex items-center gap-2 shrink-0">
             {!isDM && effectiveMaxChars !== Infinity && (
-              <span className={cn(
-                "font-medium tabular-nums transition-colors text-xs",
-                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
-                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
-                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
-              )}>
-                {charCount}/{effectiveMaxChars}
-              </span>
+              <div className="relative h-7 w-7 flex items-center justify-center">
+                <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    className="stroke-muted/30"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    strokeWidth="3"
+                    strokeDasharray="100"
+                    strokeDashoffset={100 - progress}
+                    className={cn(
+                      "transition-all duration-300",
+                      progress < 70 ? "stroke-green-500" :
+                        progress < 90 ? "stroke-orange-500" :
+                          "stroke-red-600"
+                    )}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span
+                  className={cn(
+                    "absolute text-xs font-medium tabular-nums",
+                    isWarning ? "text-red-600 font-bold" :
+                      isNearLimit ? "text-orange-500" :
+                        "text-muted-foreground"
+                  )}
+                >
+                  {charCount}
+                </span>
+              </div>
             )}
 
             <Button
@@ -828,10 +857,12 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 text-foreground caret-foreground",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
             style={{
+              color: 'transparent',
+              caretColor: 'var(--foreground)',
               lineHeight: '1.5',
             }}
           />
