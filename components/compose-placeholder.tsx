@@ -44,6 +44,7 @@ export function ComposePlaceholder({
   const hasContent = text.trim().length > 0 || mediaFiles.length > 0 || linkCard !== null
 
   const handleCancel = () => {
+    setText("")
     setIsExpanded(false)
   }
 
