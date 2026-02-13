@@ -16,24 +16,24 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-  // Common emoji categories like X/Twitter
-  const EMOJI_CATEGORIES = {
-    "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
-    "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
-    "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
-    "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
-    "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞"," waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
-    "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
-    "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
-  } as const
+// Common emoji categories like X/Twitter
+const EMOJI_CATEGORIES = {
+  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
+  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
+  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
+  "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
+  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞"," waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
+  "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
+  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
+} as const
 
-  // Popular hashtags for suggestions
-  const POPULAR_HASHTAGS = [
-    "art", "music", "photography", "gaming", "tech", "news", "politics",
-    "sports", "science", "health", "food", "travel", "fashion", "movies",
-    "books", "anime", "bluesky", "developer", "design", "ai", "sociallydead",
-    "coding", "programming", "react", "nextjs", "webdev", "crypto", "nature"
-  ]
+// Popular hashtags for suggestions
+const POPULAR_HASHTAGS = [
+  "art", "music", "photography", "gaming", "tech", "news", "politics",
+  "sports", "science", "health", "food", "travel", "fashion", "movies",
+  "books", "anime", "bluesky", "developer", "design", "ai", "sociallydead",
+  "coding", "programming", "react", "nextjs", "webdev", "crypto", "nature"
+]
 
 interface MentionSuggestion {
   did: string
@@ -67,22 +67,22 @@ function extractUrl(text: string): string | null {
   const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/g
   const matches = text.match(urlRegex)
   if (!matches || matches.length === 0) return null
-  
+
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
   if (lines.length === 0) return null
-  
+
   const firstLine = lines[0]
   const lastLine = lines[lines.length - 1]
-  
+
   // Find matches in first and last line
   const firstLineMatch = firstLine.match(urlRegex)
   const lastLineMatch = lastLine.match(urlRegex)
-  
+
   // If first line IS just the URL
   if (firstLineMatch && firstLine === firstLineMatch[0]) return firstLineMatch[0]
   // If last line IS just the URL
   if (lastLineMatch && lastLine === lastLineMatch[0]) return lastLineMatch[0]
-  
+
   return null
 }
 
@@ -107,24 +107,24 @@ interface ComposeInputProps {
 }
 
 export function ComposeInput({
-  text,
-  onTextChange,
-  mediaFiles = [],
-  onMediaFilesChange,
-  linkCard = null,
-  onLinkCardChange,
-  placeholder = "What's happening?",
-  minHeight = "min-h-32",
-  maxChars,
-  postType = "post",
-  compact = false,
-  autoFocus = false,
-  onSubmit,
-  onCancel,
-  showSubmitButton = false,
-  submitButtonText = "Send",
-  isSubmitting = false,
-}: ComposeInputProps) {
+                               text,
+                               onTextChange,
+                               mediaFiles = [],
+                               onMediaFilesChange,
+                               linkCard = null,
+                               onLinkCardChange,
+                               placeholder = "What's happening?",
+                               minHeight = "min-h-32",
+                               maxChars,
+                               postType = "post",
+                               compact = false,
+                               autoFocus = false,
+                               onSubmit,
+                               onCancel,
+                               showSubmitButton = false,
+                               submitButtonText = "Send",
+                               isSubmitting = false,
+                             }: ComposeInputProps) {
   // Determine character limit based on post type
   const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
@@ -760,19 +760,62 @@ export function ComposeInput({
 
   // Determine what we're composing
   const composeType = postType === "reply" ? "Replying" :
-                      postType === "quote" ? "Quoting" :
-                      postType === "dm" ? "Direct Message" :
-                      postType === "article" ? "Writing Article" :
-                      "New Post"
+    postType === "quote" ? "Quoting" :
+      postType === "dm" ? "Direct Message" :
+        postType === "article" ? "Writing Article" :
+          "New Post"
 
   return (
     <div className="space-y-4">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
-        {/* Title Bar - Shows what you're composing */}
-        <div className="border-b border-border bg-muted/30 px-4 py-1.5 flex items-center">
+        {/* Title Bar - Shows what you're composing + controls on the right */}
+        <div className="border-b border-border bg-muted/30 px-4 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PenSquare className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs font-medium text-muted-foreground">{composeType}</span>
+          </div>
+
+          {/* Counter, Cancel, Send - MOVED HERE to top right */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isDM && effectiveMaxChars !== Infinity && (
+              <span className={cn(
+                "font-medium tabular-nums transition-colors text-xs",
+                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
+                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
+                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
+              )}>
+                {charCount}/{effectiveMaxChars}
+              </span>
+            )}
+            {onCancel && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={onCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            )}
+            {onSubmit && (
+              <Button
+                onClick={onSubmit}
+                disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0)}
+                size="sm"
+                className="h-7 px-3 text-xs font-bold"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5 mr-1.5" />
+                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -813,80 +856,80 @@ export function ComposeInput({
             }}
           />
 
-        {/* Mention Suggestions Dropdown */}
-        {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-          <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-            <CardContent className="p-1 max-h-60 overflow-y-auto">
-              {isSearchingMentions ? (
-                <div className="flex items-center justify-center p-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              ) : (
-                mentionSuggestions.map((user, idx) => (
+          {/* Mention Suggestions Dropdown */}
+          {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
+            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardContent className="p-1 max-h-60 overflow-y-auto">
+                {isSearchingMentions ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  mentionSuggestions.map((user, idx) => (
+                    <div
+                      key={user.did}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                        idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                      )}
+                      onClick={() => insertSuggestion(user.handle, 'mention')}
+                    >
+                      <Avatar className="h-8 w-8 border border-background/10">
+                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
+                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate flex items-center gap-1">
+                          {user.displayName || user.handle}
+                          <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
+                        </p>
+                        <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                          @{user.handle}
+                        </p>
+                      </div>
+                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
+                        Add
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Hashtag Suggestions Dropdown */}
+          {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
+            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardContent className="p-1 max-h-60 overflow-y-auto">
+                {hashtagSuggestions.map((tag, idx) => (
                   <div
-                    key={user.did}
+                    key={tag}
                     className={cn(
                       "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
                       idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                     )}
-                    onClick={() => insertSuggestion(user.handle, 'mention')}
+                    onClick={() => insertSuggestion(tag, 'hashtag')}
                   >
-                    <Avatar className="h-8 w-8 border border-background/10">
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
-                        {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate flex items-center gap-1">
-                        {user.displayName || user.handle}
-                        <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
-                      </p>
-                      <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                        @{user.handle}
-                      </p>
+                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
+                      <Hash className="h-4 w-4" />
                     </div>
+                    <span className="text-sm font-medium flex-1">#{tag}</span>
                     <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                      onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
+                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
                       Add
                     </Button>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Hashtag Suggestions Dropdown */}
-        {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-          <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-            <CardContent className="p-1 max-h-60 overflow-y-auto">
-              {hashtagSuggestions.map((tag, idx) => (
-                <div
-                  key={tag}
-                  className={cn(
-                    "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
-                    idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-                  )}
-                  onClick={() => insertSuggestion(tag, 'hashtag')}
-                >
-                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
-                    <Hash className="h-4 w-4" />
-                  </div>
-                  <span className="text-sm font-medium flex-1">#{tag}</span>
-                  <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                    onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
-                    Add
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </Card>
 
-      {/* Toolbar - At the BOTTOM */}
+      {/* Toolbar - At the BOTTOM - unchanged */}
       <TooltipProvider delayDuration={300}>
         <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           {/* Left side: Formatting and media buttons */}
@@ -1008,49 +1051,6 @@ export function ComposeInput({
                 <p className="text-xs">Add Hashtags</p>
               </TooltipContent>
             </Tooltip>
-          </div>
-
-          {/* Right side: Counter, Cancel, Send - ALWAYS HERE */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            {!isDM && effectiveMaxChars !== Infinity && (
-              <span className={cn(
-                "font-medium tabular-nums transition-colors text-xs",
-                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
-                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
-                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
-              )}>
-                {charCount}/{effectiveMaxChars}
-              </span>
-            )}
-            {onCancel && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={onCancel}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-            )}
-            {onSubmit && (
-              <Button
-                onClick={onSubmit}
-                disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0)}
-                size="sm"
-                className="h-7 px-3 text-xs font-bold"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="h-3.5 w-3.5 mr-1.5" />
-                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </div>
       </TooltipProvider>
