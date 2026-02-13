@@ -189,7 +189,6 @@ export function ComposeInput({
       composed: true,
     })
 
-    // Fire on every possible target to maximize chance
     document.dispatchEvent(escEvent)
     document.body.dispatchEvent(escEvent)
     window.dispatchEvent(escEvent)
@@ -197,17 +196,8 @@ export function ComposeInput({
   }, [])
 
   const forceClose = useCallback(() => {
-    // Simulate escape FIRST — while modal is still fully open
     simulateEscape()
-
-    // Then clean up content
-    onTextChange("")
-    onMediaFilesChange?.([])
-    onLinkCardChange?.(null)
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
-    onCancel?.()
-  }, [onTextChange, onMediaFilesChange, onLinkCardChange, onCancel, simulateEscape])
+  }, [simulateEscape])
 
   const handleCancelOrEscape = useCallback(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
