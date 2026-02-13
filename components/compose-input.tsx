@@ -221,9 +221,11 @@ export function ComposeInput({
   }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, forceClose])
 
   const handleDiscard = useCallback(() => {
-    forceClose()
+    cleanup()
+    onCancel?.()
+    simulateEscape()
     setShowDiscardDialog(false)
-  }, [forceClose])
+  }, [cleanup, onCancel, simulateEscape])
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
