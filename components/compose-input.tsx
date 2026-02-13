@@ -32,7 +32,7 @@ const EMOJI_CATEGORIES = {
   "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
   "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
   "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
-  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞"," waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
+  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
   "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
   "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
@@ -178,7 +178,6 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
-  // Shared logic — still kept for when we need to clean up without faking key event
   const cleanupComposer = useCallback(() => {
     onTextChange("")
     onMediaFilesChange?.([])
@@ -187,6 +186,22 @@ export function ComposeInput({
     setShowHashtagSuggestions(false)
     onCancel?.()
   }, [onTextChange, onMediaFilesChange, onLinkCardChange, onCancel])
+
+  const simulateEscapeKey = useCallback(() => {
+    const escEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      code: "Escape",
+      keyCode: 27,
+      which: 27,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    })
+    document.dispatchEvent(escEvent)
+    if (document.activeElement) {
+      document.activeElement.dispatchEvent(escEvent)
+    }
+  }, [])
 
   const handleCancelOrEscape = useCallback(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
@@ -200,32 +215,18 @@ export function ComposeInput({
       return
     }
 
-    // Empty → normal cleanup
+    // empty → force close
     cleanupComposer()
-  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, cleanupComposer])
-
-  const simulateEscapeKey = useCallback(() => {
-    const escEvent = new KeyboardEvent("keydown", {
-      key: "Escape",
-      code: "Escape",
-      keyCode: 27,
-      which: 27,
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-    })
-
-    // Try to dispatch on the document (most modal systems listen here)
-    document.dispatchEvent(escEvent)
-
-    // Also try on the textarea / active element (some focus-trapped modals listen there)
-    if (document.activeElement) {
-      document.activeElement.dispatchEvent(escEvent)
-    }
-
-    // Fallback: also run our own cleanup in case the event doesn't close anything
-    cleanupComposer()
-  }, [cleanupComposer])
+    simulateEscapeKey()
+  }, [
+    showMentionSuggestions,
+    showHashtagSuggestions,
+    text,
+    mediaFiles.length,
+    linkCard,
+    cleanupComposer,
+    simulateEscapeKey,
+  ])
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
@@ -269,7 +270,7 @@ export function ComposeInput({
       if (res.ok) {
         const data = await res.json()
         if (data.title || data.description) {
-          onLinkCardChange(data)
+          onLinkCardChange?.(data)
           setLinkCardUrl(url)
         }
       }
@@ -326,7 +327,7 @@ export function ComposeInput({
       if (url && url !== linkCardUrl && !linkCardDismissed) {
         fetchLinkCard(url)
       } else if (!url) {
-        onLinkCardChange(null)
+        onLinkCardChange?.(null)
         setLinkCardUrl(null)
         setLinkCardDismissed(false)
       }
@@ -434,7 +435,7 @@ export function ComposeInput({
         if (hasImages || hasVideo) continue
         if (file.size > MAX_VIDEO_SIZE) continue
         const preview = URL.createObjectURL(file)
-        onMediaFilesChange([{ file, preview, type: "video" }])
+        onMediaFilesChange?.([{ file, preview, type: "video" }])
         break
       }
 
@@ -443,7 +444,7 @@ export function ComposeInput({
         if (imageCount >= MAX_IMAGES) continue
         const reader = new FileReader()
         reader.onload = (ev) => {
-          onMediaFilesChange([...mediaFiles.filter(f => !(f.type === "video")),
+          onMediaFilesChange?.([...mediaFiles.filter(f => f.type !== "video"),
             ...(mediaFiles.filter(f => f.type === "image").length < MAX_IMAGES
               ? [{ file, preview: ev.target?.result as string, type: "image" as const }]
               : [])
@@ -461,18 +462,12 @@ export function ComposeInput({
     if (mediaFiles[index]?.type === "video") {
       URL.revokeObjectURL(mediaFiles[index].preview)
     }
-    onMediaFilesChange(updated)
+    onMediaFilesChange?.(updated)
   }
 
   const dismissLinkCard = () => {
-    onLinkCardChange(null)
+    onLinkCardChange?.(null)
     setLinkCardDismissed(true)
-  }
-
-  const getAcceptTypes = () => {
-    if (hasVideo) return ""
-    if (hasImages) return IMAGE_TYPES.join(",")
-    return ALL_MEDIA_TYPES.join(",")
   }
 
   const insertEmoji = (emoji: string) => {
@@ -778,6 +773,7 @@ export function ComposeInput({
 
   const handleDiscard = () => {
     cleanupComposer()
+    simulateEscapeKey()
     setShowDiscardDialog(false)
   }
 
@@ -837,7 +833,7 @@ export function ComposeInput({
               variant="ghost"
               size="sm"
               className="h-7 px-3 text-xs"
-              onClick={simulateEscapeKey}   // ← NUCLEAR: fake real Escape
+              onClick={handleCancelOrEscape}
               disabled={isSubmitting}
             >
               Cancel
@@ -1339,7 +1335,6 @@ export function ComposeInput({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   )
 }
