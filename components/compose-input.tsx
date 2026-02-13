@@ -580,6 +580,13 @@ export function ComposeInput({
     setShowDiscardDialog(false)
   }
 
+  const syncScroll = () => {
+    if (textareaRef.current && highlighterRef.current) {
+      highlighterRef.current.scrollTop = textareaRef.current.scrollTop
+      highlighterRef.current.scrollLeft = textareaRef.current.scrollLeft
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
