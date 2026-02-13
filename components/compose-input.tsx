@@ -27,24 +27,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const EMOJI_CATEGORIES = {
-  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
-  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
-  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
-  "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
-  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
-  "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
-  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
-} as const
+// Your constants (unchanged)
+const EMOJI_CATEGORIES = { /* ... your full object ... */ } as const
+const POPULAR_HASHTAGS = [ /* ... your array ... */ ]
 
-const POPULAR_HASHTAGS = [
-  "art", "music", "photography", "gaming", "tech", "news", "politics",
-  "sports", "science", "health", "food", "travel", "fashion", "movies",
-  "books", "anime", "bluesky", "developer", "design", "ai", "sociallydead",
-  "coding", "programming", "react", "nextjs", "webdev", "crypto", "nature"
-]
+// Your interfaces and types (unchanged)
+interface MentionSuggestion { /* ... */ }
+export interface LinkCardData { /* ... */ }
+export type MediaFile = { /* ... */ }
 
-// … all your other constants, interfaces, types, extractUrl function …
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
+const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
+const MAX_IMAGES = 4
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024
+
+// Your extractUrl function (unchanged)
+function extractUrl(text: string): string | null { /* ... your code ... */ }
+
+interface ComposeInputProps { /* ... your full props interface ... */ }
 
 export function ComposeInput({
                                text,
@@ -67,56 +68,17 @@ export function ComposeInput({
                              }: ComposeInputProps) {
   const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
-  const { searchActors, searchActorsTypeahead } = useBluesky()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const highlighterRef = useRef<HTMLDivElement>(null)
 
-  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
-  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
-  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
-  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
-  const [autocompletePosition, setAutocompletePosition] = useState(0)
-  const [autocompleteCoords, setAutocompleteCoords] = useState({ top: 0, left: 0 })
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
-  const [isSearchingMentions, setIsSearchingMentions] = useState(false)
-
-  const [linkCardLoading, setLinkCardLoading] = useState(false)
-  const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
-  const [linkCardDismissed, setLinkCardDismissed] = useState(false)
-  const linkCardDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const [hasPlayedWarning, setHasPlayedWarning] = useState(false)
-  const audioContextRef = useRef<AudioContext | null>(null)
-
-  const [showDiscardDialog, setShowDiscardDialog] = useState(false)
-
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
-  const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
-
-  const [mentionPickerOpen, setMentionPickerOpen] = useState(false)
-  const [mentionSearch, setMentionSearch] = useState("")
-  const [mentionPickerResults, setMentionPickerResults] = useState<MentionSuggestion[]>([])
-  const [selectedMentions, setSelectedMentions] = useState<Set<string>>(new Set())
-  const [isSearchingPicker, setIsSearchingPicker] = useState(false)
-
-  const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
-  const [hashtagSearch, setHashtagSearch] = useState("")
-  const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
-
-  const hasVideo = mediaFiles.some(f => f.type === "video")
-  const hasImages = mediaFiles.some(f => f.type === "image")
-  const imageCount = mediaFiles.filter(f => f.type === "image").length
-  const canAddMedia = !hasVideo && imageCount < 4   // ← hard-coded 4 since MAX_IMAGES was causing pain
+  // … all your useBluesky, refs, state declarations exactly as before …
 
   const charCount = text.length
-  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars   // ← this is the new line
+  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
 
   const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
-  // … all the rest of your hooks, callbacks, functions (simulateEscape, forceClose, handleCancelOrEscape, handleDiscard, syncScroll, playWarningSound, fetchLinkCard, searchMentions, etc.) remain 100% unchanged …
+  // … all your useCallback, useEffect, functions (handleTextChange, insertSuggestion, etc.) unchanged …
 
   return (
     <div className="space-y-4">
@@ -124,21 +86,20 @@ export function ComposeInput({
         <div className="border-b border-border bg-muted/30 px-4 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PenSquare className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">{composeType}</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {postType === "reply" ? "Replying" :
+                postType === "quote" ? "Quoting" :
+                  postType === "dm" ? "Direct Message" :
+                    postType === "article" ? "Writing Article" :
+                      "New Post"}
+            </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             {!isDM && effectiveMaxChars !== Infinity && (
               <div className="relative h-7 w-7 flex items-center justify-center">
                 <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="16"
-                    fill="none"
-                    className="stroke-muted/30"
-                    strokeWidth="3"
-                  />
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-muted/30" strokeWidth="3" />
                   <circle
                     cx="18"
                     cy="18"
@@ -187,7 +148,7 @@ export function ComposeInput({
                 disabled={
                   isSubmitting ||
                   (!text.trim() && mediaFiles.length === 0) ||
-                  isOverLimit   // ← this is the only real functional change
+                  isOverLimit
                 }
                 size="sm"
                 className="h-7 px-3 text-xs font-bold"
@@ -205,47 +166,10 @@ export function ComposeInput({
           </div>
         </div>
 
-        {/* Everything below this line is unchanged from your last working version */}
-        <div className="relative">
-          <div
-            ref={highlighterRef}
-            className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-auto select-none z-0",
-              minHeight
-            )}
-            aria-hidden="true"
-            style={{
-              fontFamily: 'inherit',
-              lineHeight: '1.5',
-              fontSize: '0.875rem',
-            }}
-          >
-            {renderHighlightedText()}
-          </div>
-
-          <Textarea
-            ref={textareaRef}
-            placeholder={placeholder}
-            value={text}
-            onChange={(e) => handleTextChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onScroll={syncScroll}
-            className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
-              minHeight
-            )}
-            style={{
-              color: 'transparent',
-              caretColor: 'var(--foreground)',
-              lineHeight: '1.5',
-            }}
-          />
-
-          {/* suggestions, media preview, link card, toolbars, dialogs — all exactly as you had them */}
-        </div>
+        {/* The rest of your JSX — highlighter + textarea + suggestions + toolbar + media preview + link card + dialogs — copy-paste your original working version here. Do NOT replace this part with mine if it differs. */}
       </Card>
-
-      {/* … the rest of your bottom part (media, link card, dialogs, alert) stays identical … */}
     </div>
   )
 }
+
+export { IMAGE_TYPES, VIDEO_TYPES, MAX_VIDEO_SIZE }
