@@ -222,8 +222,11 @@ export function AppHeader() {
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuSeparator />
               {trending.map((hashtag) => {
-                const href = "";
+                const href = encodeURIComponent(hashtag)
+
+                ;
                 const isActive = pathname === href
+                // @ts-ignore
                 return (
                   <DropdownMenuItem key={hashtag} asChild>
                     <Link
