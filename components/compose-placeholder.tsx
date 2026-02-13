@@ -118,6 +118,7 @@ export function ComposePlaceholder({
                 onLinkCardChange={setLinkCard}
                 placeholder={placeholder}
                 postType={postType}
+                onCancel={handleCancel}
                 onSubmit={handleSubmit}
                 isSubmitting={isSubmitting}
                 autoFocus={true}
