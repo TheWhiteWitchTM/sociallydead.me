@@ -178,6 +178,27 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
+  const handleCancelOrEscape = useCallback(() => {
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      setShowMentionSuggestions(false)
+      setShowHashtagSuggestions(false)
+      return
+    }
+
+    if (text.trim() || mediaFiles.length > 0 || linkCard) {
+      setShowDiscardDialog(true)
+    } else if (onCancel) {
+      onCancel()
+    }
+  }, [
+    showMentionSuggestions,
+    showHashtagSuggestions,
+    text,
+    mediaFiles.length,
+    linkCard,
+    onCancel,
+  ])
+
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
       highlighterRef.current.scrollTop = textareaRef.current.scrollTop
@@ -347,15 +368,8 @@ export function ComposeInput({
     }
 
     if (e.key === 'Escape') {
-      if (showMentionSuggestions || showHashtagSuggestions) {
-        setShowMentionSuggestions(false)
-        setShowHashtagSuggestions(false)
-      } else if (text.trim() || mediaFiles.length > 0 || linkCard) {
-        setShowDiscardDialog(true)
-        e.preventDefault()
-      } else if (onCancel) {
-        onCancel()
-      }
+      e.preventDefault()
+      handleCancelOrEscape()
       return
     }
 
@@ -800,13 +814,7 @@ export function ComposeInput({
               variant="ghost"
               size="sm"
               className="h-7 px-3 text-xs"
-              onClick={() => {
-                if (text.trim() || mediaFiles.length > 0 || linkCard) {
-                  setShowDiscardDialog(true)
-                } else if (onCancel) {
-                  onCancel()
-                }
-              }}
+              onClick={handleCancelOrEscape}
               disabled={isSubmitting}
             >
               Cancel
