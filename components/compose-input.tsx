@@ -27,10 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-// ────────────────────────────────────────────────
-// Constants & types (unchanged from your original)
-// ────────────────────────────────────────────────
-
+// Common emoji categories like X/Twitter
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
   "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
@@ -41,6 +38,7 @@ const EMOJI_CATEGORIES = {
   "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
 
+// Popular hashtags for suggestions
 const POPULAR_HASHTAGS = [
   "art", "music", "photography", "gaming", "tech", "news", "politics",
   "sports", "science", "health", "food", "travel", "fashion", "movies",
@@ -68,11 +66,13 @@ export type MediaFile = {
   type: "image" | "video"
 }
 
+// Bluesky supported media types
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
 const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
 const MAX_IMAGES = 4
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
+
 
 function extractUrl(text: string): string | null {
   const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,}))/g
@@ -694,8 +694,9 @@ export function ComposeInput({
 
       allMatches.sort((a, b) => a.index - b.index)
 
-      let lastIndex = 0
       const finalMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
+
+      lastIndex = 0
 
       allMatches.forEach((match) => {
         if (match.index >= lastIndex) {
@@ -814,7 +815,6 @@ export function ComposeInput({
               fontFamily: 'inherit',
               lineHeight: '1.5',
               fontSize: '0.875rem',
-              color: 'var(--foreground)',
             }}
           >
             {renderHighlightedText()}
@@ -1277,6 +1277,7 @@ export function ComposeInput({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   )
 }
