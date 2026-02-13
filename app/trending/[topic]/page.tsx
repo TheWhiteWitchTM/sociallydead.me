@@ -7,7 +7,6 @@ import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { Button } from "@/components/ui/button"
 import { Loader2, RefreshCw, ArrowLeft } from "lucide-react"
-import { decodeURIComponent } from "url" // Node built-in, but in client we can use native decodeURIComponent
 
 export default function TrendingTopicPage() {
   const params = useParams()
