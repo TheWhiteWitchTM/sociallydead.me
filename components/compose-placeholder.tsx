@@ -44,13 +44,7 @@ export function ComposePlaceholder({
   const hasContent = text.trim().length > 0 || mediaFiles.length > 0 || linkCard !== null
 
   const handleCancel = () => {
-    if (hasContent) {
-      // Show confirmation dialog if there's content
-      setShowDiscardDialog(true)
-    } else {
-      // Just close if empty
-      setIsExpanded(false)
-    }
+    setIsExpanded(false)
   }
 
   const handleDiscard = () => {
