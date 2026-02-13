@@ -24,7 +24,7 @@ import {
   FileText,
   Code,
   ChevronDown,
-  Rss
+  Rss, TrendingUp
 } from "lucide-react"
 import { VerificationCheckout } from "@/components/verification-checkout"
 import { useTheme } from "next-themes"
@@ -65,6 +65,7 @@ const feedCategories = [
 ]
 
 export function AppHeader() {
+  const blueSky = useBluesky()
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const { isAuthenticated } = useBluesky()
@@ -167,6 +168,49 @@ export function AppHeader() {
               >
                 <Rss className="h-4 w-4" />
                 <span>Feeds</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuSeparator />
+              {feedCategories.map((category) => {
+                const isActive = pathname === category.href
+                return (
+                  <DropdownMenuItem key={category.id} asChild>
+                    <Link
+                      href={category.href}
+                      className={cn(
+                        "flex w-full items-center gap-2 cursor-pointer",
+                        isActive && "bg-accent text-accent-foreground font-medium"
+                      )}
+                    >
+                      <category.icon className="h-4 w-4" />
+                      <span>{category.label}</span>
+                      {category.adult && (
+                        <span className={"text-red-600"}>
+                          18+
+                        </span>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Hashtags Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={pathname.startsWith("/hashtags/") ? "default" : "ghost"}
+                size="sm"
+                className={cn(
+                  "gap-1.5 px-3",
+                  pathname.startsWith("/hashtags/") && "bg-primary text-primary-foreground font-semibold"
+                )}
+              >
+                <TrendingUp className="h-4 w-4" />
+                <span>Trending</span>
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>

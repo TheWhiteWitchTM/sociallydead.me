@@ -323,6 +323,8 @@ interface BlueskyContextType {
 	createArticle: (title: string, content: string) => Promise<{ uri: string; rkey: string }>
 	updateArticle: (rkey: string, title: string, content: string) => Promise<void>
 	deleteArticle: (rkey: string) => Promise<void>
+	getTrendingTopics: (limit?: number) => Promise<string[]>
+	getAllPostsForHashtag: (hashtag: string, options?: { maxPages?: number; maxPosts?: number }) => Promise<BlueskyPost[]>
 }
 
 const BlueskyContext = createContext<BlueskyContextType | undefined>(undefined)
@@ -1186,7 +1188,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const unpinPost = async () => {
 		if (!agent || !user) throw new Error("Not authenticated")
-		
+
 		await agent.upsertProfile((existing) => {
 			const clone: any = { ...(existing as any) }
 			delete clone.pinnedPost
@@ -1832,7 +1834,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const followAllMembers = async (dids: string[]) => {
 		if (!agent) throw new Error("Not authenticated")
-		
+
 		for (const did of dids) {
 			try {
 				await agent.follow(did)
@@ -1886,7 +1888,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const saveFeed = async (uri: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
-		
+
 		const response = await agent.app.bsky.actor.getPreferences({})
 		let preferences = response.data.preferences
 		let savedFeedsPref = preferences.find(
@@ -1906,7 +1908,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 
 	const unsaveFeed = async (uri: string) => {
 		if (!agent || !user) throw new Error("Not authenticated")
-		
+
 		const response = await agent.app.bsky.actor.getPreferences({})
 		let preferences = response.data.preferences
 		const savedFeedsPref = preferences.find(
@@ -2041,6 +2043,38 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
+	// Helper: Fetch as many posts as possible for a hashtag (paginated search)
+	const getAllPostsForHashtag = async (
+		hashtag: string,
+		options: { maxPages?: number; maxPosts?: number } = {}
+	): Promise<BlueskyPost[]> => {
+		const { maxPages = 10, maxPosts = 500 } = options; // ~500 posts max by default (10 pages × 50)
+
+		let allPosts: BlueskyPost[] = [];
+		let cursor: string | undefined = undefined;
+		let pageCount = 0;
+
+		try {
+			while (true) {
+				pageCount++;
+				const result = await searchByHashtag(hashtag, cursor);
+
+				allPosts = [...allPosts, ...result.posts];
+
+				if (!result.cursor || pageCount >= maxPages || allPosts.length >= maxPosts) {
+					break;
+				}
+
+				cursor = result.cursor;
+			}
+		} catch (err) {
+			console.warn(`Failed to fetch more posts for #${hashtag}:`, err);
+			// Return partial results
+		}
+
+		return allPosts;
+	}
+
 	// List Feed - Get posts from users in a list
 	const getListFeed = async (listUri: string, cursor?: string): Promise<{ posts: BlueskyPost[]; cursor?: string }> => {
 		const agentToUse = agent || publicAgent
@@ -2106,7 +2140,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		// 1. Get existing record
 		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
 		const data = await res.json()
-		
+
 		let record: any = { verified: false }
 		if (data.success && data.record) {
 			record = data.record
@@ -2119,7 +2153,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				verified: false,
 			}
 		}
-		
+
 		const highlights = record.highlights || []
 
 		if (highlights.length >= 6) {
@@ -2205,7 +2239,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 			const data = await res.json()
 			if (!data.success || !data.record?.articles) return []
 
-			return data.record.articles.sort((a: any, b: any) => 
+			return data.record.articles.sort((a: any, b: any) =>
 				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 			)
 		} catch {
@@ -2226,11 +2260,11 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		if (!agent || !user) throw new Error("Not authenticated")
 
 		const rkey = Date.now().toString()
-		
+
 		// 1. Get existing record
 		const res = await fetch(`/api/app-record?rkey=${encodeURIComponent(user.did)}`)
 		const data = await res.json()
-		
+
 		let record: any = { verified: false }
 		if (data.success && data.record) {
 			record = data.record
@@ -2243,7 +2277,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				verified: false,
 			}
 		}
-		
+
 		const articles = record.articles || []
 
 		// 2. Add new article
@@ -2349,6 +2383,19 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
+	// Trending Topics (new - public endpoint, no auth required)
+	const getTrendingTopics = async (limit = 20): Promise<string[]> => {
+		try {
+			const response = await publicAgent.app.bsky.unspecced.getTrends({ limit });
+			return response.data.trends
+				.map((t: any) => t.topic || t.name || String(t))
+				.filter(Boolean);
+		} catch (err) {
+			console.warn("Failed to fetch trending topics:", err);
+			return [];
+		}
+	}
+
 	return (
 		<BlueskyContext.Provider
 			value={{
@@ -2429,8 +2476,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				isBookmarked,
 				isFeedSaved,
 				searchPosts,
-  		searchActors,
-  		searchActorsTypeahead,
+				searchActors,
+				searchActorsTypeahead,
 				searchByHashtag,
 				getListFeed,
 				uploadImage,
@@ -2444,6 +2491,8 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				createArticle,
 				updateArticle,
 				deleteArticle,
+				getTrendingTopics,
+				getAllPostsForHashtag,
 			}}
 		>
 			{children}
