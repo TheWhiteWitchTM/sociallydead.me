@@ -178,6 +178,16 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
+  // Shared logic — still kept for when we need to clean up without faking key event
+  const cleanupComposer = useCallback(() => {
+    onTextChange("")
+    onMediaFilesChange?.([])
+    onLinkCardChange?.(null)
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+    onCancel?.()
+  }, [onTextChange, onMediaFilesChange, onLinkCardChange, onCancel])
+
   const handleCancelOrEscape = useCallback(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
       setShowMentionSuggestions(false)
@@ -190,24 +200,32 @@ export function ComposeInput({
       return
     }
 
-    // Empty → reset content + notify parent (if they passed the callback)
-    onTextChange("")
-    onMediaFilesChange?.([])
-    onLinkCardChange?.(null)
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
-    onCancel?.()
-  }, [
-    showMentionSuggestions,
-    showHashtagSuggestions,
-    text,
-    mediaFiles.length,
-    linkCard,
-    onTextChange,
-    onMediaFilesChange,
-    onLinkCardChange,
-    onCancel,
-  ])
+    // Empty → normal cleanup
+    cleanupComposer()
+  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, cleanupComposer])
+
+  const simulateEscapeKey = useCallback(() => {
+    const escEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      code: "Escape",
+      keyCode: 27,
+      which: 27,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    })
+
+    // Try to dispatch on the document (most modal systems listen here)
+    document.dispatchEvent(escEvent)
+
+    // Also try on the textarea / active element (some focus-trapped modals listen there)
+    if (document.activeElement) {
+      document.activeElement.dispatchEvent(escEvent)
+    }
+
+    // Fallback: also run our own cleanup in case the event doesn't close anything
+    cleanupComposer()
+  }, [cleanupComposer])
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
@@ -759,12 +777,7 @@ export function ComposeInput({
           "New Post"
 
   const handleDiscard = () => {
-    onTextChange("")
-    onMediaFilesChange?.([])
-    onLinkCardChange?.(null)
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
-    onCancel?.()
+    cleanupComposer()
     setShowDiscardDialog(false)
   }
 
@@ -824,7 +837,7 @@ export function ComposeInput({
               variant="ghost"
               size="sm"
               className="h-7 px-3 text-xs"
-              onClick={handleCancelOrEscape}
+              onClick={simulateEscapeKey}   // ← NUCLEAR: fake real Escape
               disabled={isSubmitting}
             >
               Cancel
