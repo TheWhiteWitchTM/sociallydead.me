@@ -7,43 +7,35 @@ import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {Loader2, RefreshCw, ArrowLeft, TrendingUp} from "lucide-react"
+import { Loader2, RefreshCw, ArrowLeft, TrendingUp } from "lucide-react"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
-
-const categoryConfig = {
-  // keep if you want fallback icon, but not strictly needed anymore
-  trending: {
-    label: "Trending",
-    icon: TrendingUp, // or whatever default
-  }
-}
 
 export default function TrendingTopicPage() {
   const params = useParams()
   const router = useRouter()
 
   const encodedTopic = params.topic as string
-  const rawTopic = decodeURIComponent(encodedTopic) // "Breaking News" or "#AI"
+  const rawTopic = decodeURIComponent(encodedTopic) // e.g. "Breaking News" or "#AI"
 
   const {
     isAuthenticated,
     isLoading: authLoading,
     user,
     getAllPostsForHashtag,
-    searchPosts, // fallback if needed
+    searchPosts, // for fallback
   } = useBluesky()
 
   const [posts, setPosts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Normalize topic for better search results
+  // Normalize topic so multi-word trends actually find posts
   const normalizeTopic = (topic: string) => {
     let cleaned = topic.trim()
     if (cleaned.startsWith('#')) cleaned = cleaned.slice(1)
 
-    // Convert "Breaking News" → "BreakingNews"
+    // "Breaking News" → "BreakingNews"
     const camelCased = cleaned
       .split(/\s+/)
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -52,7 +44,7 @@ export default function TrendingTopicPage() {
     return {
       camel: camelCased,
       original: cleaned,
-      quoted: `"${cleaned}"` // for exact phrase fallback
+      quoted: `"${cleaned}"`
     }
   }
 
@@ -65,15 +57,14 @@ export default function TrendingTopicPage() {
     try {
       const { camel, quoted } = normalizeTopic(rawTopic)
 
-      // First try: #CamelCased (most common real usage)
+      // Primary: search #CamelCased (real-world usage)
       let fetched = await getAllPostsForHashtag(camel, {
         maxPages: 10,
         maxPosts: 500,
       })
 
-      // If very few results, try quoted phrase as fallback
+      // Fallback if almost nothing found
       if (fetched.length < 8) {
-        console.log("Few results with camelCase → trying quoted phrase fallback")
         const fallback = await searchPosts(quoted, undefined)
         fetched = [...fetched, ...fallback.posts]
       }
@@ -109,17 +100,22 @@ export default function TrendingTopicPage() {
 
   return (
     <div className="min-h-screen">
-      {/* ── YOUR ORIGINAL HEADER STYLE RESTORED ── */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
+            {/* Back button */}
             <Button variant="ghost" size="icon" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
+
+            {/* Icon BEFORE heading — exact match to your category pages */}
+            <TrendingUp className="h-5 w-5" />
             <h1 className="text-xl font-bold">
               Trending: {rawTopic.startsWith('#') ? rawTopic : `#${rawTopic}`}
             </h1>
           </div>
+
+          {/* Refresh button on right */}
           <Button
             onClick={loadPosts}
             variant="ghost"
@@ -145,7 +141,7 @@ export default function TrendingTopicPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-muted-foreground">No recent posts found for this trend</p>
             <p className="text-sm mt-2 text-muted-foreground">
-              It might be a new/quiet topic or try a different one
+              It might be a new or quiet topic — check back soon
             </p>
           </div>
         ) : (
