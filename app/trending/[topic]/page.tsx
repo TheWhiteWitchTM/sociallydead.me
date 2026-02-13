@@ -76,12 +76,10 @@ export default function TrendingTopicPage() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold truncate">
-              <TrendingUp className="h-5 w-5"/>
-              Trending: {topic.startsWith('#') ? topic : `#${topic}`}
-            </h1>
-          </div>
+          <h4 className="text-xl font-bold truncate">
+            <TrendingUp className="h-5 w-5"/>
+            Trending: {topic.startsWith('#') ? topic : `#${topic}`}
+          </h4>
           <Button
             onClick={loadPosts}
             variant="ghost"
