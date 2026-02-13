@@ -45,6 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import {blue} from "next/dist/lib/picocolors";
 
 const mainNavItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
@@ -74,6 +75,7 @@ export function AppHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [markdownHelpOpen, setMarkdownHelpOpen] = React.useState(false)
   const [markdownSyntaxOpen, setMarkdownSyntaxOpen] = React.useState(false)
+  const [trending, setTrending] = React.useState<string []>([])
   const [verifiedHelpOpen, setVerifiedHelpOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -88,6 +90,9 @@ export function AppHeader() {
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setCanInstall(false)
     }
+
+    blueSky.getTrendingTopics(10)
+      .then((res) => setTrending(res))
 
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
@@ -216,24 +221,20 @@ export function AppHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuSeparator />
-              {feedCategories.map((category) => {
-                const isActive = pathname === category.href
+              {trending.map((hashtag) => {
+                const href = "";
+                const isActive = pathname === href
                 return (
-                  <DropdownMenuItem key={category.id} asChild>
+                  <DropdownMenuItem key={hashtag} asChild>
                     <Link
-                      href={category.href}
+                      href={href}
                       className={cn(
                         "flex w-full items-center gap-2 cursor-pointer",
                         isActive && "bg-accent text-accent-foreground font-medium"
                       )}
                     >
-                      <category.icon className="h-4 w-4" />
-                      <span>{category.label}</span>
-                      {category.adult && (
-                        <span className={"text-red-600"}>
-                          18+
-                        </span>
-                      )}
+                      <TrendingUp className="h-4 w-4" />
+                      <span>{hashtag}</span>
                     </Link>
                   </DropdownMenuItem>
                 )
