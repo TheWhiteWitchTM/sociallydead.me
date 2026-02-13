@@ -184,10 +184,11 @@ export function ComposeInput({
     onLinkCardChange?.(null)
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
-    onCancel?.()
-  }, [onTextChange, onMediaFilesChange, onLinkCardChange, onCancel])
+  }, [onTextChange, onMediaFilesChange, onLinkCardChange])
 
-  const simulateEscapeKey = useCallback(() => {
+  const forceClose = useCallback(() => {
+    cleanupComposer()
+    onCancel?.()  // optional notification
     const escEvent = new KeyboardEvent("keydown", {
       key: "Escape",
       code: "Escape",
@@ -198,10 +199,8 @@ export function ComposeInput({
       composed: true,
     })
     document.dispatchEvent(escEvent)
-    if (document.activeElement) {
-      document.activeElement.dispatchEvent(escEvent)
-    }
-  }, [])
+    if (document.activeElement) document.activeElement.dispatchEvent(escEvent)
+  }, [cleanupComposer, onCancel])
 
   const handleCancelOrEscape = useCallback(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
@@ -212,21 +211,15 @@ export function ComposeInput({
 
     if (text.trim() || mediaFiles.length > 0 || linkCard) {
       setShowDiscardDialog(true)
-      return
+    } else {
+      forceClose()
     }
+  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, forceClose])
 
-    // empty → force close
-    cleanupComposer()
-    simulateEscapeKey()
-  }, [
-    showMentionSuggestions,
-    showHashtagSuggestions,
-    text,
-    mediaFiles.length,
-    linkCard,
-    cleanupComposer,
-    simulateEscapeKey,
-  ])
+  const handleDiscard = useCallback(() => {
+    forceClose()
+    setShowDiscardDialog(false)
+  }, [forceClose])
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
@@ -770,12 +763,6 @@ export function ComposeInput({
       postType === "dm" ? "Direct Message" :
         postType === "article" ? "Writing Article" :
           "New Post"
-
-  const handleDiscard = () => {
-    cleanupComposer()
-    simulateEscapeKey()
-    setShowDiscardDialog(false)
-  }
 
   return (
     <div className="space-y-4">
@@ -1335,6 +1322,7 @@ export function ComposeInput({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   )
 }
