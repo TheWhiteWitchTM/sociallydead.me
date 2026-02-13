@@ -198,8 +198,13 @@ export function ComposeInput({
     onLinkCardChange?.(null)
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
+  }, [onTextChange, onMediaFilesChange, onLinkCardChange])
+
+  const forceClose = useCallback(() => {
+    cleanup()
     onCancel?.()
-  }, [onTextChange, onMediaFilesChange, onLinkCardChange, onCancel])
+    simulateEscape()
+  }, [cleanup, onCancel, simulateEscape])
 
   const handleCancelOrEscape = useCallback(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
@@ -211,16 +216,14 @@ export function ComposeInput({
     if (text.trim() || mediaFiles.length > 0 || linkCard) {
       setShowDiscardDialog(true)
     } else {
-      cleanup()
-      simulateEscape()
+      forceClose()
     }
-  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, cleanup, simulateEscape])
+  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, forceClose])
 
   const handleDiscard = useCallback(() => {
-    cleanup()
-    simulateEscape()
+    forceClose()
     setShowDiscardDialog(false)
-  }, [cleanup, simulateEscape])
+  }, [forceClose])
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
@@ -640,7 +643,7 @@ export function ComposeInput({
 
       patterns.forEach(({ regex, type }) => {
         let match
-        regex.lastIndex = 0 // reset regex state
+        regex.lastIndex = 0
         while ((match = regex.exec(currentText)) !== null) {
           const index = match.index
           const fullMatch = match[0]
