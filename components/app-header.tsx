@@ -207,11 +207,11 @@ export function AppHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant={pathname.startsWith("/hashtags/") ? "default" : "ghost"}
+                variant={pathname.startsWith("/trending/") ? "default" : "ghost"}
                 size="sm"
                 className={cn(
                   "gap-1.5 px-3",
-                  pathname.startsWith("/hashtags/") && "bg-primary text-primary-foreground font-semibold"
+                  pathname.startsWith("/trending/") && "bg-primary text-primary-foreground font-semibold"
                 )}
               >
                 <TrendingUp className="h-4 w-4" />
@@ -222,7 +222,7 @@ export function AppHeader() {
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuSeparator />
               {trending.map((hashtag) => {
-                const href = encodeURIComponent(hashtag)
+                const href = "/trending/"+ encodeURIComponent(hashtag)
 
                 ;
                 const isActive = pathname === href
