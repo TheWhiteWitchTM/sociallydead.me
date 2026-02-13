@@ -6,7 +6,7 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, ArrowLeft } from "lucide-react"
+import {Loader2, RefreshCw, ArrowLeft, TrendingUp} from "lucide-react"
 
 export default function TrendingTopicPage() {
   const params = useParams()
@@ -36,8 +36,8 @@ export default function TrendingTopicPage() {
     try {
       // Use your new helper — fetches up to ~500 recent/relevant posts for this topic
       const fetchedPosts = await getAllPostsForHashtag(topic, {
-        maxPages: 12,     // adjust as needed (each page ~50 posts)
-        maxPosts: 600,
+        maxPages: 10,     // adjust as needed (each page ~50 posts)
+        maxPosts: 500,
       })
 
       setPosts(fetchedPosts)
@@ -78,6 +78,7 @@ export default function TrendingTopicPage() {
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">
+              <TrendingUp className="h-5 w-5"/>
               Trending: {topic.startsWith('#') ? topic : `#${topic}`}
             </h1>
           </div>
