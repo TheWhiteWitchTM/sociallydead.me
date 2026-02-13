@@ -774,7 +774,7 @@ export function ComposeInput({
             <PenSquare className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs font-medium text-muted-foreground">{composeType}</span>
             {/* Right side: Counter, Cancel, Send - ALWAYS HERE */}
-            <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <div className="flex items-end-safe gap-1 shrink-0 ml-auto">
               {!isDM && effectiveMaxChars !== Infinity && (
                 <span className={cn(
                   "font-medium tabular-nums transition-colors text-xs",
@@ -1050,49 +1050,6 @@ export function ComposeInput({
                 <p className="text-xs">Add Hashtags</p>
               </TooltipContent>
             </Tooltip>
-          </div>
-
-          {/* Right side: Counter, Cancel, Send - ALWAYS HERE */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            {!isDM && effectiveMaxChars !== Infinity && (
-              <span className={cn(
-                "font-medium tabular-nums transition-colors text-xs",
-                charCount < effectiveMaxChars * 0.8 && "text-muted-foreground",
-                charCount >= effectiveMaxChars * 0.8 && charCount < effectiveMaxChars * 0.9 && "text-orange-500",
-                charCount >= effectiveMaxChars * 0.9 && "text-destructive font-bold"
-              )}>
-                {charCount}/{effectiveMaxChars}
-              </span>
-            )}
-            {onCancel && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={onCancel}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-            )}
-            {onSubmit && (
-              <Button
-                onClick={onSubmit}
-                disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0)}
-                size="sm"
-                className="h-7 px-3 text-xs font-bold"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="h-3.5 w-3.5 mr-1.5" />
-                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </div>
       </TooltipProvider>
