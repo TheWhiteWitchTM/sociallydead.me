@@ -178,18 +178,8 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
-  const cleanupComposer = useCallback(() => {
-    onTextChange("")
-    onMediaFilesChange?.([])
-    onLinkCardChange?.(null)
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
-  }, [onTextChange, onMediaFilesChange, onLinkCardChange])
-
-  const forceClose = useCallback(() => {
-    cleanupComposer()
-    onCancel?.()  // optional notification
-    const escEvent = new KeyboardEvent("keydown", {
+  const simulateEscape = useCallback(() => {
+    const esc = new KeyboardEvent("keydown", {
       key: "Escape",
       code: "Escape",
       keyCode: 27,
@@ -198,9 +188,20 @@ export function ComposeInput({
       cancelable: true,
       composed: true,
     })
-    document.dispatchEvent(escEvent)
-    if (document.activeElement) document.activeElement.dispatchEvent(escEvent)
-  }, [cleanupComposer, onCancel])
+    document.dispatchEvent(esc)
+    if (document.activeElement) {
+      document.activeElement.dispatchEvent(esc)
+    }
+  }, [])
+
+  const cleanup = useCallback(() => {
+    onTextChange("")
+    onMediaFilesChange?.([])
+    onLinkCardChange?.(null)
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+    onCancel?.()
+  }, [onTextChange, onMediaFilesChange, onLinkCardChange, onCancel])
 
   const handleCancelOrEscape = useCallback(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
@@ -212,14 +213,16 @@ export function ComposeInput({
     if (text.trim() || mediaFiles.length > 0 || linkCard) {
       setShowDiscardDialog(true)
     } else {
-      forceClose()
+      cleanup()
+      simulateEscape()
     }
-  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, forceClose])
+  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, cleanup, simulateEscape])
 
   const handleDiscard = useCallback(() => {
-    forceClose()
+    cleanup()
+    simulateEscape()
     setShowDiscardDialog(false)
-  }, [forceClose])
+  }, [cleanup, simulateEscape])
 
   const syncScroll = () => {
     if (textareaRef.current && highlighterRef.current) {
@@ -626,7 +629,7 @@ export function ComposeInput({
       let lastIndex = 0
       const patterns = [
         { regex: /(\*\*)((?:(?!\*\*).)+?)(\*\*)/g, type: 'bold' },
-        { regex: /(\*)([^*\n]+?)(\*)/g, type: 'italic' },
+        { regex: /(\*)([^*n]+?)(\*)/g, type: 'italic' },
         { regex: /(~~)((?:(?!~~).)+?)(~~)/g, type: 'strikethrough' },
         { regex: /(`)((?:(?!`).)+?)(`)/g, type: 'code' },
         { regex: /(\[)((?:(?!\]).)+?)(\]\()((?:(?!\)).)+?)(\))/g, type: 'link' },
@@ -723,13 +726,11 @@ export function ComposeInput({
 
       allMatches.sort((a, b) => a.index - b.index)
 
-      const finalMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
-
       lastIndex = 0
 
       allMatches.forEach((match) => {
         if (match.index >= lastIndex) {
-          finalMatches.push(match)
+          lineParts.push(currentText.slice(lastIndex, match.index))
           lastIndex = match.index + match.length
         }
       })
