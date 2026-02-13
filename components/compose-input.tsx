@@ -187,15 +187,25 @@ export function ComposeInput({
 
     if (text.trim() || mediaFiles.length > 0 || linkCard) {
       setShowDiscardDialog(true)
-    } else if (onCancel) {
-      onCancel()
+      return
     }
+
+    // Empty → reset content + notify parent (if they passed the callback)
+    onTextChange("")
+    onMediaFilesChange?.([])
+    onLinkCardChange?.(null)
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+    onCancel?.()
   }, [
     showMentionSuggestions,
     showHashtagSuggestions,
     text,
     mediaFiles.length,
     linkCard,
+    onTextChange,
+    onMediaFilesChange,
+    onLinkCardChange,
     onCancel,
   ])
 
@@ -754,7 +764,7 @@ export function ComposeInput({
     onLinkCardChange?.(null)
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
-    if (onCancel) onCancel()
+    onCancel?.()
     setShowDiscardDialog(false)
   }
 
