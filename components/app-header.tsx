@@ -286,9 +286,7 @@ export function AppHeader() {
               }
             />
           ) : (
-            <span className="hidden sm:inline text-xs text-muted-foreground">
-              Support is welcome — sign in to get verification benefits
-            </span>
+            <></>
           )}
 
           {canInstall && (
