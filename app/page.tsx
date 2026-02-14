@@ -7,7 +7,7 @@ import { PostCard } from "@/components/post-card"
 import { SignInDialog } from "@/components/sign-in-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {Card, CardContent, CardTitle} from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
@@ -81,6 +81,25 @@ interface Post {
       avatar?: string
     }
   }
+}
+
+function CoffeeWare() {
+	return(
+		<Card>
+			<CardTitle>
+				SociallyDead is <b>CoffeeWare</b>!
+			</CardTitle>
+			<CardContent>
+				If you like it, buy 🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨a
+				<Link
+					href={"https://buymeacoffee.com/thewhitewitchtm"}
+					target={"_blank"}
+				>
+					coffee☕
+				</Link>
+			</CardContent>
+		</Card>
+	)
 }
 
 export default function HomePage() {
@@ -293,7 +312,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
-        {/* Feed Tabs - Horizontal Scrolling (Bluesky Style) */}
+        <CoffeeWare/>
+	      {/* Feed Tabs - Horizontal Scrolling (Bluesky Style) */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="overflow-x-auto scroll-smooth-x -mx-4 px-4 mb-4">
             <TabsList className="inline-flex w-max min-w-full h-11 bg-transparent border-b rounded-none justify-start">
