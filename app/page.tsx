@@ -251,12 +251,13 @@ export default function HomePage() {
           <div className="text-center mb-12 max-w-4xl mx-auto">
             <div className="flex justify-center mb-6">
               <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-2xl">
-                <span className="text-5xl font-bold text-primary-foreground">SD</span>
+                <span className="text-5xl font-bold text-primary-foreground">S</span>
+                <span className="text-5xl font-bold text-red-600">D</span>
               </div>
             </div>
 
             <h1 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-              Welcome to SociallyDead
+              Welcome to Socially<span className={"text-red-600"}>Dead</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-4">
               An <span className="text-primary font-semibold">alternative Bluesky client</span> with powerful features
@@ -264,9 +265,6 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground mb-8">
               Uses your existing Bluesky account • All your posts, followers, and data stay on Bluesky
             </p>
-	          <p>
-		          <CoffeeWare/>
-	          </p>
 
             {/* Login Card */}
             <Card className="w-full max-w-md mx-auto border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl mb-6">
@@ -306,6 +304,9 @@ export default function HomePage() {
 
           {/* Feature Showcase */}
           <FeatureShowcase />
+          <p>
+            <CoffeeWare/>
+          </p>
         </main>
       </div>
     )
