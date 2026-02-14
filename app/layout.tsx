@@ -39,8 +39,8 @@ export const metadata: Metadata = {
 
 	// Icons (you can expand with more sizes if needed)
 	icons: {
-		icon: "/icons/icon-192.png",
-		apple: "/icons/icon-192.png",
+		icon: "/icons/icon-192x192.png",
+		apple: "/icons/icon-192x192.png",
 	},
 
 	// Open Graph – great for Facebook, Bluesky link previews, etc.
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 		title: "SociallyDead – Bluesky Client with Markdown, Editing & Articles",
 		description:
 			"Enhance your Bluesky experience: full markdown support, code highlighting, article formatting, pseudo-editing of posts, and more in a fast, modern client.",
-		url: "https://your-domain.com", // ← replace with actual site URL
+		url: "https://sociallydead.me", // ← replace with actual site URL
 		siteName: "SociallyDead",
 		type: "website",
 		// Use your banner as the main preview image
