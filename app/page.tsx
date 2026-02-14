@@ -87,10 +87,10 @@ function CoffeeWare() {
 	return(
 		<Card>
 			<CardTitle>
-				SociallyDead is <b>CoffeeWare</b>!
+				Socially<span className={"text-red-600"}>Dead</span> is <b>CoffeeWare</b>!
 			</CardTitle>
 			<CardContent>
-				If you like it, buy 🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨a
+				If you like it and want to support development, buy 🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨a
 				<Link
 					href={"https://buymeacoffee.com/thewhitewitchtm"}
 					target={"_blank"}
