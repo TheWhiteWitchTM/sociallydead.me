@@ -37,6 +37,7 @@ import { SignInDialog } from "@/components/sign-in-dialog"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import Image from "next/image"
 
 const authNavItems: Array<{ href: string; icon: typeof Home; label: string; showBadge?: boolean; showMessageBadge?: boolean; mobileKey?: boolean }> = [
   { href: "/", icon: Home, label: "Home", mobileKey: true },
@@ -239,9 +240,17 @@ export function AppSidebar() {
         <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2 lg:justify-start lg:px-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">SD</span>
+              <Image
+                src={"/icons/icon-192x192.png"}
+                alt={"SD"}
+                width={192}
+                height={192}
+                priority
+              />
             </div>
-            <span className="hidden text-lg font-bold lg:inline">SociallyDead</span>
+            <span className="hidden text-lg font-bold lg:inline">
+              Socially<span className={"text-red-600"}>Dead</span>
+            </span>
           </Link>
         </div>
 

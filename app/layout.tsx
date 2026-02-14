@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 		"SociallyDead is a modern Bluesky client featuring markdown formatting, syntax highlighting, article support, pseudo-edit for posts, and a clean interface for better Bluesky experience.",
 
 	// Helps some crawlers
-	generator: "v0.app",
+	generator: "next.js",
 
 	// PWA manifest
 	manifest: "/manifest.json",
@@ -54,9 +54,7 @@ export const metadata: Metadata = {
 		// Use your banner as the main preview image
 		images: [
 			{
-				url: "/banner.png",
-				width: 1200, // ideal OG width
-				height: 630, // ideal OG height (1.91:1 ratio)
+				url: "/banner.jpg",
 				alt: "SociallyDead Bluesky Client Banner – Markdown & Edit Features",
 			},
 		],
@@ -70,7 +68,7 @@ export const metadata: Metadata = {
 		description:
 			"Powerful Bluesky client: markdown highlights, articles, pseudo-edit posts and cleaner UI.",
 		// Same banner works here (X loves large images)
-		images: ["/banner.png"],
+		images: ["/banner.jpg"],
 		// Optional: your X handle if you have one
 		// creator: "@yourhandle",
 	},

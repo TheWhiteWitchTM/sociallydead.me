@@ -24,7 +24,8 @@ import {
   FileText,
   Code,
   ChevronDown,
-  Rss, TrendingUp
+  Rss,
+  TrendingUp
 } from "lucide-react"
 import { VerificationCheckout } from "@/components/verification-checkout"
 import { useTheme } from "next-themes"
@@ -44,6 +45,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 const mainNavItems = [
@@ -122,10 +124,13 @@ export function AppHeader() {
         {/* Logo + Hamburger - mobile only */}
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">S</span>
-              <span className="text-sm font-bold text-red-600">D</span>
-            </div>
+            <Image
+              src={"/icons/icon-182x192.png"}
+              alt={"SD"}
+              width={192}
+              height={192}
+              priority
+            />
           </Link>
           <Button
             variant="ghost"

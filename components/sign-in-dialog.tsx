@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useBluesky } from "@/lib/bluesky-context"
+import Image from "next/image"
 
 interface SignInDialogProps {
   trigger?: React.ReactNode
@@ -66,6 +67,7 @@ export function SignInDialog({ trigger, defaultOpen, onOpenChange }: SignInDialo
     </Button>
   )
 
+  // @ts-ignore
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -74,9 +76,15 @@ export function SignInDialog({ trigger, defaultOpen, onOpenChange }: SignInDialo
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center sm:text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-            <span className="text-2xl font-bold text-primary-foreground">SD</span>
+            <Image
+              src={"/icons/icon-192x192.png"}
+              alt={"SD"}
+              width={192}
+              height={192}
+              priority
+            />
           </div>
-          <DialogTitle className="text-2xl">Sign in to SociallyDead</DialogTitle>
+          <DialogTitle className="text-2xl">Sign in to Socially<span className={"text-red-600"}>Dead</span></DialogTitle>
           <DialogDescription>
             Enter your Bluesky handle to sign in securely using OAuth
           </DialogDescription>

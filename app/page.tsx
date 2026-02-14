@@ -15,6 +15,7 @@ import {Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, 
 import { VerificationPrompt } from "@/components/verification-checkout"
 import { ComposePlaceholder } from "@/components/compose-placeholder"
 import { FeatureShowcase } from "@/components/feature-showcase"
+import Image from "next/image"
 
 // Official Bluesky feed URIs
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
@@ -90,12 +91,13 @@ function CoffeeWare() {
 				Socially<span className={"text-red-600"}>Dead</span> is <b>CoffeeWare</b>!
 			</CardTitle>
 			<CardContent>
-				If you like it and want to support development, buy 🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨a
+				If you like it and want to support development, buy 🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨a {" "}
 				<Link
+          className={"underline decoration-red-600 underline-offset-4"}
 					href={"https://buymeacoffee.com/thewhitewitchtm"}
 					target={"_blank"}
 				>
-					coffee☕
+          ☕coffee☕
 				</Link>
 			</CardContent>
 		</Card>
@@ -246,42 +248,58 @@ export default function HomePage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen">
-        <main className="container mx-auto px-4 py-8 sm:py-12">
+        <main className="container mx-auto px-4 py-2 sm:py-2">
           {/* Hero Section with Login */}
-          <div className="text-center mb-12 max-w-4xl mx-auto">
-            <div className="flex justify-center mb-6">
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-2xl">
-                <span className="text-5xl font-bold text-primary-foreground">S</span>
-                <span className="text-5xl font-bold text-red-600">D</span>
-              </div>
+          <div className="text-center mb-1 max-w-4xl mx-auto">
+            <div className="flex justify-center mb-1">
+              <Image
+                src={"/banner.jpg"}
+                alt={"SD Banner"}
+                width={500}
+                height={50}
+                priority
+              />
             </div>
-
-            <h1 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-              Welcome to Socially<span className={"text-red-600"}>Dead</span>
-            </h1>
             <p className="text-lg text-muted-foreground mb-4">
               An <span className="text-primary font-semibold">alternative Bluesky client</span> with powerful features
             </p>
-            <p className="text-sm text-muted-foreground mb-8">
+            <p className="text-sm text-muted-foreground mb-1">
               Uses your existing Bluesky account • All your posts, followers, and data stay on Bluesky
             </p>
 
             {/* Login Card */}
-            <Card className="w-full max-w-md mx-auto border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl mb-6">
-              <CardContent className="p-6">
+            <Card className="w-full mx-auto border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl mb-1">
+              <CardContent className={"className={\"flex gap-2 justify-center flex-wrap"}>
                 <SignInDialog
                   trigger={
-                    <Button size="lg" className="w-full gap-2 bg-[#0085ff] hover:bg-[#0085ff]/90 text-lg h-12 shadow-lg hover:shadow-xl transition-all">
-                      <svg viewBox="0 0 568 501" className="h-5 w-5" fill="currentColor">
+                    <Button
+                      variant={"default"}
+                      size="lg"
+                    >
+                      Sign in with {" "}
+                      <svg viewBox="0 0 568 501" className="h-3.5 w-3.5 text-[#0085ff]" fill="currentColor">
                         <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
                       </svg>
-                      Sign in with Bluesky
+                      BlueSky
                     </Button>
                   }
                 />
-                <p className="mt-3 text-sm text-muted-foreground">
-                  🔒 Secure OAuth - we never see your password
-                </p>
+                <Button
+                  variant={"secondary"}
+                  size="lg"
+                  asChild
+                >
+                    <Link
+                      href={"https://bsky.app/"}
+                      target={"_blank"}
+                    >
+                    Not on {" "}
+                    <svg viewBox="0 0 568 501" className="h-3.5 w-3.5 text-[#0085ff]" fill="currentColor">
+                      <path d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 374.388 284.017 370.036 284 373.719C283.983 370.036 282.831 374.388 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0533 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"/>
+                    </svg>
+                    BlueSky?
+                    </Link>
+                  </Button>
               </CardContent>
             </Card>
 
