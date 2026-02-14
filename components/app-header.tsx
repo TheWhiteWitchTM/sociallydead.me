@@ -128,7 +128,6 @@ export function AppHeader() {
               <span className="text-sm font-bold text-primary-foreground">S</span>
               <span className="text-sm font-bold text-red-600-foreground">D</span>
             </div>
-            </div>
           </Link>
           <Button
             variant="ghost"
