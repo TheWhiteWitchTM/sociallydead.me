@@ -125,7 +125,9 @@ export function AppHeader() {
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">SD</span>
+              <span className="text-sm font-bold text-primary-foreground">S</span>
+              <span className="text-sm font-bold text-red-600-foreground">D</span>
+            </div>
             </div>
           </Link>
           <Button
