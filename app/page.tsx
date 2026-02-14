@@ -264,6 +264,9 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground mb-8">
               Uses your existing Bluesky account • All your posts, followers, and data stay on Bluesky
             </p>
+	          <p>
+		          <CoffeeWare/>
+	          </p>
 
             {/* Login Card */}
             <Card className="w-full max-w-md mx-auto border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl mb-6">
