@@ -314,6 +314,12 @@ interface BlueskyContextType {
 	// Search
 	searchPosts: (query: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
 	searchActors: (query: string, cursor?: string) => Promise<{ actors: BlueskyUser[]; cursor?: string }>
+	// ── added missing functions ──
+	searchActorsTypeahead: (query: string) => Promise<{ actors: BlueskyUser[] }>
+	searchByHashtag: (hashtag: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
+	getListFeed: (listUri: string, cursor?: string) => Promise<{ posts: BlueskyPost[]; cursor?: string }>
+	uploadImage: (file: File) => Promise<{ blob: unknown }>
+	resolveHandle: (handle: string) => Promise<string>
 	// SociallyDead Custom Features (stored in user's PDS)
 	getHighlights: (did: string) => Promise<SociallyDeadHighlight[]>
 	addHighlight: (postUri: string, postCid: string) => Promise<void>
@@ -323,6 +329,7 @@ interface BlueskyContextType {
 	createArticle: (title: string, content: string) => Promise<{ uri: string; rkey: string }>
 	updateArticle: (rkey: string, title: string, content: string) => Promise<void>
 	deleteArticle: (rkey: string) => Promise<void>
+
 	getTrendingTopics: (limit?: number) => Promise<string[]>
 	getAllPostsForHashtag: (hashtag: string, options?: { maxPages?: number; maxPosts?: number }) => Promise<BlueskyPost[]>
 }
@@ -2406,12 +2413,14 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				login,
 				logout,
 				getAgent,
+				// Posts
 				createPost,
 				deletePost,
 				editPost,
 				getPostThread,
 				getPost,
 				quotePost,
+				// Timelines & Feeds
 				getTimeline,
 				getPublicFeed,
 				getUserPosts,
@@ -2424,11 +2433,13 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				searchFeedGenerators,
 				saveFeed,
 				unsaveFeed,
+				// Interactions
 				likePost,
 				unlikePost,
 				repost,
 				unrepost,
 				reportPost,
+				// Profile
 				getProfile,
 				updateProfile,
 				pinPost,
@@ -2441,18 +2452,23 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				unmuteUser,
 				getFollowers,
 				getFollowing,
+				// Notifications
 				getNotifications,
 				getUnreadCount,
 				markNotificationsRead,
+				// Feeds
 				getActorFeeds,
 				getFeedGenerator,
+				// Lists
 				getLists,
 				getList,
+				getListFeed,
 				createList,
 				updateList,
 				deleteList,
 				addToList,
 				removeFromList,
+				// Chat/Messages
 				getConversations,
 				getMessages,
 				sendMessage,
@@ -2462,6 +2478,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				muteConvo,
 				unmuteConvo,
 				getUnreadMessageCount,
+				// Starter Packs
 				getStarterPacks,
 				getStarterPack,
 				createStarterPack,
@@ -2470,16 +2487,19 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				addToStarterPack,
 				removeFromStarterPack,
 				followAllMembers,
+				// Bookmarks
 				getBookmarks,
 				addBookmark,
 				removeBookmark,
 				isBookmarked,
+				// Feeds
 				isFeedSaved,
+				// Search
 				searchPosts,
 				searchActors,
 				searchActorsTypeahead,
 				searchByHashtag,
-				getListFeed,
+				// Utilities (added)
 				uploadImage,
 				resolveHandle,
 				// SociallyDead Custom Features
@@ -2491,6 +2511,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 				createArticle,
 				updateArticle,
 				deleteArticle,
+
 				getTrendingTopics,
 				getAllPostsForHashtag,
 			}}
@@ -2500,7 +2521,7 @@ export function BlueskyProvider({ children }: { children: React.ReactNode }) {
 	)
 }
 
-// Helper function to parse AT URI
+// Helper: parseAtUri
 function parseAtUri(uri: string): { repo: string; collection: string; rkey: string } {
 	const match = uri.match(/at:\/\/([^/]+)\/([^/]+)\/([^/]+)/)
 	if (!match) throw new Error("Invalid AT URI")

@@ -18,7 +18,7 @@ import {
   BeerOff,
   Video,
   X,
-  CreditCard,
+  Cloud,
   HelpCircle,
   BadgeCheck,
   FileText,
@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils"
 const mainNavItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
+  { id: "following", href: "/following", icon: Cloud, label: "Following", auth: true },
   { id: "news", href: "/news", icon: Newspaper, label: "News" },
   { id: "politics", href: "/politics", icon: Vote, label: "Politics" },
   { id: "video", href: "/video", icon: Video, label: "Video" },
@@ -125,7 +126,7 @@ export function AppHeader() {
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src={"/icons/icon-182x192.png"}
+              src={"/icons/icon-192x192.png"}
               alt={"SD"}
               width={192}
               height={192}
@@ -146,6 +147,9 @@ export function AppHeader() {
         {/* Navigation - Desktop (hidden on mobile) */}
         <nav className="hidden md:flex items-center gap-1">
           {mainNavItems.map((item) => {
+            if (item.auth && !isAuthenticated)
+              return
+
             const isActive = pathname === item.href
             return (
               <Link key={item.id} href={item.href}>
