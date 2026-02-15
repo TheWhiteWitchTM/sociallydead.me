@@ -145,7 +145,7 @@ export function AppHeader() {
         </div>
 
         {/* Navigation - Desktop (hidden on mobile) */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-0">
           {mainNavItems.map((item) => {
             if (item.auth && !isAuthenticated)
               return
@@ -157,7 +157,7 @@ export function AppHeader() {
                   variant={isActive ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "gap-1.5 px-3",
+                    "gap-1 px-2",
                     isActive && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
