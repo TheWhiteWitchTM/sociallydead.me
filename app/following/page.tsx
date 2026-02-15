@@ -5,11 +5,11 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, Sparkles } from "lucide-react"
+import {Cloud, Loader2, RefreshCw, Sparkles} from "lucide-react"
 import {PageHeader} from "@/components/page-header";
 
 export default function DiscoverPage() {
-  const { isAuthenticated, getPublicFeed } = useBluesky()
+  const { isAuthenticated, getTimeline } = useBluesky()
   const [posts, setPosts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -19,14 +19,14 @@ export default function DiscoverPage() {
     setError(null)
     
     try {
-      const feed = await getPublicFeed()
-      setPosts(feed)
+      const feed = await getTimeline()
+      setPosts(feed.posts)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load discover feed")
     } finally {
       setIsLoading(false)
     }
-  }, [getPublicFeed])
+  }, [getTimeline])
 
   useEffect(() => {
     loadFeed()
@@ -38,8 +38,8 @@ export default function DiscoverPage() {
         isLoading={isLoading}
         onRefresh={loadFeed}
       >
-        <Sparkles className="h-5 w-5" />
-        Discover
+        <Cloud className="h-5 w-5" />
+        Following
       </PageHeader>
 
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
