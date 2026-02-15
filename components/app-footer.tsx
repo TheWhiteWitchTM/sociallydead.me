@@ -59,25 +59,10 @@ export function AppFooter() {
             </Link>
           </span>
           <span className="hidden sm:inline">|</span>
-          {isAuthenticated ? (
-            <VerificationCheckout
-              trigger={
-                <button className="font-medium text-primary hover:underline">
-                  Support Us & Get Verified
-                </button>
-              }
-            />
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              Support is welcome — sign in to get verification benefits before using PayPal
-            </span>
-          )}
         </div>
         
         {/* Legal links row */}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <span>&copy; {currentYear} SociallyDead. All rights reserved.</span>
-          <span className="hidden sm:inline">|</span>
           <PrivacyPolicyDialog />
           <span className="hidden sm:inline">|</span>
           <TermsOfServiceDialog />

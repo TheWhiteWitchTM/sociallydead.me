@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Plus, Check, Heart, Rss, ArrowLeft, Search } from "lucide-react"
 import { VerifiedBadge } from "@/components/verified-badge"
+import {PageHeader} from "@/components/page-header";
 
 interface FeedGenerator {
   uri: string

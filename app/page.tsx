@@ -11,11 +11,13 @@ import {Card, CardContent, CardTitle} from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
-import {Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Bug} from "lucide-react"
+import {Loader2, RefreshCw, PenSquare, Settings, Users, Sparkles, Globe, Heart, Star, Bug, Home} from "lucide-react"
 import { VerificationPrompt } from "@/components/verification-checkout"
 import { ComposePlaceholder } from "@/components/compose-placeholder"
 import { FeatureShowcase } from "@/components/feature-showcase"
 import Image from "next/image"
+import {PageHeader} from "@/components/page-header";
+import {DropdownMenuItem} from "@/components/ui/dropdown-menu";
 
 // Official Bluesky feed URIs
 const BLUESKY_DID = "did:plc:z72i7hdynmk6r22z27h6tvur"
@@ -248,6 +250,12 @@ export default function HomePage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen">
+        <PageHeader>
+            <Home className="h-5 w-5 text-primary" />
+            <span>
+            Socially<span className={"text-red-600"}>Dead</span>
+            </span>
+        </PageHeader>
         <main className="container mx-auto px-4 py-2 sm:py-2">
           {/* Hero Section with Login */}
           <div className="text-center mb-1 max-w-4xl mx-auto">

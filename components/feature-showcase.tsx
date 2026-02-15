@@ -142,7 +142,7 @@ export function FeatureShowcase() {
       {/* Main heading */}
       <div className="text-center mb-12">
         <Badge variant="secondary" className="mb-4 text-sm">
-          Why Choose SociallyDead?
+          Why Choose Socially<span className={"text-red-600"}>Dead</span>?
         </Badge>
         <h2 className="text-3xl sm:text-4xl font-bold mb-4">
           A <span className="text-primary">Better</span> Bluesky Client

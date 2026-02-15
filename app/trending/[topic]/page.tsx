@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Loader2, RefreshCw, ArrowLeft, TrendingUp } from "lucide-react"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
+import {PageHeader} from "@/components/page-header";
 
 export default function TrendingTopicPage() {
   const params = useParams()
@@ -100,32 +101,13 @@ export default function TrendingTopicPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            {/* Back button */}
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-
-            {/* Icon BEFORE heading — exact match to your category pages */}
-            <TrendingUp className="h-5 w-5" />
-            <h1 className="text-xl font-bold">
-              Trending: {rawTopic.startsWith('#') ? rawTopic : `#${rawTopic}`}
-            </h1>
-          </div>
-
-          {/* Refresh button on right */}
-          <Button
-            onClick={loadPosts}
-            variant="ghost"
-            size="icon"
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        isLoading={isLoading}
+        onRefresh={loadPosts}
+      >
+        <TrendingUp className="h-5 w-5" />
+        Trending: {rawTopic.startsWith('#') ? rawTopic : `#${rawTopic}`}
+      </PageHeader>
 
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {isLoading ? (

@@ -5,7 +5,8 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, Play } from "lucide-react"  // ← changed Landmark → Play for video vibe
+import { Loader2, RefreshCw, Play } from "lucide-react"
+import {PageHeader} from "@/components/page-header";  // ← changed Landmark → Play for video vibe
 
 export default function VideosPage() {  // ← renamed component for clarity (optional but recommended)
   const { isAuthenticated, searchByHashtag } = useBluesky()
@@ -33,17 +34,13 @@ export default function VideosPage() {  // ← renamed component for clarity (op
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Play className="h-5 w-5" />  {/* ← video/play icon instead of Landmark */}
-            <h1 className="text-xl font-bold">Videos</h1>
-          </div>
-          <Button onClick={loadFeed} variant="ghost" size="icon" disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        isLoading={isLoading}
+        onRefresh={loadFeed}
+      >
+        <Play className="h-5 w-5" />  {/* ← video/play icon instead of Landmark */}
+        Videos
+      </PageHeader>
 
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {isLoading && posts.length === 0 ? (

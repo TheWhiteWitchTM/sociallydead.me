@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { Loader2, RefreshCw, Vote, Gamepad2, Cpu, Heart, Rss, Newspaper, Search, ArrowLeft, Plus, Check, BeerOff, Video } from "lucide-react"
+import {PageHeader} from "@/components/page-header";
 
 const categoryConfig: Record<string, { label: string; icon: React.ElementType; searchQuery: string }> = {
   news: {
