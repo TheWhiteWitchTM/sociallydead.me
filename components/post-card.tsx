@@ -764,29 +764,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           <div>
                             <HandleLink handle={post.embed.record.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
                           </div>
-                          <div className={"flex flex-row gap-2"}>
-                            <Link
-                              href={`/profile/${post.embed.record.author.handle}/post/${post.embed.record.uri.split('/').pop()}`}
-                              className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
-                            >
-                              {formatDistanceToNow(new Date(post.embed.record.createdAt), { addSuffix: true })}
-                            </Link>
-                            {/* Reply context */}
-                            {showReplyContext && post.embed.record.reply && (
-                              <div className="text-sm text-muted-foreground mb-1">
-                                Replying to a thread
-                              </div>
-                            )}
-                            {/* Repost indicator */}
-                            {isRepostReason && post.embed.record.reason?.by && (
-                              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                                <Repeat2 className="h-4 w-4 shrink-0" />
-                                <Link href={`/profile/${post.embed.record.reason.by.handle}`} className="hover:underline truncate">
-                                  {post.embed.record.reason.by.displayName || post.embed.record.reason.by.handle} reposted
-                                </Link>
-                              </div>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </div>
