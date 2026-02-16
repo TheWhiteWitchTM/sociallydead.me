@@ -96,7 +96,7 @@ export function AppHeader() {
       setCanInstall(false)
     }
 
-    blueSky.getTrendingTopics(10).then((res) => setTrending(res))
+    blueSky.getTrendingTopics(10).then((res) => setTrending(res || []))
 
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [blueSky])
@@ -116,9 +116,7 @@ export function AppHeader() {
     if (!deferredPrompt) return
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
-    if (outcome === "accepted") {
-      setCanInstall(false)
-    }
+    if (outcome === "accepted") setCanInstall(false)
     setDeferredPrompt(null)
   }
 
@@ -129,16 +127,10 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-between px-4">
-        {/* Logo + Hamburger - mobile only */}
+        {/* Mobile logo + hamburger */}
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/icons/icon-192x192.png"
-              alt="SD"
-              width={32}
-              height={32}
-              priority
-            />
+            <Image src="/icons/icon-192x192.png" alt="SD" width={32} height={32} priority />
           </Link>
           <Button
             variant="ghost"
@@ -151,7 +143,7 @@ export function AppHeader() {
           </Button>
         </div>
 
-        {/* Desktop navigation – unchanged */}
+        {/* Desktop nav – unchanged */}
         <nav className="hidden md:flex items-center gap-0">
           {mainNavItems.map((item) => {
             if (item.auth && !isAuthenticated) return null
@@ -161,10 +153,7 @@ export function AppHeader() {
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   size="sm"
-                  className={cn(
-                    "gap-1 px-2",
-                    isActive && "bg-primary text-primary-foreground font-semibold"
-                  )}
+                  className={cn("gap-1 px-2", isActive && "bg-primary text-primary-foreground font-semibold")}
                 >
                   <item.icon className="h-4 w-4" />
                   <span>{item.label}</span>
@@ -178,10 +167,7 @@ export function AppHeader() {
               <Button
                 variant={pathname.startsWith("/feed/") ? "default" : "ghost"}
                 size="sm"
-                className={cn(
-                  "gap-1.5 px-3",
-                  pathname.startsWith("/feed/") && "bg-primary text-primary-foreground font-semibold"
-                )}
+                className={cn("gap-1.5 px-3", pathname.startsWith("/feed/") && "bg-primary text-primary-foreground font-semibold")}
               >
                 <Rss className="h-4 w-4" />
                 <span>Feeds</span>
@@ -190,20 +176,14 @@ export function AppHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuSeparator />
-              {feedCategories.map((category) => {
-                const isActive = pathname === category.href
+              {feedCategories.map((cat) => {
+                const active = pathname === cat.href
                 return (
-                  <DropdownMenuItem key={category.id} asChild>
-                    <Link
-                      href={category.href}
-                      className={cn(
-                        "flex w-full items-center gap-2 cursor-pointer",
-                        isActive && "bg-accent text-accent-foreground font-medium"
-                      )}
-                    >
-                      <category.icon className="h-4 w-4" />
-                      <span>{category.label}</span>
-                      {category.adult && <span className="text-red-600">18+</span>}
+                  <DropdownMenuItem key={cat.id} asChild>
+                    <Link href={cat.href} className={cn("flex items-center gap-2", active && "bg-accent font-medium")}>
+                      <cat.icon className="h-4 w-4" />
+                      <span>{cat.label}</span>
+                      {cat.adult && <span className="text-red-600 text-xs">18+</span>}
                     </Link>
                   </DropdownMenuItem>
                 )
@@ -216,10 +196,7 @@ export function AppHeader() {
               <Button
                 variant={pathname.startsWith("/trending/") ? "default" : "ghost"}
                 size="sm"
-                className={cn(
-                  "gap-1.5 px-3",
-                  pathname.startsWith("/trending/") && "bg-primary text-primary-foreground font-semibold"
-                )}
+                className={cn("gap-1.5 px-3", pathname.startsWith("/trending/") && "bg-primary text-primary-foreground font-semibold")}
               >
                 <TrendingUp className="h-4 w-4" />
                 <span>Trending</span>
@@ -228,20 +205,14 @@ export function AppHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuSeparator />
-              {trending.map((hashtag) => {
-                const href = "/trending/" + encodeURIComponent(hashtag)
-                const isActive = pathname === href
+              {trending.map((tag) => {
+                const href = `/trending/${encodeURIComponent(tag)}`
+                const active = pathname === href
                 return (
-                  <DropdownMenuItem key={hashtag} asChild>
-                    <Link
-                      href={href}
-                      className={cn(
-                        "flex w-full items-center gap-2 cursor-pointer",
-                        isActive && "bg-accent text-accent-foreground font-medium"
-                      )}
-                    >
+                  <DropdownMenuItem key={tag} asChild>
+                    <Link href={href} className={cn("flex items-center gap-2", active && "bg-accent font-medium")}>
                       <TrendingUp className="h-4 w-4" />
-                      <span>{hashtag}</span>
+                      <span>{tag}</span>
                     </Link>
                   </DropdownMenuItem>
                 )
@@ -250,7 +221,7 @@ export function AppHeader() {
           </DropdownMenu>
         </nav>
 
-        {/* Right side actions */}
+        {/* Right side actions – unchanged */}
         <div className="flex items-center gap-1 sm:gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -263,17 +234,14 @@ export function AppHeader() {
               <DropdownMenuLabel>Help</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setMarkdownHelpOpen(true)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Formatting Guide
+                <FileText className="h-4 w-4 mr-2" /> Formatting Guide
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setMarkdownSyntaxOpen(true)}>
-                <Code className="h-4 w-4 mr-2" />
-                Markdown Syntax
+                <Code className="h-4 w-4 mr-2" /> Markdown Syntax
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setVerifiedHelpOpen(true)}>
-                <BadgeCheck className="h-4 w-4 mr-2" />
-                Verification Levels
+                <BadgeCheck className="h-4 w-4 mr-2" /> Verification Levels
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -281,12 +249,7 @@ export function AppHeader() {
           {isAuthenticated && (
             <VerificationCheckout
               trigger={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  title="Get Verified - Support SociallyDead"
-                >
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified">
                   <BadgeCheck className="h-5 w-5 text-blue-500" />
                   <span className="sr-only">Get Verified</span>
                 </Button>
@@ -295,59 +258,43 @@ export function AppHeader() {
           )}
 
           {canInstall && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleInstall}
-              className="gap-2 bg-transparent"
-            >
+            <Button variant="outline" size="sm" onClick={handleInstall} className="gap-2 bg-transparent">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Install</span>
             </Button>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9"
-          >
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             <span className="sr-only">Toggle theme</span>
           </Button>
         </div>
       </div>
 
-      {/* ────────────────────────────────────────────────
-          MOBILE MENU – two-column layout + overlay submenus
-      ──────────────────────────────────────────────── */}
+      {/* MOBILE MENU – fixed version */}
       {mobileMenuOpen && (
         <div
           className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
         >
           <nav
-            className="absolute inset-y-0 left-0 right-0 top-14 bg-background border-t border-border"
+            className="absolute top-14 left-0 right-0 h-[calc(100vh-3.5rem)] bg-background border-t border-border shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="grid grid-cols-2 h-full">
-              {/* LEFT – main flat items */}
+            <div className="grid grid-cols-2 h-full overflow-hidden">
+              {/* LEFT COLUMN */}
               <div className="border-r border-border overflow-y-auto px-4 py-6">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   {mainNavItems.map((item) => {
                     if (item.auth && !isAuthenticated) return null
                     const isActive = pathname === item.href
                     return (
-                      <Link
-                        key={item.id}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
+                      <Link key={item.id} href={item.href} onClick={() => setMobileMenuOpen(false)}>
                         <Button
                           variant={isActive ? "default" : "ghost"}
                           className={cn(
-                            "w-full justify-start gap-3 h-12 text-base px-4",
-                            isActive && "bg-primary text-primary-foreground font-semibold"
+                            "w-full justify-start gap-3 h-12 text-base font-medium px-4",
+                            isActive && "bg-primary text-primary-foreground shadow-sm"
                           )}
                         >
                           <item.icon className="h-5 w-5 shrink-0" />
@@ -359,7 +306,7 @@ export function AppHeader() {
                 </div>
               </div>
 
-              {/* RIGHT – expandable sections with overlay submenus */}
+              {/* RIGHT COLUMN */}
               <div className="overflow-y-auto px-4 py-6">
                 <div className="flex flex-col gap-3">
                   {/* Feeds */}
@@ -367,8 +314,8 @@ export function AppHeader() {
                     <Button
                       variant={pathname.startsWith("/feed/") || feedsOpen ? "secondary" : "ghost"}
                       className={cn(
-                        "w-full justify-between h-12 text-base px-4",
-                        (pathname.startsWith("/feed/") || feedsOpen) && "font-semibold"
+                        "w-full justify-between h-12 text-base font-medium px-4",
+                        (pathname.startsWith("/feed/") || feedsOpen) && "bg-accent shadow-sm"
                       )}
                       onClick={() => setFeedsOpen(!feedsOpen)}
                     >
@@ -376,22 +323,17 @@ export function AppHeader() {
                         <Rss className="h-5 w-5" />
                         Feeds
                       </div>
-                      <ChevronDown
-                        className={cn(
-                          "h-5 w-5 transition-transform",
-                          feedsOpen && "rotate-180"
-                        )}
-                      />
+                      <ChevronDown className={cn("h-5 w-5 transition-transform duration-200", feedsOpen && "rotate-180")} />
                     </Button>
 
                     {feedsOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-72 max-h-[70vh] overflow-y-auto bg-popover border border-border rounded-lg shadow-2xl z-50">
-                        {feedCategories.map((category) => {
-                          const isActive = pathname === category.href
+                      <div className="absolute right-0 top-full mt-2 w-80 max-h-[65vh] overflow-y-auto bg-popover border border-border rounded-xl shadow-2xl z-60">
+                        {feedCategories.map((cat) => {
+                          const active = pathname === cat.href
                           return (
                             <Link
-                              key={category.id}
-                              href={category.href}
+                              key={cat.id}
+                              href={cat.href}
                               onClick={() => {
                                 setFeedsOpen(false)
                                 setMobileMenuOpen(false)
@@ -399,15 +341,13 @@ export function AppHeader() {
                             >
                               <div
                                 className={cn(
-                                  "flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent cursor-pointer",
-                                  isActive && "bg-accent font-medium"
+                                  "flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-accent/80 cursor-pointer transition-colors",
+                                  active && "bg-accent font-medium"
                                 )}
                               >
-                                <category.icon className="h-4.5 w-4.5 shrink-0" />
-                                <span className="flex-1">{category.label}</span>
-                                {category.adult && (
-                                  <span className="text-red-600 text-xs font-medium">18+</span>
-                                )}
+                                <cat.icon className="h-4.5 w-4.5 shrink-0" />
+                                <span className="flex-1">{cat.label}</span>
+                                {cat.adult && <span className="text-red-600 text-xs font-semibold">18+</span>}
                               </div>
                             </Link>
                           )
@@ -421,8 +361,8 @@ export function AppHeader() {
                     <Button
                       variant={pathname.startsWith("/trending/") || trendingOpen ? "secondary" : "ghost"}
                       className={cn(
-                        "w-full justify-between h-12 text-base px-4",
-                        (pathname.startsWith("/trending/") || trendingOpen) && "font-semibold"
+                        "w-full justify-between h-12 text-base font-medium px-4",
+                        (pathname.startsWith("/trending/") || trendingOpen) && "bg-accent shadow-sm"
                       )}
                       onClick={() => setTrendingOpen(!trendingOpen)}
                     >
@@ -430,22 +370,17 @@ export function AppHeader() {
                         <TrendingUp className="h-5 w-5" />
                         Trending
                       </div>
-                      <ChevronDown
-                        className={cn(
-                          "h-5 w-5 transition-transform",
-                          trendingOpen && "rotate-180"
-                        )}
-                      />
+                      <ChevronDown className={cn("h-5 w-5 transition-transform duration-200", trendingOpen && "rotate-180")} />
                     </Button>
 
                     {trendingOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-72 max-h-[70vh] overflow-y-auto bg-popover border border-border rounded-lg shadow-2xl z-50">
-                        {trending.map((hashtag) => {
-                          const href = "/trending/" + encodeURIComponent(hashtag)
-                          const isActive = pathname === href
+                      <div className="absolute right-0 top-full mt-2 w-80 max-h-[65vh] overflow-y-auto bg-popover border border-border rounded-xl shadow-2xl z-60">
+                        {trending.map((tag) => {
+                          const href = `/trending/${encodeURIComponent(tag)}`
+                          const active = pathname === href
                           return (
                             <Link
-                              key={hashtag}
+                              key={tag}
                               href={href}
                               onClick={() => {
                                 setTrendingOpen(false)
@@ -454,12 +389,12 @@ export function AppHeader() {
                             >
                               <div
                                 className={cn(
-                                  "flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent cursor-pointer",
-                                  isActive && "bg-accent font-medium"
+                                  "flex items-center gap-3 px-5 py-3.5 text-sm hover:bg-accent/80 cursor-pointer transition-colors",
+                                  active && "bg-accent font-medium"
                                 )}
                               >
                                 <TrendingUp className="h-4.5 w-4.5 shrink-0" />
-                                <span className="truncate">{hashtag}</span>
+                                <span className="truncate">{tag}</span>
                               </div>
                             </Link>
                           )
@@ -474,32 +409,15 @@ export function AppHeader() {
         </div>
       )}
 
-      {/* Dialogs remain unchanged */}
+      {/* Dialogs */}
       <Dialog open={markdownHelpOpen} onOpenChange={setMarkdownHelpOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Formatting Guide</DialogTitle>
-          </DialogHeader>
-          {/* your content */}
-        </DialogContent>
+        <DialogContent>{/* ... */}</DialogContent>
       </Dialog>
-
       <Dialog open={markdownSyntaxOpen} onOpenChange={setMarkdownSyntaxOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Markdown Syntax</DialogTitle>
-          </DialogHeader>
-          {/* your content */}
-        </DialogContent>
+        <DialogContent>{/* ... */}</DialogContent>
       </Dialog>
-
       <Dialog open={verifiedHelpOpen} onOpenChange={setVerifiedHelpOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Verification Levels</DialogTitle>
-          </DialogHeader>
-          {/* your content */}
-        </DialogContent>
+        <DialogContent>{/* ... */}</DialogContent>
       </Dialog>
     </header>
   )
