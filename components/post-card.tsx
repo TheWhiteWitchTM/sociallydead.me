@@ -524,7 +524,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             </UserHoverCard>
           </div>
 
-          <div className={"flex flex-col gap-2"}>
+          <div className={"flex flex-col gap-1"}>
             <div>
               {post.author.displayName}
               <VerifiedBadge
@@ -533,8 +533,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 className={"pt-1"}
               />
             </div>
-            <div className={"flex flex-row gap-2"}>
+            <div>
               <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+            </div>
+            <div className={"flex flex-row gap-2"}>
               <Link
                 href={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`}
                 className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
