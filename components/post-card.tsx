@@ -525,7 +525,11 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               <VerifiedBadge
                 handle={post.author.handle}
                 did={post.author.did}
+                className={"pt-1"}
               />
+            </div>
+            <div>
+              <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
             </div>
           </div>
           <div>
@@ -552,7 +556,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     {post.author.displayName || post.author.handle}
                   </Link>
                 </UserHoverCard>
-                  <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+
                   {/* Follow button - show only if not following and not own post */}
                   {!isOwnPost && isFollowing === false && (
                     <Button
