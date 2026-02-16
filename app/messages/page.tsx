@@ -85,12 +85,12 @@ function getMemberDisplayName(member: { handle: string; displayName?: string }):
 }
 
 export default function MessagesPage() {
-  const { 
-    isAuthenticated, 
-    isLoading: authLoading, 
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
     user,
-    getConversations, 
-    getMessages, 
+    getConversations,
+    getMessages,
     sendMessage,
     startConversation,
     markConvoRead,
@@ -103,7 +103,7 @@ export default function MessagesPage() {
     searchActors,
     logout,
   } = useBluesky()
-  
+
   const [conversations, setConversations] = useState<Convo[]>([])
   const [selectedConvo, setSelectedConvo] = useState<Convo | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -128,7 +128,7 @@ export default function MessagesPage() {
     setIsLoading(true)
     setError(null)
     setNeedsReauth(false)
-    
+
     try {
       const convos = await getConversations()
       setConversations(convos)
@@ -158,7 +158,7 @@ export default function MessagesPage() {
 
   const handleSendMessage = async () => {
     if (!selectedConvo || !newMessage.trim()) return
-    
+
     setIsSending(true)
     try {
       const sentMessage = await sendMessage(selectedConvo.id, newMessage)
@@ -176,7 +176,7 @@ export default function MessagesPage() {
     setSelectedConvo(convo)
     loadMessages(convo.id)
     markConvoRead(convo.id)
-    setConversations(prev => 
+    setConversations(prev =>
       prev.map(c => c.id === convo.id ? { ...c, unreadCount: 0 } : c)
     )
   }
@@ -267,7 +267,7 @@ export default function MessagesPage() {
     if (!selectedConvo) return
     const otherMember = selectedConvo.members.find(m => m.did !== user?.did)
     if (!otherMember) return
-    
+
     setActionLoading(true)
     try {
       const profile = await getProfile(otherMember.handle)
@@ -290,14 +290,14 @@ export default function MessagesPage() {
   // Poll for new messages in active conversation
   useEffect(() => {
     if (!selectedConvo) return
-    
+
     const pollMessages = async () => {
       try {
         const result = await getMessages(selectedConvo.id)
         const newMsgs = result.messages.reverse()
         setMessages(prev => {
-          if (newMsgs.length !== prev.length || 
-              (newMsgs.length > 0 && prev.length > 0 && newMsgs[newMsgs.length - 1].id !== prev[prev.length - 1].id)) {
+          if (newMsgs.length !== prev.length ||
+            (newMsgs.length > 0 && prev.length > 0 && newMsgs[newMsgs.length - 1].id !== prev[prev.length - 1].id)) {
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
             return newMsgs
           }
@@ -307,7 +307,7 @@ export default function MessagesPage() {
         // Silently fail polling
       }
     }
-    
+
     const interval = setInterval(pollMessages, 5000)
     return () => clearInterval(interval)
   }, [selectedConvo, getMessages])
@@ -315,7 +315,7 @@ export default function MessagesPage() {
   // Poll conversation list
   useEffect(() => {
     if (!isAuthenticated) return
-    
+
     const pollConvos = async () => {
       try {
         const convos = await getConversations()
@@ -331,7 +331,7 @@ export default function MessagesPage() {
         // Silently fail
       }
     }
-    
+
     const interval = setInterval(pollConvos, 15000)
     return () => clearInterval(interval)
   }, [isAuthenticated, getConversations, selectedConvo])
@@ -342,7 +342,7 @@ export default function MessagesPage() {
       setSearchResults([])
       return
     }
-    
+
     const timeoutId = setTimeout(async () => {
       setIsSearching(true)
       try {
@@ -354,7 +354,7 @@ export default function MessagesPage() {
         setIsSearching(false)
       }
     }, 300)
-    
+
     return () => clearTimeout(timeoutId)
   }, [searchQuery, searchActors])
 
@@ -381,9 +381,9 @@ export default function MessagesPage() {
   useEffect(() => {
     setSelectedConvo(null)
     setMessages([])
-    
+
     if (isAuthenticated) loadConversations()
-    
+
     const handleNavClick = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (detail === '/messages') {
@@ -393,7 +393,7 @@ export default function MessagesPage() {
       }
     }
     window.addEventListener('nav-click', handleNavClick)
-    
+
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && isAuthenticated) loadConversations()
     }
@@ -402,7 +402,7 @@ export default function MessagesPage() {
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('nav-click', handleNavClick)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated])
 
   useEffect(() => {
@@ -458,24 +458,24 @@ export default function MessagesPage() {
                       <div className="relative">
                         <UserHoverCard handle={member.handle}>
                           <>
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={member.avatar || "/placeholder.svg"} />
-                            <AvatarFallback className="text-xs">
-                            {getMemberDisplayName(member).slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={member.avatar || "/placeholder.svg"} />
+                              <AvatarFallback className="text-xs">
+                                {getMemberDisplayName(member).slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
                             </Avatar>
-                          <VerifiedBadge
-                            handle={member.handle} 
-                            did={member.did}
-                            className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                          />
+                            <VerifiedBadge
+                              handle={member.handle}
+                              did={member.did}
+                              className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                            />
                           </>
                         </UserHoverCard>
                       </div>
                       <span className="font-semibold truncate max-w-[150px] sm:max-w-none">
-                          <Link href={`/profile/${member.handle}`} className="hover:underline">
-                            {getMemberDisplayName(member)}
-                          </Link>
+                        <Link href={`/profile/${member.handle}`} className="hover:underline">
+                          {getMemberDisplayName(member)}
+                        </Link>
                       </span>
                       {!isInvalidHandle(member.handle) && <VerifiedBadge handle={member.handle} did={member.did} />}
                       {selectedConvo.muted && (
@@ -558,7 +558,7 @@ export default function MessagesPage() {
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {searchResults.map((actor) => (
                             <button
-                              key={actor.did} 
+                              key={actor.did}
                               type="button"
                               className="w-full text-left cursor-pointer hover:bg-accent transition-colors rounded-lg border p-3"
                               onClick={(e) => {
@@ -570,18 +570,18 @@ export default function MessagesPage() {
                               <div className="flex items-center gap-3">
                                 <div className="relative">
                                   <UserHoverCard handle={actor.handle}>
-                                  <>
-                                    <Avatar className="h-10 w-10">
-                                    <AvatarImage src={actor.avatar || "/placeholder.svg"} />
-                                    <AvatarFallback>
-                                      {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <VerifiedBadge 
-                                    handle={actor.handle} 
-                                    did={actor.did}
-                                    className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                                  />
+                                    <>
+                                      <Avatar className="h-10 w-10">
+                                        <AvatarImage src={actor.avatar || "/placeholder.svg"} />
+                                        <AvatarFallback>
+                                          {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <VerifiedBadge
+                                        handle={actor.handle}
+                                        did={actor.did}
+                                        className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                                      />
                                     </>
                                   </UserHoverCard>
                                 </div>
@@ -677,9 +677,9 @@ export default function MessagesPage() {
                   const isSelected = selectedConvo?.id === convo.id
                   const lastMsgFromOther = convo.lastMessage && convo.lastMessage.sender.did !== user?.did
                   const hasUnread = convo.unreadCount > 0 && !!lastMsgFromOther && validMembers.length > 0
-                  
+
                   return (
-                    <Card 
+                    <Card
                       key={convo.id}
                       className={`cursor-pointer transition-colors relative group ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
                       onClick={() => handleSelectConvo(convo)}
@@ -688,20 +688,20 @@ export default function MessagesPage() {
                         <div className="flex items-center gap-3">
                           <div className="relative">
                             <UserHoverCard handle={validMembers[0]?.handle}>
-                            <>
-                              <Avatar className="h-12 w-12">
-                              <AvatarImage src={validMembers[0]?.avatar || "/placeholder.svg"} />
-                              <AvatarFallback>
-                                {getMemberDisplayName(validMembers[0] || otherMembers[0]).slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            {validMembers[0] && (
-                              <VerifiedBadge 
-                                handle={validMembers[0].handle} 
-                                did={validMembers[0].did}
-                                className="absolute -right-0 -bottom-0 scale-75 origin-bottom-right bg-background rounded-full" 
-                              />
-                            )}
+                              <>
+                                <Avatar className="h-12 w-12">
+                                  <AvatarImage src={validMembers[0]?.avatar || "/placeholder.svg"} />
+                                  <AvatarFallback>
+                                    {getMemberDisplayName(validMembers[0] || otherMembers[0]).slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {validMembers[0] && (
+                                  <VerifiedBadge
+                                    handle={validMembers[0].handle}
+                                    did={validMembers[0].did}
+                                    className="absolute -right-0 -bottom-0 scale-75 origin-bottom-right bg-background rounded-full"
+                                  />
+                                )}
                               </>
                             </UserHoverCard>
                             {hasUnread && (
@@ -757,7 +757,7 @@ export default function MessagesPage() {
                                   )}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -802,40 +802,44 @@ export default function MessagesPage() {
                       {messages.map((message) => {
                         const isOwn = message.sender.did === user?.did
                         const sender = selectedConvo.members.find(m => m.did === message.sender.did)
-                        
+
                         return (
-                          <div 
+                          <div
                             key={message.id}
                             className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                           >
                             <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : ''}`}>
                               {!isOwn && (
+                                <UserHoverCard handle={sender?.handle || ""}>
                                   <Link href={`/profile/${sender?.handle}`} className="relative mt-1 shrink-0 block">
-                                    <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-                                      <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
-                                      <AvatarFallback className="text-xs">
-                                        {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    {sender?.handle && (
-                                      <VerifiedBadge 
-                                        handle={sender.handle} 
-                                        did={sender.did}
-                                        className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                                      />
-                                    )}
+                                    <>
+                                      <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                                        <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
+                                        <AvatarFallback className="text-xs">
+                                          {getMemberDisplayName(sender || { handle: "", displayName: "?" }).slice(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      {sender?.handle && (
+                                        <VerifiedBadge
+                                          handle={sender.handle}
+                                          did={sender.did}
+                                          className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                                        />
+                                      )}
+                                    </>
                                   </Link>
+                                </UserHoverCard>
                               )}
                               <div>
-                                <div 
+                                <div
                                   className={`rounded-2xl px-4 py-2 ${
-                                    isOwn 
-                                      ? 'bg-primary text-primary-foreground' 
+                                    isOwn
+                                      ? 'bg-primary text-primary-foreground'
                                       : 'bg-muted'
                                   }`}
                                 >
-                                  <MarkdownRenderer 
-                                    content={message.text} 
+                                  <MarkdownRenderer
+                                    content={message.text}
                                     className={`text-sm [&_p]:leading-relaxed ${isOwn ? '[&_*]:text-primary-foreground [&_a]:text-primary-foreground [&_a]:underline' : ''}`}
                                   />
                                 </div>
@@ -888,8 +892,8 @@ export default function MessagesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteFromList} 
+            <AlertDialogAction
+              onClick={handleDeleteFromList}
               disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -914,8 +918,8 @@ export default function MessagesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleLeaveConvo} 
+            <AlertDialogAction
+              onClick={handleLeaveConvo}
               disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -943,8 +947,8 @@ export default function MessagesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBlockUser} 
+            <AlertDialogAction
+              onClick={handleBlockUser}
               disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
