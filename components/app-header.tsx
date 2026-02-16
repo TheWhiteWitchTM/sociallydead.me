@@ -23,6 +23,7 @@ import {
   BadgeCheck,
   FileText,
   Code,
+  Users,
   ChevronDown,
   Rss,
   TrendingUp
@@ -51,7 +52,7 @@ import { cn } from "@/lib/utils"
 const mainNavItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "discover", href: "/discover", icon: Compass, label: "Discover" },
-  { id: "following", href: "/following", icon: Cloud, label: "Following", auth: true },
+  { id: "following", href: "/following", icon: Users, label: "Following", auth: true },
   { id: "news", href: "/news", icon: Newspaper, label: "News" },
   { id: "politics", href: "/politics", icon: Vote, label: "Politics" },
   { id: "video", href: "/video", icon: Video, label: "Video" },
@@ -148,7 +149,7 @@ export function AppHeader() {
         <nav className="hidden md:flex items-center gap-0">
           {mainNavItems.map((item) => {
             if (item.auth && !isAuthenticated)
-              return
+              return null
 
             const isActive = pathname === item.href
             return (
@@ -290,9 +291,7 @@ export function AppHeader() {
                 </Button>
               }
             />
-          ) : (
-            <></>
-          )}
+          ) : null}
 
           {canInstall && (
             <Button
@@ -321,12 +320,16 @@ export function AppHeader() {
         </div>
       </div>
 
-      {/* Mobile dropdown menu – NOW INCLUDES FEEDS + TRENDING */}
+      {/* ────────────────────────────────────────────────
+          MOBILE MENU – now with expandable sections
+      ──────────────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-border bg-background px-4 pb-3 pt-2">
-          <div className="flex flex-col gap-1">
-            {/* Main nav items */}
+        <nav className="md:hidden border-t border-border bg-background px-4 pb-5 pt-3">
+          <div className="flex flex-col gap-1.5">
+
+            {/* Main navigation items */}
             {mainNavItems.map((item) => {
+              if (item.auth && !isAuthenticated) return null
               const isActive = pathname === item.href
               return (
                 <Link key={item.id} href={item.href}>
@@ -334,88 +337,156 @@ export function AppHeader() {
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
                     className={cn(
-                      "w-full justify-start gap-2",
+                      "w-full justify-start gap-3 h-11 text-base",
                       isActive && "bg-primary text-primary-foreground font-semibold"
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className="h-5 w-5 shrink-0" />
                     {item.label}
                   </Button>
                 </Link>
               )
             })}
 
-            {/* Feeds section */}
-            <div className="mt-4 mb-1 px-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <Rss className="h-3 w-3" />
-                Feeds
-              </span>
-            </div>
-            {feedCategories.map((category) => {
-              const isActive = pathname === category.href
-              return (
-                <Link key={category.id} href={category.href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start gap-2 pl-4",
-                      isActive && "bg-primary text-primary-foreground font-semibold"
-                    )}
-                  >
-                    <category.icon className="h-4 w-4" />
-                    {category.label}
-                    {category.adult && (
-                      <span className="text-red-600 ml-auto text-xs">18+</span>
-                    )}
-                  </Button>
-                </Link>
-              )
-            })}
+            {/* Feeds – expandable */}
+            <MobileExpandableSection
+              icon={Rss}
+              label="Feeds"
+              isActive={pathname.startsWith("/feed/")}
+              defaultOpen={pathname.startsWith("/feed/")}
+            >
+              {feedCategories.map((category) => {
+                const isActive = pathname === category.href
+                return (
+                  <Link key={category.id} href={category.href}>
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      size="sm"
+                      className={cn(
+                        "w-full justify-start gap-3 pl-11 h-10 text-sm",
+                        isActive && "bg-accent font-medium"
+                      )}
+                    >
+                      <category.icon className="h-4.5 w-4.5 shrink-0" />
+                      <span className="flex-1">{category.label}</span>
+                      {category.adult && (
+                        <span className="text-red-600 text-xs font-medium">18+</span>
+                      )}
+                    </Button>
+                  </Link>
+                )
+              })}
+            </MobileExpandableSection>
 
-            {/* Trending section */}
-            <div className="mt-4 mb-1 px-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="h-3 w-3" />
-                Trending
-              </span>
-            </div>
-            {trending.map((hashtag) => {
-              const href = "/trending/" + encodeURIComponent(hashtag)
-              const isActive = pathname === href
-              return (
-                <Link key={hashtag} href={href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start gap-2 pl-4",
-                      isActive && "bg-primary text-primary-foreground font-semibold"
-                    )}
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    {hashtag}
-                  </Button>
-                </Link>
-              )
-            })}
+            {/* Trending – expandable */}
+            <MobileExpandableSection
+              icon={TrendingUp}
+              label="Trending"
+              isActive={pathname.startsWith("/trending/")}
+              defaultOpen={pathname.startsWith("/trending/")}
+            >
+              {trending.map((hashtag) => {
+                const href = "/trending/" + encodeURIComponent(hashtag)
+                const isActive = pathname === href
+                return (
+                  <Link key={hashtag} href={href}>
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      size="sm"
+                      className={cn(
+                        "w-full justify-start gap-3 pl-11 h-10 text-sm",
+                        isActive && "bg-accent font-medium"
+                      )}
+                    >
+                      <TrendingUp className="h-4.5 w-4.5 shrink-0" />
+                      <span className="truncate">{hashtag}</span>
+                    </Button>
+                  </Link>
+                )
+              })}
+            </MobileExpandableSection>
+
           </div>
         </nav>
       )}
 
-      {/* The rest (dialogs) remains unchanged */}
+      {/* Dialogs remain unchanged */}
       <Dialog open={markdownHelpOpen} onOpenChange={setMarkdownHelpOpen}>
-        {/* ... existing markdown help dialog ... */}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Formatting Guide</DialogTitle>
+          </DialogHeader>
+          {/* ... your existing content ... */}
+        </DialogContent>
       </Dialog>
 
       <Dialog open={markdownSyntaxOpen} onOpenChange={setMarkdownSyntaxOpen}>
-        {/* ... existing markdown syntax dialog ... */}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Markdown Syntax</DialogTitle>
+          </DialogHeader>
+          {/* ... your existing content ... */}
+        </DialogContent>
       </Dialog>
 
       <Dialog open={verifiedHelpOpen} onOpenChange={setVerifiedHelpOpen}>
-        {/* ... existing verification levels dialog ... */}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verification Levels</DialogTitle>
+          </DialogHeader>
+          {/* ... your existing content ... */}
+        </DialogContent>
       </Dialog>
     </header>
+  )
+}
+
+// ────────────────────────────────────────────────
+//   Helper component for mobile expandable sections
+// ────────────────────────────────────────────────
+function MobileExpandableSection({
+                                   icon: Icon,
+                                   label,
+                                   children,
+                                   isActive = false,
+                                   defaultOpen = false,
+                                 }: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  children: React.ReactNode
+  isActive?: boolean
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = React.useState(defaultOpen)
+
+  return (
+    <>
+      <Button
+        variant={isActive || open ? "secondary" : "ghost"}
+        size="sm"
+        className={cn(
+          "w-full justify-between gap-3 h-11 text-base",
+          (isActive || open) && "font-semibold"
+        )}
+        onClick={() => setOpen(!open)}
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="h-5 w-5 shrink-0" />
+          {label}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-5 w-5 transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </Button>
+
+      {open && (
+        <div className="flex flex-col gap-1 pt-1 pb-2">
+          {children}
+        </div>
+      )}
+    </>
   )
 }

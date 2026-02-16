@@ -5,7 +5,7 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { PostCard } from "@/components/post-card"
 import { PublicPostCard } from "@/components/public-post-card"
 import { Button } from "@/components/ui/button"
-import {Cloud, Loader2, RefreshCw, Sparkles} from "lucide-react"
+import {Users, Loader2, RefreshCw, Sparkles} from "lucide-react"
 import {PageHeader} from "@/components/page-header";
 
 export default function DiscoverPage() {
@@ -38,7 +38,7 @@ export default function DiscoverPage() {
         isLoading={isLoading}
         onRefresh={loadFeed}
       >
-        <Cloud className="h-5 w-5" />
+        <Users className="h-5 w-5" />
         Following
       </PageHeader>
 
