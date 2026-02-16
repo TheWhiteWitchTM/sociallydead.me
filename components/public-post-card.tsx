@@ -59,6 +59,9 @@ export function PublicPostCard({ post }: PublicPostCardProps) {
                     {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
+                <div>
+                  Card
+                </div>
                 <VerifiedBadge 
                   handle={post.author.handle} 
                   did={post.author.did}
