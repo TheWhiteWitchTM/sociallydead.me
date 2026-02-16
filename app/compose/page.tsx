@@ -180,7 +180,7 @@ export default function ComposePage() {
                 onLinkCardChange={setLinkCard}
                 placeholder="What's happening?"
                 minHeight="min-h-48"
-                onCancel={handleCancel}
+                onCancel={handleDiscard}
                 onSubmit={handleSubmit}
                 autoFocus
               />

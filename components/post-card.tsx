@@ -898,18 +898,12 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               onLinkCardChange={setReplyLinkCard}
               placeholder="Write your reply..."
               minHeight="min-h-24"
+              onCancel={() =>setIsReplyDialogOpen(false)}
+              onSubmit={handleReply}
               compact
               autoFocus
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReplyDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleReply} disabled={isLoading || (!replyText.trim() && replyMediaFiles.length === 0)}>
-              {isLoading ? "Posting..." : "Reply"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
