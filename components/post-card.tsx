@@ -551,12 +551,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
-                <UserHoverCard handle={post.author.handle}>
-                  <Link href={`/profile/${post.author.handle}`} className="font-semibold hover:underline break-all">
-                    {post.author.displayName || post.author.handle}
-                  </Link>
-                </UserHoverCard>
-
                   {/* Follow button - show only if not following and not own post */}
                   {!isOwnPost && isFollowing === false && (
                     <Button
