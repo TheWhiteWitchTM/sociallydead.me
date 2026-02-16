@@ -17,7 +17,7 @@ import { HandleLink } from "@/components/handle-link"
 
 interface UserHoverCardProps {
   handle: string
-  children: React.ReactNode
+  children: React.ReactElement
 }
 
 interface ProfileData {
