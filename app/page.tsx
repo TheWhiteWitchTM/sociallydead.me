@@ -90,6 +90,7 @@ function CoffeeWare() {
 	return(
 		<div className={"flex flex-row"}>
       Socially<span className={"text-red-600"}>Dead</span> is <b>CoffeeWare</b>!
+      {" - "}
       <Link
         className={"underline decoration-red-600 underline-offset-4"}
         href={"https://buymeacoffee.com/thewhitewitchtm"}
@@ -336,6 +337,10 @@ export default function HomePage() {
   // Signed in - show profile and timeline
   return (
     <div className="min-h-screen">
+      <PageHeader>
+        <Home/>
+        {user?.displayName}
+      </PageHeader>
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         <CoffeeWare/>
 	      {/* Feed Tabs - Horizontal Scrolling (Bluesky Style) */}
