@@ -730,6 +730,11 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                           <AvatarFallback className="text-xs">
                             {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
                           </AvatarFallback>
+                          <VerifiedBadge
+                            handle={post.author.handle}
+                            did={post.author.did}
+                            className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                          />
                         </Avatar>
                         {post.embed.record.author?.handle && (
                           <VerifiedBadge 
@@ -855,12 +860,12 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     <AvatarFallback className="text-xs">
                       {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                     </AvatarFallback>
+                    <VerifiedBadge
+                      handle={post.author.handle}
+                      did={post.author.did}
+                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                    />
                   </Avatar>
-                  <VerifiedBadge 
-                    handle={post.author.handle} 
-                    did={post.author.did}
-                    className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                  />
                 </div>
                 <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
                 <HandleLink handle={post.author.handle} className="text-sm" />
