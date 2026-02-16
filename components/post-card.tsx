@@ -1136,7 +1136,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
                   <HandleLink handle={post.author.handle} className="text-sm" />
                 </div>
-                <MarkdownRenderer content={post.record.text}/>
                 <div className="bg-yellow-100 p-2 text-sm text-yellow-800">
                   <strong>Embed debug:</strong><br />
                   embed exists? {!!post.embed}<br />
@@ -1145,6 +1144,15 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   has media video? {!!post.embed?.media?.video}<br />
                   raw embed: <pre>{JSON.stringify(post.embed, null, 2)}</pre>
                 </div>
+                <div className="bg-yellow-100 p-2 text-sm text-yellow-800">
+                  <strong>Embed debug:</strong><br />
+                  embed exists? {!!post.embed}<br />
+                  $type: {post.embed?.$type || '—'}<br />
+                  has video? {!!post.embed?.video}<br />
+                  has media video? {!!post.embed?.media?.video}<br />
+                  raw embed: <pre>{JSON.stringify(post.embed, null, 2)}</pre>
+                </div>
+                <MarkdownRenderer content={post.record.text}/>
               </CardContent>
             </Card>
           </div>
