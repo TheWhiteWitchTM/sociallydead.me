@@ -551,7 +551,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             </div>
           </div>
 
-          <div>
+          <div className={"flex flex-row gap-2"}>
             {/* Follow button - show only if not following and not own post */}
             {!isOwnPost && isFollowing === false && (
               <Button
