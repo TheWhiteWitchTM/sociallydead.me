@@ -515,7 +515,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               <VerifiedBadge
                 handle={post.author.handle}
                 did={post.author.did}
-                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                className="absolute left-5 top-5 rounded-full"
               />
             </Link>
           </UserHoverCard>
