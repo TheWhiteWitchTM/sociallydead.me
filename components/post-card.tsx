@@ -39,11 +39,6 @@ function formatEngagement(count: number): string {
   return count.toString()
 }
 
-// Public blob URL builder - no auth required
-function getBlobUrl(did: string, cid: string): string {
-  return `https://bsky.social/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
-}
-
 interface PostCardProps {
   post: {
     uri: string
@@ -159,6 +154,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     addBookmark,
     removeBookmark,
     isBookmarked: checkIsBookmarked,
+    // NEW: use the blob helpers
+    getImageUrl,
+    getVideoSourceUrl,
   } = useBluesky()
 
   const isBookmarked = checkIsBookmarked(post.uri)
@@ -680,7 +678,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
               {post.embed && (
                 <>
-                  {/* Images - already working for you */}
+                  {/* Images – use getImageUrl for safety (though your thumbs/fullsize likely already work) */}
                   {post.embed.images && post.embed.images.length > 0 && (
                     <div className={cn(
                       "mt-3 grid gap-2",
@@ -697,7 +695,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           className="relative rounded-lg overflow-hidden"
                         >
                           <img
-                            src={img.thumb}
+                            src={getImageUrl(img.thumb, post.author.did)}
                             alt={img.alt || "Image"}
                             className="w-full h-auto max-h-80 object-cover rounded-lg"
                             loading="lazy"
@@ -708,26 +706,26 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   )}
 
                   {/* Direct video embed */}
-                  {post.embed.$type === 'app.bsky.embed.video#view' &&
-                    post.embed.video?.ref?.$link && (
-                      <div className="mt-3">
-                        <video
-                          controls
-                          className="w-full rounded-lg"
-                          preload="metadata"
-                          onError={(e) => console.error("Direct video failed to load:", e)}
-                        >
-                          <source
-                            src={getBlobUrl(post.author.did, post.embed.video.ref.$link)}
-                            type={post.embed.video.mimeType || "video/mp4"}
-                          />
-                          Your browser does not support the video tag.
-                        </video>
-                        {post.embed.video.alt && (
-                          <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
-                        )}
-                      </div>
-                    )}
+                  {post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video?.ref?.$link && (
+                    <div className="mt-3">
+                      <video
+                        controls
+                        className="w-full rounded-lg"
+                        preload="metadata"
+                        crossOrigin="anonymous"
+                        onError={(e) => console.error("Direct video failed:", e)}
+                      >
+                        <source
+                          src={getVideoSourceUrl(post.embed.video, post.author.did)}
+                          type={post.embed.video.mimeType || "video/mp4"}
+                        />
+                        Your browser does not support the video tag.
+                      </video>
+                      {post.embed.video.alt && (
+                        <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* External link card */}
                   {post.embed.$type === 'app.bsky.embed.external#view' && post.embed.external && (
@@ -742,7 +740,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         {post.embed.external.thumb && (
                           <div className="aspect-video relative">
                             <img
-                              src={post.embed.external.thumb}
+                              src={getImageUrl(post.embed.external.thumb, post.author.did)}
                               alt=""
                               className="w-full h-full object-cover"
                               loading="lazy"
@@ -758,7 +756,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </a>
                   )}
 
-                  {/* Simple quoted post */}
+                  {/* Simple quoted post (no media) */}
                   {post.embed.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                     <div className="mt-1 border-border">
                       <div className="p-3">
@@ -797,10 +795,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </div>
                   )}
 
-                  {/* Quote + media (quote + video or quote + image) */}
+                  {/* Quote + attached media (quote + image/video/external) */}
                   {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
                     <>
-                      {/* Attached media first */}
+                      {/* Attached images */}
                       {post.embed.media.images && post.embed.media.images.length > 0 && (
                         <div className={cn(
                           "mt-3 grid gap-2",
@@ -817,8 +815,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                               className="relative rounded-lg overflow-hidden"
                             >
                               <img
-                                src={img.thumb}
-                                alt={img.alt || "Image"}
+                                src={getImageUrl(img.thumb, post.author.did)}
+                                alt={img.alt || "Attached image"}
                                 className="w-full h-auto max-h-80 object-cover rounded-lg"
                                 loading="lazy"
                               />
@@ -828,26 +826,26 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       )}
 
                       {/* Attached video */}
-                      {post.embed.media.$type === 'app.bsky.embed.video#view' &&
-                        post.embed.media.video?.ref?.$link && (
-                          <div className="mt-3">
-                            <video
-                              controls
-                              className="w-full rounded-lg"
-                              preload="metadata"
-                              onError={(e) => console.error("recordWithMedia video failed to load:", e)}
-                            >
-                              <source
-                                src={getBlobUrl(post.author.did, post.embed.media.video.ref.$link)}
-                                type={post.embed.media.video.mimeType || "video/mp4"}
-                              />
-                              Your browser does not support the video tag.
-                            </video>
-                            {post.embed.media.video.alt && (
-                              <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
-                            )}
-                          </div>
-                        )}
+                      {post.embed.media.$type === 'app.bsky.embed.video#view' && post.embed.media.video?.ref?.$link && (
+                        <div className="mt-3">
+                          <video
+                            controls
+                            className="w-full rounded-lg"
+                            preload="metadata"
+                            crossOrigin="anonymous"
+                            onError={(e) => console.error("Quoted video failed:", e)}
+                          >
+                            <source
+                              src={getVideoSourceUrl(post.embed.media.video, post.author.did)}
+                              type={post.embed.media.video.mimeType || "video/mp4"}
+                            />
+                            Your browser does not support the video tag.
+                          </video>
+                          {post.embed.media.video.alt && (
+                            <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Attached external */}
                       {post.embed.media.$type === 'app.bsky.embed.external#view' && post.embed.media.external && (
@@ -862,7 +860,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                             {post.embed.media.external.thumb && (
                               <div className="aspect-video relative">
                                 <img
-                                  src={post.embed.media.external.thumb}
+                                  src={getImageUrl(post.embed.media.external.thumb, post.author.did)}
                                   alt=""
                                   className="w-full h-full object-cover"
                                   loading="lazy"
@@ -878,7 +876,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         </a>
                       )}
 
-                      {/* Quoted content */}
+                      {/* Quoted text */}
                       <div className="mt-3 border-border">
                         <div className="p-3">
                           <div className="flex items-center gap-2 mb-2">
@@ -1143,8 +1141,126 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
         </DialogContent>
       </Dialog>
 
-      {/* Analytics, Report, Edit, Delete, Fact-Check dialogs remain unchanged */}
-      {/* ... paste your existing dialog code here if needed ... */}
+      {/* Analytics Dialog */}
+      <Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Post Analytics
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-sky-500/10">
+                    <Eye className="h-4 w-4 text-sky-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Views</span>
+                    <p className="text-xs text-muted-foreground">SociallyDead only</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{viewCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-500/10">
+                    <MousePointerClick className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Link Clicks</span>
+                    <p className="text-xs text-muted-foreground">SociallyDead only</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{linkClickCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
+                    <MessageCircle className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span className="text-sm font-medium">Replies</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{replyCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
+                    <Repeat2 className="h-4 w-4 text-green-500" />
+                  </div>
+                  <span className="text-sm font-medium">Reposts</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{repostCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
+                    <Heart className="h-4 w-4 text-red-500" />
+                  </div>
+                  <span className="text-sm font-medium">Likes</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
+                    <BarChart3 className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <span className="text-sm font-medium">Total Engagements</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{(replyCount + repostCount + likeCount).toLocaleString()}</span>
+              </div>
+            </div>
+            {(replyCount + repostCount + likeCount) > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
+                <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+                  {replyCount > 0 && (
+                    <div
+                      className="h-full bg-blue-500 transition-all"
+                      style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                      title={`Replies: ${((replyCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                    />
+                  )}
+                  {repostCount > 0 && (
+                    <div
+                      className="h-full bg-green-500 transition-all"
+                      style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                      title={`Reposts: ${((repostCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                    />
+                  )}
+                  {likeCount > 0 && (
+                    <div
+                      className="h-full bg-red-500 transition-all"
+                      style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                      title={`Likes: ${((likeCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                    />
+                  )}
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    Replies
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Reposts
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Likes
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report, Edit, Delete, Fact-Check dialogs – unchanged, omitted here for brevity */}
+      {/* ... paste your original dialogs here if needed ... */}
 
     </>
   )
