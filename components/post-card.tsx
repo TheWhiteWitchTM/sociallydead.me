@@ -503,7 +503,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   return (
     <>
       <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
-        <CardHeader className={"grid grid-cols-[auto_1fr_auto"}>
+        <CardHeader className={"grid grid-cols-[auto_1fr_auto]"}>
           <UserHoverCard handle={post.author.handle}>
             <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
               <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
