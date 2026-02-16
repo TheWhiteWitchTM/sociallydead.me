@@ -503,23 +503,26 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   return (
     <>
       <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
-        <CardHeader className={"grid grid-cols-[auto_1fr_auto] gap-1"}>
-          <UserHoverCard handle={post.author.handle}>
-            <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
-              <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-                <AvatarFallback className="text-sm">
-                  {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <VerifiedBadge
-                handle={post.author.handle}
-                did={post.author.did}
-                className="absolute left-5 top-7 rounded-full"
-              />
-            </Link>
-          </UserHoverCard>
-          <div className={"flex flex-col"}>
+        <CardHeader className={"grid grid-cols-[auto_1fr_auto] gap-2"}>
+          <div>
+            <UserHoverCard handle={post.author.handle}>
+              <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
+                <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
+                  <AvatarFallback className="text-sm">
+                    {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <VerifiedBadge
+                  handle={post.author.handle}
+                  did={post.author.did}
+                  className="absolute left-5 top-7 rounded-full"
+                />
+              </Link>
+            </UserHoverCard>
+          </div>
+
+          <div className={"flex flex-col gap-2"}>
             <div>
               {post.author.displayName}
               <VerifiedBadge
@@ -528,25 +531,26 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 className={"pt-1"}
               />
             </div>
-            <div>
+            <div className={"flex flex-row gap-2"}>
               <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+              {/* Repost indicator */}
+              {isRepostReason && post.reason?.by && (
+                <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                  <Repeat2 className="h-4 w-4 shrink-0" />
+                  <Link href={`/profile/${post.reason.by.handle}`} className="hover:underline truncate">
+                    {post.reason.by.displayName || post.reason.by.handle} reposted
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
+
           <div>
             Menu
           </div>
         </CardHeader>
-        <CardContent className="p-3 sm:p-4">
-          {/* Repost indicator */}
-          {isRepostReason && post.reason?.by && (
-            <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-              <Repeat2 className="h-4 w-4 shrink-0" />
-              <Link href={`/profile/${post.reason.by.handle}`} className="hover:underline truncate">
-                {post.reason.by.displayName || post.reason.by.handle} reposted
-              </Link>
-            </div>
-          )}
 
+        <CardContent className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
