@@ -504,7 +504,21 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     <>
       <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
         <CardHeader>
-          Header
+          <UserHoverCard handle={post.author.handle}>
+            <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
+              <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
+                <AvatarFallback className="text-sm">
+                  {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <VerifiedBadge
+                handle={post.author.handle}
+                did={post.author.did}
+                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+              />
+            </Link>
+          </UserHoverCard>
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
           {/* Repost indicator */}
@@ -518,22 +532,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
           )}
 
           <div className="flex gap-2 sm:gap-3">
-            <UserHoverCard handle={post.author.handle}>
-              <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
-                <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-                  <AvatarFallback className="text-sm">
-                    {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <VerifiedBadge 
-                  handle={post.author.handle} 
-                  did={post.author.did}
-                  className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                />
-              </Link>
-            </UserHoverCard>
-            
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
@@ -729,7 +727,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                 <Card className="mt-3 border-border">
                   <CardHeader>
-                    Header
+                    Embed Header
                   </CardHeader>
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
@@ -757,7 +755,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     <p className="text-sm">{post.embed.record.value?.text}</p>
                   </CardContent>
                   <CardFooter>
-                    Footer
+                    Embed Footer
                   </CardFooter>
                 </Card>
               )}
