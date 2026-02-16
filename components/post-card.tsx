@@ -502,47 +502,51 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
 
     return (
       <>
-        <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
-          <CardHeader className="grid grid-cols-[auto_1fr_auto] gap-2 px-3 sm:px-4 pt-3 pb-2">
-            <div>
-              <UserHoverCard handle={post.author.handle}>
-                <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
-                  <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                    <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
-                    <AvatarFallback className="text-sm">
-                      {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <VerifiedBadge
-                    handle={post.author.handle}
-                    did={post.author.did}
-                    className="absolute left-5 top-7 rounded-full"
-                  />
-                </Link>
-              </UserHoverCard>
-            </div>
+        <article
+          ref={cardRef}
+          className={cn(
+            "group relative border-b border-border/60 last:border-b-0",
+            "hover:bg-accent/40 transition-colors duration-150",
+            "px-3 sm:px-4 py-3 sm:py-4"
+          )}
+        >
+          {/* Header row – avatar + names + time + menu */}
+          <header className="flex items-start gap-3">
+            <UserHoverCard handle={post.author.handle}>
+              <Link href={`/profile/${post.author.handle}`} className="relative shrink-0">
+                <Avatar className="h-10 w-10 sm:h-11 sm:w-11 cursor-pointer transition-opacity hover:opacity-90">
+                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
+                  <AvatarFallback className="text-base">
+                    {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <VerifiedBadge
+                  handle={post.author.handle}
+                  did={post.author.did}
+                  className="absolute -bottom-1 -right-1 scale-90 rounded-full border-2 border-background"
+                />
+              </Link>
+            </UserHoverCard>
 
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <div className="flex items-center gap-1.5">
-              <span className="font-medium leading-tight">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="font-semibold leading-tight truncate">
                 {post.author.displayName || post.author.handle}
               </span>
-                <VerifiedBadge handle={post.author.handle} did={post.author.did} />
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <HandleLink handle={post.author.handle} className="truncate max-w-[140px]" />
-                <Link
-                  href={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`}
-                  className="whitespace-nowrap hover:underline"
-                >
-                  {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
-                </Link>
+                <VerifiedBadge handle={post.author.handle} did={post.author.did} className="mt-0.5" />
+                <HandleLink
+                  handle={post.author.handle}
+                  className="text-sm text-muted-foreground truncate"
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                · {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
+              </span>
               </div>
 
               {/* Repost indicator */}
               {isRepostReason && post.reason?.by && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                  <Repeat2 className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+                  <Repeat2 className="h-4 w-4" />
                   <Link href={`/profile/${post.reason.by.handle}`} className="hover:underline truncate">
                     {post.reason.by.displayName || post.reason.by.handle} reposted
                   </Link>
@@ -550,12 +554,12 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               )}
             </div>
 
-            <div className="flex items-start gap-1">
+            <div className="flex items-center gap-1">
               {!isOwnPost && isFollowing === false && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 px-2.5 text-xs"
+                  className="h-8 px-3 text-xs font-medium"
                   onClick={handleFollow}
                   disabled={isFollowLoading}
                 >
@@ -565,176 +569,168 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
+                    <MoreHorizontal className="h-4.5 w-4.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                {/* DropdownMenuContent remains the same */}
-                <DropdownMenuContent align="end">
-                  {/* ... your existing menu items ... */}
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* your existing menu items – unchanged */}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </CardHeader>
+          </header>
 
-          <CardContent className="px-3 sm:px-4 pt-1 pb-2">
-            <div className="min-w-0">
-              <div className="leading-relaxed">
-                <MarkdownRenderer content={post.record.text} />
-              </div>
-
-              {/* Images – slightly tighter */}
-              {post.embed?.images && post.embed.images.length > 0 && (
-                <div className={cn(
-                  "mt-2 grid gap-1.5",
-                  post.embed.images.length === 1 && "grid-cols-1",
-                  post.embed.images.length === 2 && "grid-cols-2",
-                  post.embed.images.length >= 3 && "grid-cols-2 sm:grid-cols-3"
-                )}>
-                  {post.embed.images.map((img, idx) => (
-                    <a key={idx} href={img.fullsize} target="_blank" rel="noopener noreferrer" className="block rounded-md overflow-hidden">
-                      <img
-                        src={img.thumb}
-                        alt={img.alt || "Image"}
-                        className="w-full h-auto object-cover max-h-[420px]"
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* External link card – more compact */}
-              {post.embed?.$type === 'app.bsky.embed.external#view' && post.embed.external && (
-                <a
-                  href={(post.embed.external as any).uri}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block mt-2"
-                  onClick={trackLinkClick}
-                >
-                  <Card className="overflow-hidden text-sm">
-                    {(post.embed.external as any).thumb && (
-                      <div className="aspect-video bg-muted relative">
-                        <img src={(post.embed.external as any).thumb} alt="" className="object-cover w-full h-full" />
-                      </div>
-                    )}
-                    <CardContent className="p-2.5">
-                      <p className="font-medium line-clamp-2">{(post.embed.external as any).title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{(post.embed.external as any).description}</p>
-                      <p className="text-xs text-muted-foreground/80 mt-1 truncate">{(post.embed.external as any).uri}</p>
-                    </CardContent>
-                  </Card>
-                </a>
-              )}
-
-              {/* Quoted post – tighter */}
-              {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && (
-                <Card className="mt-2 border text-sm">
-                  <CardContent className="p-2.5">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={post.embed.record.author?.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <span className="font-medium">{post.embed.record.author?.displayName || post.embed.record.author?.handle}</span>
-                        <HandleLink handle={post.embed.record.author?.handle || ""} className="text-xs ml-1.5" />
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground line-clamp-3">{post.embed.record.value?.text}</p>
-                  </CardContent>
-                </Card>
-              )}
+          {/* Main content */}
+          <main className="mt-1.5 pl-[52px] sm:pl-[60px]">
+            <div className="text-[15px] leading-relaxed">
+              <MarkdownRenderer content={post.record.text} />
             </div>
-          </CardContent>
 
-          {/* ────────────────────────────────
-            MOVED INTERACTIONS → CardFooter
-          ──────────────────────────────── */}
-          <CardFooter className="px-2 sm:px-4 py-1 border-t bg-muted/40 flex items-center justify-between gap-1 text-muted-foreground text-xs">
-            <div className="flex items-center -ml-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-9 rounded-full hover:text-sky-600"
+            {/* Images */}
+            {post.embed?.images && post.embed.images.length > 0 && (
+              <div className={cn(
+                "mt-2 grid gap-1.5 rounded-lg overflow-hidden",
+                post.embed.images.length === 1 && "grid-cols-1",
+                post.embed.images.length === 2 && "grid-cols-2",
+                post.embed.images.length >= 3 && "grid-cols-2 sm:grid-cols-3"
+              )}>
+                {post.embed.images.map((img, idx) => (
+                  <a key={idx} href={img.fullsize} target="_blank" rel="noopener noreferrer" className="block">
+                    <img
+                      src={img.thumb}
+                      alt={img.alt || "Post image"}
+                      className="w-full h-auto object-cover transition-transform group-hover:scale-[1.015]"
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* External link preview */}
+            {post.embed?.$type === 'app.bsky.embed.external#view' && post.embed.external && (
+              <a
+                href={(post.embed.external as any).uri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block rounded-lg border border-border/60 hover:border-border transition-colors overflow-hidden"
+                onClick={trackLinkClick}
+              >
+                {(post.embed.external as any).thumb && (
+                  <div className="aspect-video bg-muted relative">
+                    <img src={(post.embed.external as any).thumb} alt="" className="object-cover w-full h-full" />
+                  </div>
+                )}
+                <div className="p-2.5 text-sm">
+                  <p className="font-medium line-clamp-2">{(post.embed.external as any).title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                    {(post.embed.external as any).description}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground/80 truncate">
+                    {(post.embed.external as any).uri}
+                  </p>
+                </div>
+              </a>
+            )}
+
+            {/* Quoted post */}
+            {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && (
+              <div className="mt-2 rounded-lg border border-border/50 bg-muted/30 p-3 text-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={post.embed.record.author?.avatar} />
+                    <AvatarFallback className="text-xs">
+                      {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium truncate">
+                  {post.embed.record.author?.displayName || post.embed.record.author?.handle}
+                </span>
+                  <HandleLink handle={post.embed.record.author?.handle || ""} className="text-xs text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground line-clamp-3">
+                  {post.embed.record.value?.text}
+                </p>
+              </div>
+            )}
+          </main>
+
+          {/* Actions bar */}
+          <footer className="mt-2 pl-[52px] sm:pl-[60px] flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center -ml-1.5 gap-1">
+              <button
                 onClick={handleReplyClick}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-sky-500/10 hover:text-sky-600 transition-colors"
               >
-                <MessageCircle className="h-4 w-4" />
-              </Button>
-              <span className="tabular-nums min-w-[2.2ch] text-center">{formatEngagement(replyCount)}</span>
+                <MessageCircle className="h-4.5 w-4.5" />
+                <span className="tabular-nums min-w-[2ch]">{formatEngagement(replyCount)}</span>
+              </button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-8 w-9 rounded-full",
-                  isReposted ? "text-green-600 hover:text-green-700" : "hover:text-green-600"
-                )}
+              <button
                 onClick={handleRepostClick}
-              >
-                <Repeat2 className="h-4 w-4" />
-              </Button>
-              <span className="tabular-nums min-w-[2.2ch] text-center">{formatEngagement(repostCount)}</span>
-
-              <Button
-                variant="ghost"
-                size="icon"
                 className={cn(
-                  "h-8 w-9 rounded-full",
-                  isLiked ? "text-red-600 hover:text-red-700" : "hover:text-red-600"
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-colors",
+                  isReposted
+                    ? "text-green-600 hover:bg-green-500/10"
+                    : "hover:bg-green-500/10 hover:text-green-600"
                 )}
+              >
+                <Repeat2 className="h-4.5 w-4.5" />
+                <span className="tabular-nums min-w-[2ch]">{formatEngagement(repostCount)}</span>
+              </button>
+
+              <button
                 onClick={handleLike}
-              >
-                <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-              </Button>
-              <span className="tabular-nums min-w-[2.2ch] text-center">{formatEngagement(likeCount)}</span>
-
-              <Button
-                variant="ghost"
-                size="icon"
                 className={cn(
-                  "h-8 w-9 rounded-full",
-                  isBookmarked ? "text-blue-600" : "hover:text-blue-600"
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-colors",
+                  isLiked
+                    ? "text-red-600 hover:bg-red-500/10"
+                    : "hover:bg-red-500/10 hover:text-red-600"
                 )}
+              >
+                <Heart className={cn("h-4.5 w-4.5", isLiked && "fill-current")} />
+                <span className="tabular-nums min-w-[2ch]">{formatEngagement(likeCount)}</span>
+              </button>
+
+              <button
                 onClick={handleBookmark}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  isBookmarked
+                    ? "text-blue-600 hover:bg-blue-500/10"
+                    : "hover:bg-blue-500/10 hover:text-blue-600"
+                )}
                 title={isBookmarked ? "Remove bookmark" : "Bookmark"}
               >
-                <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
-              </Button>
+                <Bookmark className={cn("h-4.5 w-4.5", isBookmarked && "fill-current")} />
+              </button>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {viewCount > 0 && (
-                <div className="flex items-center gap-1 px-2 py-1 text-muted-foreground/90">
-                  <Eye className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-muted-foreground/80">
+                  <Eye className="h-4 w-4" />
                   <span className="tabular-nums">{formatEngagement(viewCount)}</span>
                 </div>
               )}
 
               {(replyCount + repostCount + likeCount + viewCount) > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2.5 gap-1.5 text-muted-foreground hover:text-primary"
+                <button
                   onClick={() => setIsAnalyticsOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
                 >
-                  <BarChart3 className="h-3.5 w-3.5" />
+                  <BarChart3 className="h-4 w-4" />
                   <span className="tabular-nums font-medium">
                   {formatEngagement(replyCount + repostCount + likeCount)}
                 </span>
-                </Button>
+                </button>
               )}
             </div>
-          </CardFooter>
-        </Card>
+          </footer>
+        </article>
 
-        {/* ────────────────────────────────────────
-          All your Dialogs remain unchanged below
-        ──────────────────────────────────────── */}
-        {/* Reply Dialog, Quote Dialog, Analytics, Report, Edit, Delete, FactCheck ... */}
-
+        {/* ────────────────────────────────────────────────
+          Keep all your <Dialog> components exactly the same
+        ──────────────────────────────────────────────── */}
       </>
     )
   }
