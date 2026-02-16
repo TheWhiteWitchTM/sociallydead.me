@@ -736,16 +736,21 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     <div className="flex items-center gap-2 mb-2">
                       <div className={"grid grid-cols-[auto_1fr] gap-2"}>
                         <div>
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
-                            <AvatarFallback className="text-xs">
-                              {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <VerifiedBadge
-                            handle={post.author.handle}
-                            did={post.author.did}
-                          />
+                          <UserHoverCard handle={post.embed.record.author.handle}>
+                            <Link href={`/profile/${post.embed.record.author.handle}`} className="shrink-0 relative">
+                              <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                                <AvatarImage src={post.embed.record.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
+                                <AvatarFallback className="text-sm">
+                                  {(post.embed.record.author.displayName || post.embed.record.author.handle).slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <VerifiedBadge
+                                handle={post.embed.record.author.handle}
+                                did={post.embed.record.author.did}
+                                className="absolute left-5 top-7 rounded-full"
+                              />
+                            </Link>
+                          </UserHoverCard>
                         </div>
                         <div>
                             <span className="font-medium text-sm">
