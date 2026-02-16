@@ -456,19 +456,19 @@ export default function MessagesPage() {
                   {selectedConvo.members.filter(m => m.did !== user?.did).map((member) => (
                     <div key={member.did} className="flex items-center gap-2">
                       <div className="relative">
+                        <UserHoverCard handle={member.handle}>
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={member.avatar || "/placeholder.svg"} />
                           <AvatarFallback className="text-xs">
                             {getMemberDisplayName(member).slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        {!isInvalidHandle(member.handle) && (
-                          <VerifiedBadge 
+                          <VerifiedBadge
                             handle={member.handle} 
                             did={member.did}
                             className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
                           />
-                        )}
+                        </UserHoverCard>
                       </div>
                       <span className="font-semibold truncate max-w-[150px] sm:max-w-none">
                         <UserHoverCard handle={member.handle}>
