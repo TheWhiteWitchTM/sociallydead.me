@@ -829,6 +829,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       {/* Attached video */}
                       {post.embed.media.$type === 'app.bsky.embed.video#view' && post.embed.media.video?.ref?.$link && (
                         <div className="mt-3">
+                          VIDEO
                           <video
                             controls
                             className="w-full rounded-lg"
