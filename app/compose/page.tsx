@@ -119,6 +119,7 @@ export default function ComposePage() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h1>Post</h1>
             <Button
               variant="ghost"
               size="icon"
@@ -129,6 +130,7 @@ export default function ComposePage() {
               <X className="h-4 w-4" />
             </Button>
             <div className="flex flex-col min-w-0">
+              <h1 className="text-xl font-bold leading-tight">Compose</h1>
               {context && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
                   {context.feedName && (
@@ -193,7 +195,7 @@ export default function ComposePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-2">
+      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {error && (
           <Card className="mb-4 border-destructive rounded-none sm:rounded-lg border-x-0 sm:border-x">
             <CardContent className="p-4 text-destructive">{error}</CardContent>
