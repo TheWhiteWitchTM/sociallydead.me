@@ -18,7 +18,6 @@ import {
   BeerOff,
   Video,
   X,
-  Cloud,
   HelpCircle,
   BadgeCheck,
   FileText,
@@ -73,9 +72,12 @@ export function AppHeader() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const { isAuthenticated } = useBluesky()
+
   const [canInstall, setCanInstall] = React.useState(false)
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [feedsOpen, setFeedsOpen] = React.useState(false)
+  const [trendingOpen, setTrendingOpen] = React.useState(false)
   const [markdownHelpOpen, setMarkdownHelpOpen] = React.useState(false)
   const [markdownSyntaxOpen, setMarkdownSyntaxOpen] = React.useState(false)
   const [trending, setTrending] = React.useState<string[]>([])
@@ -94,22 +96,26 @@ export function AppHeader() {
       setCanInstall(false)
     }
 
-    blueSky.getTrendingTopics(10)
-      .then((res) => setTrending(res))
+    blueSky.getTrendingTopics(10).then((res) => setTrending(res))
 
     return () => window.removeEventListener("beforeinstallprompt", handler)
-  }, [])
+  }, [blueSky])
 
   React.useEffect(() => {
     setMobileMenuOpen(false)
   }, [pathname])
 
+  React.useEffect(() => {
+    if (!mobileMenuOpen) {
+      setFeedsOpen(false)
+      setTrendingOpen(false)
+    }
+  }, [mobileMenuOpen])
+
   const handleInstall = async () => {
     if (!deferredPrompt) return
-
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
-
     if (outcome === "accepted") {
       setCanInstall(false)
     }
@@ -127,8 +133,8 @@ export function AppHeader() {
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src={"/icons/icon-192x192.png"}
-              alt={"SD"}
+              src="/icons/icon-192x192.png"
+              alt="SD"
               width={32}
               height={32}
               priority
@@ -139,17 +145,16 @@ export function AppHeader() {
             size="icon"
             className="h-9 w-9"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle feed menu"
+            aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
 
-        {/* Navigation - Desktop (hidden on mobile) ── UNCHANGED ── */}
+        {/* Desktop navigation – unchanged */}
         <nav className="hidden md:flex items-center gap-0">
           {mainNavItems.map((item) => {
             if (item.auth && !isAuthenticated) return null
-
             const isActive = pathname === item.href
             return (
               <Link key={item.id} href={item.href}>
@@ -198,9 +203,7 @@ export function AppHeader() {
                     >
                       <category.icon className="h-4 w-4" />
                       <span>{category.label}</span>
-                      {category.adult && (
-                        <span className={"text-red-600"}>18+</span>
-                      )}
+                      {category.adult && <span className="text-red-600">18+</span>}
                     </Link>
                   </DropdownMenuItem>
                 )
@@ -247,7 +250,7 @@ export function AppHeader() {
           </DropdownMenu>
         </nav>
 
-        {/* Right side - unchanged */}
+        {/* Right side actions */}
         <div className="flex items-center gap-1 sm:gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -275,16 +278,21 @@ export function AppHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <VerificationCheckout
               trigger={
-                <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified - Support SociallyDead">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  title="Get Verified - Support SociallyDead"
+                >
                   <BadgeCheck className="h-5 w-5 text-blue-500" />
                   <span className="sr-only">Get Verified</span>
                 </Button>
               }
             />
-          ) : null}
+          )}
 
           {canInstall && (
             <Button
@@ -297,6 +305,7 @@ export function AppHeader() {
               <span className="hidden sm:inline">Install</span>
             </Button>
           )}
+
           <Button
             variant="ghost"
             size="icon"
@@ -309,159 +318,189 @@ export function AppHeader() {
         </div>
       </div>
 
-      {/* ────────────────────────────── MOBILE MENU ────────────────────────────── */}
+      {/* ────────────────────────────────────────────────
+          MOBILE MENU – two-column layout + overlay submenus
+      ──────────────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-border bg-background px-4 py-4">
-          <div className="flex flex-col gap-6">
-
-            {/* ── GROUP 1 / TOP ROW ── Main navigation ── */}
-            <div>
-              <div className="flex flex-col gap-1.5">
-                {mainNavItems.map((item) => {
-                  if (item.auth && !isAuthenticated) return null
-                  const isActive = pathname === item.href
-                  return (
-                    <Link key={item.id} href={item.href}>
-                      <Button
-                        variant={isActive ? "default" : "ghost"}
-                        size="sm"
-                        className={cn(
-                          "w-full justify-start gap-3 h-11 text-base",
-                          isActive && "bg-primary text-primary-foreground font-semibold"
-                        )}
+        <div
+          className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <nav
+            className="absolute inset-y-0 left-0 right-0 top-14 bg-background border-t border-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grid grid-cols-2 h-full">
+              {/* LEFT – main flat items */}
+              <div className="border-r border-border overflow-y-auto px-4 py-6">
+                <div className="flex flex-col gap-2">
+                  {mainNavItems.map((item) => {
+                    if (item.auth && !isAuthenticated) return null
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
                       >
-                        <item.icon className="h-5 w-5 shrink-0" />
-                        {item.label}
-                      </Button>
-                    </Link>
-                  )
-                })}
+                        <Button
+                          variant={isActive ? "default" : "ghost"}
+                          className={cn(
+                            "w-full justify-start gap-3 h-12 text-base px-4",
+                            isActive && "bg-primary text-primary-foreground font-semibold"
+                          )}
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {item.label}
+                        </Button>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* RIGHT – expandable sections with overlay submenus */}
+              <div className="overflow-y-auto px-4 py-6">
+                <div className="flex flex-col gap-3">
+                  {/* Feeds */}
+                  <div className="relative">
+                    <Button
+                      variant={pathname.startsWith("/feed/") || feedsOpen ? "secondary" : "ghost"}
+                      className={cn(
+                        "w-full justify-between h-12 text-base px-4",
+                        (pathname.startsWith("/feed/") || feedsOpen) && "font-semibold"
+                      )}
+                      onClick={() => setFeedsOpen(!feedsOpen)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Rss className="h-5 w-5" />
+                        Feeds
+                      </div>
+                      <ChevronDown
+                        className={cn(
+                          "h-5 w-5 transition-transform",
+                          feedsOpen && "rotate-180"
+                        )}
+                      />
+                    </Button>
+
+                    {feedsOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-72 max-h-[70vh] overflow-y-auto bg-popover border border-border rounded-lg shadow-2xl z-50">
+                        {feedCategories.map((category) => {
+                          const isActive = pathname === category.href
+                          return (
+                            <Link
+                              key={category.id}
+                              href={category.href}
+                              onClick={() => {
+                                setFeedsOpen(false)
+                                setMobileMenuOpen(false)
+                              }}
+                            >
+                              <div
+                                className={cn(
+                                  "flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent cursor-pointer",
+                                  isActive && "bg-accent font-medium"
+                                )}
+                              >
+                                <category.icon className="h-4.5 w-4.5 shrink-0" />
+                                <span className="flex-1">{category.label}</span>
+                                {category.adult && (
+                                  <span className="text-red-600 text-xs font-medium">18+</span>
+                                )}
+                              </div>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Trending */}
+                  <div className="relative">
+                    <Button
+                      variant={pathname.startsWith("/trending/") || trendingOpen ? "secondary" : "ghost"}
+                      className={cn(
+                        "w-full justify-between h-12 text-base px-4",
+                        (pathname.startsWith("/trending/") || trendingOpen) && "font-semibold"
+                      )}
+                      onClick={() => setTrendingOpen(!trendingOpen)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className="h-5 w-5" />
+                        Trending
+                      </div>
+                      <ChevronDown
+                        className={cn(
+                          "h-5 w-5 transition-transform",
+                          trendingOpen && "rotate-180"
+                        )}
+                      />
+                    </Button>
+
+                    {trendingOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-72 max-h-[70vh] overflow-y-auto bg-popover border border-border rounded-lg shadow-2xl z-50">
+                        {trending.map((hashtag) => {
+                          const href = "/trending/" + encodeURIComponent(hashtag)
+                          const isActive = pathname === href
+                          return (
+                            <Link
+                              key={hashtag}
+                              href={href}
+                              onClick={() => {
+                                setTrendingOpen(false)
+                                setMobileMenuOpen(false)
+                              }}
+                            >
+                              <div
+                                className={cn(
+                                  "flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent cursor-pointer",
+                                  isActive && "bg-accent font-medium"
+                                )}
+                              >
+                                <TrendingUp className="h-4.5 w-4.5 shrink-0" />
+                                <span className="truncate">{hashtag}</span>
+                              </div>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* ── GROUP 2 / BOTTOM ROW ── Feeds + Trending (expandable) ── */}
-            <div className="space-y-3">
-              <MobileExpandableSection
-                icon={Rss}
-                label="Feeds"
-                isActive={pathname.startsWith("/feed/")}
-                defaultOpen={pathname.startsWith("/feed/")}
-              >
-                {feedCategories.map((category) => {
-                  const isActive = pathname === category.href
-                  return (
-                    <Link key={category.id} href={category.href}>
-                      <Button
-                        variant={isActive ? "secondary" : "ghost"}
-                        size="sm"
-                        className={cn(
-                          "w-full justify-start gap-3 pl-10 h-10 text-sm",
-                          isActive && "bg-accent font-medium"
-                        )}
-                      >
-                        <category.icon className="h-4.5 w-4.5 shrink-0" />
-                        <span className="flex-1">{category.label}</span>
-                        {category.adult && (
-                          <span className="text-red-600 text-xs font-medium">18+</span>
-                        )}
-                      </Button>
-                    </Link>
-                  )
-                })}
-              </MobileExpandableSection>
-
-              <MobileExpandableSection
-                icon={TrendingUp}
-                label="Trending"
-                isActive={pathname.startsWith("/trending/")}
-                defaultOpen={pathname.startsWith("/trending/")}
-              >
-                {trending.map((hashtag) => {
-                  const href = "/trending/" + encodeURIComponent(hashtag)
-                  const isActive = pathname === href
-                  return (
-                    <Link key={hashtag} href={href}>
-                      <Button
-                        variant={isActive ? "secondary" : "ghost"}
-                        size="sm"
-                        className={cn(
-                          "w-full justify-start gap-3 pl-10 h-10 text-sm",
-                          isActive && "bg-accent font-medium"
-                        )}
-                      >
-                        <TrendingUp className="h-4.5 w-4.5 shrink-0" />
-                        <span className="truncate">{hashtag}</span>
-                      </Button>
-                    </Link>
-                  )
-                })}
-              </MobileExpandableSection>
-            </div>
-
-          </div>
-        </nav>
+          </nav>
+        </div>
       )}
 
-      {/* Dialogs - unchanged */}
+      {/* Dialogs remain unchanged */}
       <Dialog open={markdownHelpOpen} onOpenChange={setMarkdownHelpOpen}>
-        <DialogContent>{/* ... your content ... */}</DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Formatting Guide</DialogTitle>
+          </DialogHeader>
+          {/* your content */}
+        </DialogContent>
       </Dialog>
 
       <Dialog open={markdownSyntaxOpen} onOpenChange={setMarkdownSyntaxOpen}>
-        <DialogContent>{/* ... your content ... */}</DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Markdown Syntax</DialogTitle>
+          </DialogHeader>
+          {/* your content */}
+        </DialogContent>
       </Dialog>
 
       <Dialog open={verifiedHelpOpen} onOpenChange={setVerifiedHelpOpen}>
-        <DialogContent>{/* ... your content ... */}</DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verification Levels</DialogTitle>
+          </DialogHeader>
+          {/* your content */}
+        </DialogContent>
       </Dialog>
     </header>
-  )
-}
-
-// Mobile expandable section helper (unchanged from previous version)
-function MobileExpandableSection({
-                                   icon: Icon,
-                                   label,
-                                   children,
-                                   isActive = false,
-                                   defaultOpen = false,
-                                 }: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  children: React.ReactNode
-  isActive?: boolean
-  defaultOpen?: boolean
-}) {
-  const [open, setOpen] = React.useState(defaultOpen)
-
-  return (
-    <div>
-      <Button
-        variant={isActive || open ? "secondary" : "ghost"}
-        size="sm"
-        className={cn(
-          "w-full justify-between gap-3 h-11 text-base px-3",
-          (isActive || open) && "font-semibold"
-        )}
-        onClick={() => setOpen(!open)}
-      >
-        <div className="flex items-center gap-3">
-          <Icon className="h-5 w-5 shrink-0" />
-          {label}
-        </div>
-        <ChevronDown
-          className={cn(
-            "h-5 w-5 transition-transform duration-200",
-            open && "rotate-180"
-          )}
-        />
-      </Button>
-
-      {open && (
-        <div className="flex flex-col gap-1 mt-1.5 pl-2 border-l-2 border-muted">
-          {children}
-        </div>
-      )}
-    </div>
   )
 }
