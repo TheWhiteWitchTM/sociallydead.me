@@ -539,6 +539,12 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               >
                 {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
               </Link>
+              {/* Reply context */}
+              {showReplyContext && post.record.reply && (
+                <div className="text-sm text-muted-foreground mb-1">
+                  Replying to a thread
+                </div>
+              )}
               {/* Repost indicator */}
               {isRepostReason && post.reason?.by && (
                 <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
@@ -661,20 +667,8 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
         </CardHeader>
 
         <CardContent className="p-3 sm:p-4">
-          <div className="flex gap-2 sm:gap-3">
             <div className="flex-1 min-w-0 overflow-hidden">
-
-
-              {/* Reply context */}
-              {showReplyContext && post.record.reply && (
-                <div className="text-sm text-muted-foreground mb-1">
-                  Replying to a thread
-                </div>
-              )}
-              
-              <div className="mt-2">
                 <MarkdownRenderer content={post.record.text} />
-              </div>
 
               {/* Embedded Images */}
               {post.embed?.images && post.embed.images.length > 0 && (
@@ -845,8 +839,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   </button>
                 )}
               </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
