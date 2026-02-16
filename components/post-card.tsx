@@ -890,6 +890,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
             </div>
 
             <ComposeInput
+              postType={"reply"}
               text={replyText}
               onTextChange={setReplyText}
               mediaFiles={replyMediaFiles}
@@ -959,6 +960,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
           </DialogHeader>
           <div className="space-y-4">
             <ComposeInput
+              postType={"quote"}
               text={quoteText}
               onTextChange={setQuoteText}
               mediaFiles={quoteMediaFiles}
@@ -967,6 +969,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               onLinkCardChange={setQuoteLinkCard}
               placeholder="Add your thoughts..."
               minHeight="min-h-24"
+              onCancel={() => setIsQuoteDialogOpen(false)}
+              onSubmit={handleQuote}
               compact
               autoFocus
             />
@@ -991,18 +995,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
                   <HandleLink handle={post.author.handle} className="text-sm" />
                 </div>
-                <p className="text-sm line-clamp-3">{post.record.text}</p>
+                <MarkdownRenderer content={post.record.text}/>
               </CardContent>
             </Card>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleQuote} disabled={isLoading || (!quoteText.trim() && quoteMediaFiles.length === 0)}>
-              {isLoading ? "Posting..." : "Quote"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
