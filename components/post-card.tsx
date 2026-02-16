@@ -533,6 +533,12 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             </div>
             <div className={"flex flex-row gap-2"}>
               <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+              <Link
+                href={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`}
+                className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
+              >
+                {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
+              </Link>
               {/* Repost indicator */}
               {isRepostReason && post.reason?.by && (
                 <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
@@ -575,12 +581,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     </Button>
                   )}
                   <span className="text-muted-foreground hidden sm:inline">·</span>
-                  <Link
-                    href={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`}
-                    className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
-                  >
-                    {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
-                  </Link>
+
                 </div>
                 
                 <DropdownMenu>
