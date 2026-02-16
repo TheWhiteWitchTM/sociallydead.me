@@ -76,8 +76,7 @@ export function AppHeader() {
   const [canInstall, setCanInstall] = React.useState(false)
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
-  const [feedsOpen, setFeedsOpen] = React.useState(false)
-  const [trendingOpen, setTrendingOpen] = React.useState(false)
+  const [openSection, setOpenSection] = React.useState<"feeds" | "trending" | null>(null)
   const [markdownHelpOpen, setMarkdownHelpOpen] = React.useState(false)
   const [markdownSyntaxOpen, setMarkdownSyntaxOpen] = React.useState(false)
   const [trending, setTrending] = React.useState<string[]>([])
@@ -96,7 +95,8 @@ export function AppHeader() {
       setCanInstall(false)
     }
 
-    blueSky.getTrendingTopics(10).then((res) => setTrending(res || []))
+    blueSky.getTrendingTopics(10)
+      .then((res) => setTrending(res || []))
 
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [blueSky])
@@ -107,10 +107,22 @@ export function AppHeader() {
 
   React.useEffect(() => {
     if (!mobileMenuOpen) {
-      setFeedsOpen(false)
-      setTrendingOpen(false)
+      setOpenSection(null)
     }
   }, [mobileMenuOpen])
+
+  // Optional: auto-open relevant section when menu opens
+  React.useEffect(() => {
+    if (mobileMenuOpen) {
+      if (pathname.startsWith("/feed/")) {
+        setOpenSection("feeds")
+      } else if (pathname.startsWith("/trending/")) {
+        setOpenSection("trending")
+      } else {
+        setOpenSection(null)
+      }
+    }
+  }, [mobileMenuOpen, pathname])
 
   const handleInstall = async () => {
     if (!deferredPrompt) return
@@ -143,7 +155,7 @@ export function AppHeader() {
           </Button>
         </div>
 
-        {/* Desktop nav – unchanged */}
+        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-0">
           {mainNavItems.map((item) => {
             if (item.auth && !isAuthenticated) return null
@@ -221,7 +233,7 @@ export function AppHeader() {
           </DropdownMenu>
         </nav>
 
-        {/* Right side actions – unchanged */}
+        {/* Right side actions */}
         <div className="flex items-center gap-1 sm:gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -271,7 +283,7 @@ export function AppHeader() {
         </div>
       </div>
 
-      {/* MOBILE MENU – fixed version */}
+      {/* MOBILE MENU */}
       {mobileMenuOpen && (
         <div
           className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
@@ -282,7 +294,7 @@ export function AppHeader() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="grid grid-cols-2 h-full overflow-hidden">
-              {/* LEFT COLUMN */}
+              {/* LEFT COLUMN – main items */}
               <div className="border-r border-border overflow-y-auto px-4 py-6">
                 <div className="flex flex-col gap-2.5">
                   {mainNavItems.map((item) => {
@@ -306,27 +318,32 @@ export function AppHeader() {
                 </div>
               </div>
 
-              {/* RIGHT COLUMN */}
+              {/* RIGHT COLUMN – accordion-style expandable sections */}
               <div className="overflow-y-auto px-4 py-6">
                 <div className="flex flex-col gap-3">
                   {/* Feeds */}
                   <div className="relative">
                     <Button
-                      variant={pathname.startsWith("/feed/") || feedsOpen ? "secondary" : "ghost"}
+                      variant={pathname.startsWith("/feed/") || openSection === "feeds" ? "secondary" : "ghost"}
                       className={cn(
                         "w-full justify-between h-12 text-base font-medium px-4",
-                        (pathname.startsWith("/feed/") || feedsOpen) && "bg-accent shadow-sm"
+                        (pathname.startsWith("/feed/") || openSection === "feeds") && "bg-accent shadow-sm"
                       )}
-                      onClick={() => setFeedsOpen(!feedsOpen)}
+                      onClick={() => setOpenSection(openSection === "feeds" ? null : "feeds")}
                     >
                       <div className="flex items-center gap-3">
                         <Rss className="h-5 w-5" />
                         Feeds
                       </div>
-                      <ChevronDown className={cn("h-5 w-5 transition-transform duration-200", feedsOpen && "rotate-180")} />
+                      <ChevronDown
+                        className={cn(
+                          "h-5 w-5 transition-transform duration-200",
+                          openSection === "feeds" && "rotate-180"
+                        )}
+                      />
                     </Button>
 
-                    {feedsOpen && (
+                    {openSection === "feeds" && (
                       <div className="absolute right-0 top-full mt-2 w-80 max-h-[65vh] overflow-y-auto bg-popover border border-border rounded-xl shadow-2xl z-60">
                         {feedCategories.map((cat) => {
                           const active = pathname === cat.href
@@ -335,7 +352,7 @@ export function AppHeader() {
                               key={cat.id}
                               href={cat.href}
                               onClick={() => {
-                                setFeedsOpen(false)
+                                setOpenSection(null)
                                 setMobileMenuOpen(false)
                               }}
                             >
@@ -359,21 +376,26 @@ export function AppHeader() {
                   {/* Trending */}
                   <div className="relative">
                     <Button
-                      variant={pathname.startsWith("/trending/") || trendingOpen ? "secondary" : "ghost"}
+                      variant={pathname.startsWith("/trending/") || openSection === "trending" ? "secondary" : "ghost"}
                       className={cn(
                         "w-full justify-between h-12 text-base font-medium px-4",
-                        (pathname.startsWith("/trending/") || trendingOpen) && "bg-accent shadow-sm"
+                        (pathname.startsWith("/trending/") || openSection === "trending") && "bg-accent shadow-sm"
                       )}
-                      onClick={() => setTrendingOpen(!trendingOpen)}
+                      onClick={() => setOpenSection(openSection === "trending" ? null : "trending")}
                     >
                       <div className="flex items-center gap-3">
                         <TrendingUp className="h-5 w-5" />
                         Trending
                       </div>
-                      <ChevronDown className={cn("h-5 w-5 transition-transform duration-200", trendingOpen && "rotate-180")} />
+                      <ChevronDown
+                        className={cn(
+                          "h-5 w-5 transition-transform duration-200",
+                          openSection === "trending" && "rotate-180"
+                        )}
+                      />
                     </Button>
 
-                    {trendingOpen && (
+                    {openSection === "trending" && (
                       <div className="absolute right-0 top-full mt-2 w-80 max-h-[65vh] overflow-y-auto bg-popover border border-border rounded-xl shadow-2xl z-60">
                         {trending.map((tag) => {
                           const href = `/trending/${encodeURIComponent(tag)}`
@@ -383,7 +405,7 @@ export function AppHeader() {
                               key={tag}
                               href={href}
                               onClick={() => {
-                                setTrendingOpen(false)
+                                setOpenSection(null)
                                 setMobileMenuOpen(false)
                               }}
                             >
@@ -411,13 +433,30 @@ export function AppHeader() {
 
       {/* Dialogs */}
       <Dialog open={markdownHelpOpen} onOpenChange={setMarkdownHelpOpen}>
-        <DialogContent>{/* ... */}</DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Formatting Guide</DialogTitle>
+          </DialogHeader>
+          {/* your content here */}
+        </DialogContent>
       </Dialog>
+
       <Dialog open={markdownSyntaxOpen} onOpenChange={setMarkdownSyntaxOpen}>
-        <DialogContent>{/* ... */}</DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Markdown Syntax</DialogTitle>
+          </DialogHeader>
+          {/* your content here */}
+        </DialogContent>
       </Dialog>
+
       <Dialog open={verifiedHelpOpen} onOpenChange={setVerifiedHelpOpen}>
-        <DialogContent>{/* ... */}</DialogContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verification Levels</DialogTitle>
+          </DialogHeader>
+          {/* your content here */}
+        </DialogContent>
       </Dialog>
     </header>
   )
