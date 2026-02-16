@@ -88,21 +88,16 @@ interface Post {
 
 function CoffeeWare() {
 	return(
-		<Card>
-			<CardTitle>
-				Socially<span className={"text-red-600"}>Dead</span> is <b>CoffeeWare</b>!
-			</CardTitle>
-			<CardContent>
-				If you like it and want to support development, buy 🧙‍♀️𝕿𝖍𝖊 𝖂𝖍𝖎𝖙𝖊 𝖂𝖎𝖙𝖈𝖍™✨a {" "}
-				<Link
-          className={"underline decoration-red-600 underline-offset-4"}
-					href={"https://buymeacoffee.com/thewhitewitchtm"}
-					target={"_blank"}
-				>
-          ☕coffee☕
+		<div className={"flex flex-row"}>
+      Socially<span className={"text-red-600"}>Dead</span> is <b>CoffeeWare</b>!
+      <Link
+        className={"underline decoration-red-600 underline-offset-4"}
+        href={"https://buymeacoffee.com/thewhitewitchtm"}
+        target={"_blank"}
+      >
+          Please support us with somecoffee☕
 				</Link>
-			</CardContent>
-		</Card>
+		</div>
 	)
 }
 
