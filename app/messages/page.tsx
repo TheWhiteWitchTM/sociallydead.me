@@ -687,7 +687,9 @@ export default function MessagesPage() {
                       <CardContent className="p-3">
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <Avatar className="h-12 w-12">
+                            <UserHoverCard handle={validMembers[0]?.handle}>
+                            <>
+                              <Avatar className="h-12 w-12">
                               <AvatarImage src={validMembers[0]?.avatar || "/placeholder.svg"} />
                               <AvatarFallback>
                                 {getMemberDisplayName(validMembers[0] || otherMembers[0]).slice(0, 2).toUpperCase()}
@@ -700,6 +702,8 @@ export default function MessagesPage() {
                                 className="absolute -right-0 -bottom-0 scale-75 origin-bottom-right bg-background rounded-full" 
                               />
                             )}
+                              </>
+                            </UserHoverCard>
                             {hasUnread && (
                               <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                                 {convo.unreadCount}
@@ -806,8 +810,7 @@ export default function MessagesPage() {
                           >
                             <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : ''}`}>
                               {!isOwn && (
-                                <UserHoverCard handle={sender.handle}>
-                                  <Link href={`/profile/${sender.handle}`} className="relative mt-1 shrink-0 block">
+                                  <Link href={`/profile/${sender?.handle}`} className="relative mt-1 shrink-0 block">
                                     <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
                                       <AvatarImage src={sender?.avatar || "/placeholder.svg"} />
                                       <AvatarFallback className="text-xs">
@@ -822,7 +825,6 @@ export default function MessagesPage() {
                                       />
                                     )}
                                   </Link>
-                                </UserHoverCard>
                               )}
                               <div>
                                 <div 
@@ -851,7 +853,7 @@ export default function MessagesPage() {
                 </div>
 
                 {/* Chat Composer - pinned to bottom */}
-                <div className="shrink-0 border-t border-border bg-background pt-3 pb-2">
+                <div className="sticky bottom-0 shrink-0 border-t border-border bg-background pt-3 pb-2">
                   <ComposeInput
                     text={newMessage}
                     onTextChange={setNewMessage}
