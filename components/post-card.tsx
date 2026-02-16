@@ -502,8 +502,8 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
 
   return (
     <>
-      <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
-        <CardHeader className={"grid grid-cols-[auto_1fr_auto] gap-2"}>
+      <div ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
+        <div className={"grid grid-cols-[auto_1fr_auto] gap-2"}>
           <div>
             <UserHoverCard handle={post.author.handle}>
               <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
@@ -664,9 +664,9 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               </DropdownMenu>
             </div>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="p-3 sm:p-4">
+        <div className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="mt-2">
@@ -835,8 +835,8 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Reply Dialog */}
       <Dialog open={isReplyDialogOpen} onOpenChange={(open) => {
