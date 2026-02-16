@@ -6,7 +6,7 @@ import { formatDistanceToNow } from "date-fns"
 import { Heart, MessageCircle, Repeat2, MoreHorizontal, Pencil, Trash2, Quote, Flag, Share, ExternalLink, Sparkles, Loader2, BookmarkPlus, Bookmark, Copy, Pin, PinOff, Star, UserPlus, BarChart3, Eye, MousePointerClick } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {Card, CardContent, CardFooter, CardHeader} from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -722,9 +722,12 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               {/* Quoted Post */}
               {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                 <Card className="mt-3 border-border">
+                  <CardHeader>
+                    Header
+                  </CardHeader>
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative flex items-start justify-between">
+                      <div className="relative">
                         <Avatar className="h-5 w-5">
                           <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
                           <AvatarFallback className="text-xs">
@@ -734,7 +737,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                         <VerifiedBadge
                           handle={post.author.handle}
                           did={post.author.did}
-                          className="absolute top-1 left-1 rounded-full"
                         />
                       </div>
                       <span className="font-medium text-sm">
@@ -748,6 +750,9 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     </div>
                     <p className="text-sm">{post.embed.record.value?.text}</p>
                   </CardContent>
+                  <CardFooter>
+                    Footer
+                  </CardFooter>
                 </Card>
               )}
               
