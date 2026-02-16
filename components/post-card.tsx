@@ -725,9 +725,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="relative flex items-start justify-between">
-                        <div>
-                          Side
-                        </div>
                         <Avatar className="h-5 w-5">
                           <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
                           <AvatarFallback className="text-xs">
@@ -737,7 +734,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                         <VerifiedBadge
                           handle={post.author.handle}
                           did={post.author.did}
-                          className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                          className="absolute top-1 left-1 rounded-full"
                         />
                       </div>
                       <span className="font-medium text-sm">
