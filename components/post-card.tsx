@@ -666,12 +666,10 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
           </div>
         </div>
 
-        <div className="p-3 sm:p-4">
-          <div className="flex gap-2 sm:gap-3">
+        <div className="p-1 sm:p-1">
+          <div className="flex gap-1 sm:gap-1">
             <div className="flex-1 min-w-0 overflow-hidden">
-              <div className="mt-2">
-                <MarkdownRenderer content={post.record.text} />
-              </div>
+              <MarkdownRenderer content={post.record.text} />
 
               {/* Embedded Images */}
               {post.embed?.images && post.embed.images.length > 0 && (
@@ -708,7 +706,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                   className="block mt-3"
                   onClick={trackLinkClick}
                 >
-                  <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
+                  <div className="overflow-hidden hover:bg-accent/50 transition-colors">
                     {(post.embed.external as { thumb?: string }).thumb && (
                       <div className="aspect-video relative">
                         <img
@@ -718,19 +716,19 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                         />
                       </div>
                     )}
-                    <CardContent className="p-3">
+                    <div className="p-1">
                       <p className="font-medium line-clamp-2">{(post.embed.external as { title?: string }).title}</p>
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{(post.embed.external as { description?: string }).description}</p>
                       <p className="text-xs text-muted-foreground mt-2 truncate">{(post.embed.external as { uri?: string }).uri}</p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </a>
               )}
 
               {/* Quoted Post */}
               {post.embed?.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
-                <Card className="mt-3 border-border">
-                  <CardContent className="p-3">
+                <div className="mt-1 border-border">
+                  <div className="p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="relative">
                         <Avatar className="h-5 w-5">
@@ -754,8 +752,8 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                       <HandleLink handle={post.embed.record.author?.handle || ""} className="text-sm" />
                     </div>
                     <p className="text-sm">{post.embed.record.value?.text}</p>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
               <div className="mt-2 sm:mt-3 flex items-center -ml-2">
