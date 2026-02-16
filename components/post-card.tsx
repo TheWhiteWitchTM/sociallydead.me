@@ -102,7 +102,7 @@ interface PostCardProps {
   showReplyContext?: boolean
 }
 
-export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyContext = true }: PostCardProps) {
+export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyContext = true }: PostCardProps) {
   const {
     likePost,
     unlikePost,
@@ -752,15 +752,41 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                             </Link>
                           </UserHoverCard>
                         </div>
-                        <div>
-                            <span className="font-medium text-sm">
-                            <UserHoverCard handle={post.embed.record.author?.handle || ""}>
-                            <Link href={`/profile/${post.embed.record.author?.handle}`} className="hover:underline">
-                              {post.embed.record.author?.displayName || post.embed.record.author?.handle}
+                        <div className={"flex flex-col gap-0"}>
+                          <div>
+                            {post.embed.record.author.displayName}
+                            <VerifiedBadge
+                              handle={post.embed.record.author.handle}
+                              did={post.embed.record.author.did}
+                              className={"pt-1"}
+                            />
+                          </div>
+                          <div>
+                            <HandleLink handle={post.embed.record.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+                          </div>
+                          <div className={"flex flex-row gap-2"}>
+                            <Link
+                              href={`/profile/${post.embed.record.author.handle}/post/${post.embed.record.uri.split('/').pop()}`}
+                              className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
+                            >
+                              {formatDistanceToNow(new Date(post.embed.record.createdAt), { addSuffix: true })}
                             </Link>
-                          </UserHoverCard>
-                          </span>
-                          <HandleLink handle={post.embed.record.author?.handle || ""} className="text-sm" />
+                            {/* Reply context */}
+                            {showReplyContext && post.embed.record.reply && (
+                              <div className="text-sm text-muted-foreground mb-1">
+                                Replying to a thread
+                              </div>
+                            )}
+                            {/* Repost indicator */}
+                            {isRepostReason && post.embed.record.reason?.by && (
+                              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                                <Repeat2 className="h-4 w-4 shrink-0" />
+                                <Link href={`/profile/${post.embed.record.reason.by.handle}`} className="hover:underline truncate">
+                                  {post.embed.record.reason.by.displayName || post.embed.record.reason.by.handle} reposted
+                                </Link>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
