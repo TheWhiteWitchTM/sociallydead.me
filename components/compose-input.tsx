@@ -752,8 +752,8 @@ export function ComposeInput({
           "New Post"
 
   return (
-    <div className="space-y-4">
-      <div className="border-2 focus-within:border-primary transition-colors overflow-hidden">
+    <div className="space-y-2">
+      <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-4 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PenSquare className="h-3.5 w-3.5 text-muted-foreground" />
@@ -941,7 +941,7 @@ export function ComposeInput({
             </Card>
           )}
         </div>
-      </div>
+      </Card>
 
       <TooltipProvider delayDuration={300}>
         <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">

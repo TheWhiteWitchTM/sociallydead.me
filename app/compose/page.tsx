@@ -119,7 +119,6 @@ export default function ComposePage() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h1>Post</h1>
             <Button
               variant="ghost"
               size="icon"
@@ -159,41 +158,8 @@ export default function ComposePage() {
               )}
             </div>
           </div>
-          <Button
-            onClick={handleSubmit}
-            disabled={isPosting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
-            className="shrink-0"
-          >
-            {isPosting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="mr-2 h-4 w-4" />
-            )}
-            Post
-          </Button>
         </div>
       </header>
-
-      {/* Discard confirmation dialog */}
-      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Discard post?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This can't be undone and you'll lose your draft.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Continue editing</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDiscard}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Discard
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {error && (
@@ -214,6 +180,8 @@ export default function ComposePage() {
                 onLinkCardChange={setLinkCard}
                 placeholder="What's happening?"
                 minHeight="min-h-48"
+                onCancel={handleCancel}
+                onSubmit={handleSubmit}
                 autoFocus
               />
             </div>
