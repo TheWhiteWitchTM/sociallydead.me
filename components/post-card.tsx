@@ -849,7 +849,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             {/* Original post preview */}
             <div className="p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-2 mb-2">
-                <div className="relative">
+                <div className="relative flex flex-row">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={post.author.avatar || "/placeholder.svg"} />
                     <AvatarFallback className="text-xs">
