@@ -569,7 +569,9 @@ export default function MessagesPage() {
                             >
                               <div className="flex items-center gap-3">
                                 <div className="relative">
-                                  <Avatar className="h-10 w-10">
+                                  <UserHoverCard handle={actor.handle}>
+                                  <>
+                                    <Avatar className="h-10 w-10">
                                     <AvatarImage src={actor.avatar || "/placeholder.svg"} />
                                     <AvatarFallback>
                                       {(actor.displayName || actor.handle).slice(0, 2).toUpperCase()}
@@ -580,6 +582,8 @@ export default function MessagesPage() {
                                     did={actor.did}
                                     className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
                                   />
+                                    </>
+                                  </UserHoverCard>
                                 </div>
                                 <UserHoverCard handle={actor.handle}>
                                   <Link href={`/profile/${actor.handle}`} className="font-semibold flex items-center gap-1 hover:underline">
