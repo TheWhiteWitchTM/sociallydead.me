@@ -524,7 +524,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             </UserHoverCard>
           </div>
 
-          <div className={"flex flex-col gap-1"}>
+          <div className={"flex flex-col gap-0"}>
             <div>
               {post.author.displayName}
               <VerifiedBadge
@@ -561,7 +561,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             </div>
           </div>
 
-          <div className={"flex flex-row gap"}>
+          <div className={"flex flex-row gap-1"}>
             {/* Follow button - show only if not following and not own post */}
             {!isOwnPost && isFollowing === false && (
               <Button
@@ -734,28 +734,34 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 <div className="mt-1 border-border">
                   <div className="p-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative">
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs">
-                            {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <VerifiedBadge
-                          handle={post.author.handle}
-                          did={post.author.did}
-                        />
+                      <div className={"grid grid-cols-[auto_1fr] gap-2"}>
+                        <div>
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
+                            <AvatarFallback className="text-xs">
+                              {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <VerifiedBadge
+                            handle={post.author.handle}
+                            did={post.author.did}
+                          />
+                        </div>
+                        <div>
+                            <span className="font-medium text-sm">
+                            <UserHoverCard handle={post.embed.record.author?.handle || ""}>
+                            <Link href={`/profile/${post.embed.record.author?.handle}`} className="hover:underline">
+                              {post.embed.record.author?.displayName || post.embed.record.author?.handle}
+                            </Link>
+                          </UserHoverCard>
+                          </span>
+                          <HandleLink handle={post.embed.record.author?.handle || ""} className="text-sm" />
+                        </div>
                       </div>
-                      <span className="font-medium text-sm">
-                        <UserHoverCard handle={post.embed.record.author?.handle || ""}>
-                          <Link href={`/profile/${post.embed.record.author?.handle}`} className="hover:underline">
-                            {post.embed.record.author?.displayName || post.embed.record.author?.handle}
-                          </Link>
-                        </UserHoverCard>
-                      </span>
-                      <HandleLink handle={post.embed.record.author?.handle || ""} className="text-sm" />
                     </div>
-                    <p className="text-sm">{post.embed.record.value?.text}</p>
+                    <MarkdownRenderer
+                      content={post.embed.record.value?.text}
+                    />
                   </div>
                 </div>
               )}
