@@ -724,25 +724,21 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 <Card className="mt-3 border-border">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative">
+                      <div className="relative flex items-start justify-between">
+                        <div>
+                          Side
+                        </div>
                         <Avatar className="h-5 w-5">
                           <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} />
                           <AvatarFallback className="text-xs">
                             {(post.embed.record.author?.displayName || post.embed.record.author?.handle || "??").slice(0, 2).toUpperCase()}
                           </AvatarFallback>
-                          <VerifiedBadge
-                            handle={post.author.handle}
-                            did={post.author.did}
-                            className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
-                          />
                         </Avatar>
-                        {post.embed.record.author?.handle && (
-                          <VerifiedBadge 
-                            handle={post.embed.record.author.handle} 
-                            did={post.embed.record.author.did}
-                            className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
-                          />
-                        )}
+                        <VerifiedBadge
+                          handle={post.author.handle}
+                          did={post.author.did}
+                          className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                        />
                       </div>
                       <span className="font-medium text-sm">
                         <UserHoverCard handle={post.embed.record.author?.handle || ""}>
