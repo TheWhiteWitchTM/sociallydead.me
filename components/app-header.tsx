@@ -128,8 +128,8 @@ export function AppHeader() {
             <Image
               src={"/icons/icon-192x192.png"}
               alt={"SD"}
-              width={192}
-              height={192}
+              width={32}
+              height={32}
               priority
             />
           </Link>
