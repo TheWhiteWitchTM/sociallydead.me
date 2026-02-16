@@ -552,7 +552,25 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
           </div>
 
           <div>
-            Menu
+            {/* Follow button - show only if not following and not own post */}
+            {!isOwnPost && isFollowing === false && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs ml-1"
+                onClick={handleFollow}
+                disabled={isFollowLoading}
+              >
+                {isFollowLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <UserPlus className="h-3 w-3 mr-1" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </CardHeader>
 
@@ -560,30 +578,6 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
           <div className="flex gap-2 sm:gap-3">
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-start justify-between gap-1">
-                <div className="flex flex-wrap items-center gap-x-1 min-w-0 leading-tight">
-                  {/* Follow button - show only if not following and not own post */}
-                  {!isOwnPost && isFollowing === false && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-2 text-xs ml-1"
-                      onClick={handleFollow}
-                      disabled={isFollowLoading}
-                    >
-                      {isFollowLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <>
-                          <UserPlus className="h-3 w-3 mr-1" />
-                          Follow
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  <span className="text-muted-foreground hidden sm:inline">·</span>
-
-                </div>
-                
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
