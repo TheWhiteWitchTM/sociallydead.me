@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ComposeInput, type LinkCardData, type MediaFile } from "@/components/compose-input"
-import { Loader2, Send, PenSquare, Rss, MessageSquare, X, ArrowLeft } from "lucide-react"
+import {Loader2, Send, PenSquare, Rss, MessageSquare, X, ArrowLeft, WrapTextIcon} from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {PageHeader} from "@/components/page-header";
 
 export default function ComposePage() {
   const router = useRouter()
@@ -58,11 +59,9 @@ export default function ComposePage() {
   }, [hasContent])
 
   const handleCancel = () => {
-    if (hasContent) {
-      setShowDiscardDialog(true)
-    } else {
-      router.back()
-    }
+    setText("")
+    router.back()
+
   }
 
   const handleDiscard = () => {
@@ -116,50 +115,23 @@ export default function ComposePage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCancel}
-              disabled={isPosting}
-              className="shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-xl font-bold leading-tight">Compose</h1>
-              {context && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
-                  {context.feedName && (
-                    <>
-                      <Rss className="h-3 w-3 shrink-0" />
-                      <span className="truncate">Posting to {context.feedName}</span>
-                    </>
-                  )}
-                  {context.replyTo && (
-                    <>
-                      <MessageSquare className="h-3 w-3 shrink-0" />
-                      <span className="truncate">
-                        Replying to @{context.replyTo.author.handle}
-                      </span>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 ml-1 shrink-0"
-                    onClick={() => clearContext()}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        isLoading={isPosting}
+        rightContent={
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleCancel}
+            disabled={isPosting}
+            className="shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        }
+      >
+        <PenSquare/>
+        Write a post
+      </PageHeader>
 
       <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
         {error && (
@@ -180,7 +152,7 @@ export default function ComposePage() {
                 onLinkCardChange={setLinkCard}
                 placeholder="What's happening?"
                 minHeight="min-h-48"
-                onCancel={handleDiscard}
+                onCancel={handleCancel}
                 onSubmit={handleSubmit}
                 autoFocus
               />
