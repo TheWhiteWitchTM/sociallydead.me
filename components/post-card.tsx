@@ -503,6 +503,9 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
   return (
     <>
       <Card ref={cardRef} className="border-border hover:bg-accent/50 transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x">
+        <CardHeader>
+          Header
+        </CardHeader>
         <CardContent className="p-3 sm:p-4">
           {/* Repost indicator */}
           {isRepostReason && post.reason?.by && (
@@ -715,6 +718,9 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{(post.embed.external as { description?: string }).description}</p>
                       <p className="text-xs text-muted-foreground mt-2 truncate">{(post.embed.external as { uri?: string }).uri}</p>
                     </CardContent>
+                    <CardFooter>
+                      Footer
+                    </CardFooter>
                   </Card>
                 </a>
               )}
