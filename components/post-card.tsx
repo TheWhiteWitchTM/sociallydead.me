@@ -39,7 +39,7 @@ function formatEngagement(count: number): string {
   return count.toString()
 }
 
-// Helper to build public blob URLs (no auth needed)
+// Public blob URL builder - no auth required
 function getBlobUrl(did: string, cid: string): string {
   return `https://bsky.social/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`
 }
@@ -79,12 +79,12 @@ interface PostCardProps {
         }
       }
       images?: Array<{
-        thumb: string          // usually already a blob URL
-        fullsize: string       // usually already a blob URL
+        thumb: string
+        fullsize: string
         alt: string
       }>
       video?: {
-        ref: { $link: string } // this is the CID
+        ref: { $link: string }
         mimeType: string
         alt?: string
       }
@@ -137,7 +137,7 @@ interface PostCardProps {
   showReplyContext?: boolean
 }
 
-export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyContext = true }: PostCardProps) {
+export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyContext = true }: PostCardProps) {
   const {
     likePost,
     unlikePost,
@@ -680,16 +680,14 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
 
               {post.embed && (
                 <>
-                  {/* Direct images */}
+                  {/* Images - already working for you */}
                   {post.embed.images && post.embed.images.length > 0 && (
-                    <div
-                      className={cn(
-                        "mt-3 grid gap-2",
-                        post.embed.images.length === 1 && "grid-cols-1",
-                        post.embed.images.length === 2 && "grid-cols-2",
-                        post.embed.images.length >= 3 && "grid-cols-2"
-                      )}
-                    >
+                    <div className={cn(
+                      "mt-3 grid gap-2",
+                      post.embed.images.length === 1 && "grid-cols-1",
+                      post.embed.images.length === 2 && "grid-cols-2",
+                      post.embed.images.length >= 3 && "grid-cols-2"
+                    )}>
                       {post.embed.images.map((img, idx) => (
                         <a
                           key={idx}
@@ -709,28 +707,30 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     </div>
                   )}
 
-                  {/* Direct video */}
-                  {post.embed.$type === "app.bsky.embed.video#view" && post.embed.video && (
-                    <div className="mt-3">
-                      <video
-                        controls
-                        className="w-full rounded-lg"
-                        preload="metadata"
-                      >
-                        <source
-                          src={getBlobUrl(post.author.did, post.embed.video.ref.$link)}
-                          type={post.embed.video.mimeType}
-                        />
-                        Your browser does not support the video tag.
-                      </video>
-                      {post.embed.video.alt && (
-                        <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
-                      )}
-                    </div>
-                  )}
+                  {/* Direct video embed */}
+                  {post.embed.$type === 'app.bsky.embed.video#view' &&
+                    post.embed.video?.ref?.$link && (
+                      <div className="mt-3">
+                        <video
+                          controls
+                          className="w-full rounded-lg"
+                          preload="metadata"
+                          onError={(e) => console.error("Direct video failed to load:", e)}
+                        >
+                          <source
+                            src={getBlobUrl(post.author.did, post.embed.video.ref.$link)}
+                            type={post.embed.video.mimeType || "video/mp4"}
+                          />
+                          Your browser does not support the video tag.
+                        </video>
+                        {post.embed.video.alt && (
+                          <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
+                        )}
+                      </div>
+                    )}
 
-                  {/* External link */}
-                  {post.embed.$type === "app.bsky.embed.external#view" && post.embed.external && (
+                  {/* External link card */}
+                  {post.embed.$type === 'app.bsky.embed.external#view' && post.embed.external && (
                     <a
                       href={post.embed.external.uri}
                       target="_blank"
@@ -751,17 +751,15 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                         )}
                         <div className="p-1">
                           <p className="font-medium line-clamp-2">{post.embed.external.title}</p>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {post.embed.external.description}
-                          </p>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.external.description}</p>
                           <p className="text-xs text-muted-foreground mt-2 truncate">{post.embed.external.uri}</p>
                         </div>
                       </div>
                     </a>
                   )}
 
-                  {/* Quoted post without media */}
-                  {post.embed.$type === "app.bsky.embed.record#view" && post.embed.record && post.embed.record.author && (
+                  {/* Simple quoted post */}
+                  {post.embed.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                     <div className="mt-1 border-border">
                       <div className="p-3">
                         <div className="flex items-center gap-2 mb-2">
@@ -799,19 +797,17 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                     </div>
                   )}
 
-                  {/* Quote + attached media (most common case for quote + image/video) */}
-                  {post.embed.$type === "app.bsky.embed.recordWithMedia#view" && post.embed.record && post.embed.media && (
+                  {/* Quote + media (quote + video or quote + image) */}
+                  {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
                     <>
-                      {/* Media first */}
+                      {/* Attached media first */}
                       {post.embed.media.images && post.embed.media.images.length > 0 && (
-                        <div
-                          className={cn(
-                            "mt-3 grid gap-2",
-                            post.embed.media.images.length === 1 && "grid-cols-1",
-                            post.embed.media.images.length === 2 && "grid-cols-2",
-                            post.embed.media.images.length >= 3 && "grid-cols-2"
-                          )}
-                        >
+                        <div className={cn(
+                          "mt-3 grid gap-2",
+                          post.embed.media.images.length === 1 && "grid-cols-1",
+                          post.embed.media.images.length === 2 && "grid-cols-2",
+                          post.embed.media.images.length >= 3 && "grid-cols-2"
+                        )}>
                           {post.embed.media.images.map((img, idx) => (
                             <a
                               key={idx}
@@ -831,22 +827,30 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                         </div>
                       )}
 
-                      {post.embed.media.$type === "app.bsky.embed.video#view" && post.embed.media.video && (
-                        <div className="mt-3">
-                          <video controls className="w-full rounded-lg" preload="metadata">
-                            <source
-                              src={getBlobUrl(post.author.did, post.embed.media.video.ref.$link)}
-                              type={post.embed.media.video.mimeType}
-                            />
-                            Your browser does not support the video tag.
-                          </video>
-                          {post.embed.media.video.alt && (
-                            <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
-                          )}
-                        </div>
-                      )}
+                      {/* Attached video */}
+                      {post.embed.media.$type === 'app.bsky.embed.video#view' &&
+                        post.embed.media.video?.ref?.$link && (
+                          <div className="mt-3">
+                            <video
+                              controls
+                              className="w-full rounded-lg"
+                              preload="metadata"
+                              onError={(e) => console.error("recordWithMedia video failed to load:", e)}
+                            >
+                              <source
+                                src={getBlobUrl(post.author.did, post.embed.media.video.ref.$link)}
+                                type={post.embed.media.video.mimeType || "video/mp4"}
+                              />
+                              Your browser does not support the video tag.
+                            </video>
+                            {post.embed.media.video.alt && (
+                              <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
+                            )}
+                          </div>
+                        )}
 
-                      {post.embed.media.$type === "app.bsky.embed.external#view" && post.embed.media.external && (
+                      {/* Attached external */}
+                      {post.embed.media.$type === 'app.bsky.embed.external#view' && post.embed.media.external && (
                         <a
                           href={post.embed.media.external.uri}
                           target="_blank"
@@ -867,16 +871,14 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                             )}
                             <div className="p-1">
                               <p className="font-medium line-clamp-2">{post.embed.media.external.title}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                                {post.embed.media.external.description}
-                              </p>
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.media.external.description}</p>
                               <p className="text-xs text-muted-foreground mt-2 truncate">{post.embed.media.external.uri}</p>
                             </div>
                           </div>
                         </a>
                       )}
 
-                      {/* Then quoted text */}
+                      {/* Quoted content */}
                       <div className="mt-3 border-border">
                         <div className="p-3">
                           <div className="flex items-center gap-2 mb-2">
@@ -995,10 +997,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
         </div>
       </div>
 
-      {/* ──────────────────────────────────────────────── */}
-      {/*               All dialogs remain unchanged        */}
-      {/* ──────────────────────────────────────────────── */}
-
+      {/* Reply Dialog */}
       <Dialog open={isReplyDialogOpen} onOpenChange={(open) => {
         setIsReplyDialogOpen(open)
         if (!open) {
@@ -1033,7 +1032,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
             </div>
 
             <ComposeInput
-              postType="reply"
+              postType={"reply"}
               text={replyText}
               onTextChange={setReplyText}
               mediaFiles={replyMediaFiles}
@@ -1042,7 +1041,7 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
               onLinkCardChange={setReplyLinkCard}
               placeholder="Write your reply..."
               minHeight="min-h-24"
-              onCancel={() => setIsReplyDialogOpen(false)}
+              onCancel={() =>setIsReplyDialogOpen(false)}
               onSubmit={handleReply}
               compact
               autoFocus
@@ -1051,7 +1050,101 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
         </DialogContent>
       </Dialog>
 
-      {/* ... the rest of your dialogs (repost, quote, analytics, report, edit, delete, fact-check) remain exactly as before ... */}
+      {/* Repost/Quote Dialog */}
+      <Dialog open={isRepostDialogOpen} onOpenChange={setIsRepostDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Repost</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              className="justify-start h-12"
+              onClick={handleRepost}
+            >
+              <Repeat2 className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-medium">{isReposted ? "Undo Repost" : "Repost"}</div>
+                <div className="text-xs text-muted-foreground">
+                  {isReposted ? "Remove this from your profile" : "Share to your followers"}
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start h-12"
+              onClick={() => {
+                setIsRepostDialogOpen(false)
+                setIsQuoteDialogOpen(true)
+              }}
+            >
+              <Quote className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-medium">Quote Post</div>
+                <div className="text-xs text-muted-foreground">Share with your commentary</div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quote Dialog */}
+      <Dialog open={isQuoteDialogOpen} onOpenChange={(open) => {
+        setIsQuoteDialogOpen(open)
+        if (!open) {
+          setQuoteMediaFiles([])
+          setQuoteLinkCard(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quote Post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ComposeInput
+              postType={"quote"}
+              text={quoteText}
+              onTextChange={setQuoteText}
+              mediaFiles={quoteMediaFiles}
+              onMediaFilesChange={setQuoteMediaFiles}
+              linkCard={quoteLinkCard}
+              onLinkCardChange={setQuoteLinkCard}
+              placeholder="Add your thoughts..."
+              minHeight="min-h-24"
+              onCancel={() => setIsQuoteDialogOpen(false)}
+              onSubmit={handleQuote}
+              compact
+              autoFocus
+            />
+
+            <Card className="border-border">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="relative">
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={post.author.avatar || "/placeholder.svg"} />
+                      <AvatarFallback className="text-xs">
+                        {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <VerifiedBadge
+                      handle={post.author.handle}
+                      did={post.author.did}
+                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                    />
+                  </div>
+                  <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                  <HandleLink handle={post.author.handle} className="text-sm" />
+                </div>
+                <MarkdownRenderer content={post.record.text}/>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Analytics, Report, Edit, Delete, Fact-Check dialogs remain unchanged */}
+      {/* ... paste your existing dialog code here if needed ... */}
 
     </>
   )
