@@ -571,98 +571,99 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
                 )}
               </Button>
             )}
+            <div className="flex items-start justify-between gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleFactCheck}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    AI Fact-Check
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleBookmark} disabled={isBookmarking}>
+                    {isBookmarking ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : isBookmarked ? (
+                      <>
+                        <Bookmark className="mr-2 h-4 w-4 fill-current" />
+                        Remove Bookmark
+                      </>
+                    ) : (
+                      <>
+                        <BookmarkPlus className="mr-2 h-4 w-4" />
+                        Bookmark
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleCopyText}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Text
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleShare}>
+                    <Share className="mr-2 h-4 w-4" />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={openOnBluesky}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open on Bluesky
+                  </DropdownMenuItem>
+                  {isOwnPost && (
+                    <>
+                      <DropdownMenuSeparator />
+                      {isPinned ? (
+                        <DropdownMenuItem onClick={handleUnpinPost} disabled={isPinning}>
+                          <PinOff className="mr-2 h-4 w-4" />
+                          {isPinning ? "Unpinning..." : "Unpin from Profile"}
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={handlePinPost} disabled={isPinning}>
+                          <Pin className="mr-2 h-4 w-4" />
+                          {isPinning ? "Pinning..." : "Pin to Profile"}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={handleAddHighlight} disabled={isHighlighting}>
+                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                        {isHighlighting ? "Adding..." : "Add to Highlights"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit (Pseudo)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {!isOwnPost && isAuthenticated && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-destructive"
+                      >
+                        <Flag className="mr-2 h-4 w-4" />
+                        Report Post
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
 
         <CardContent className="p-3 sm:p-4">
           <div className="flex gap-2 sm:gap-3">
             <div className="flex-1 min-w-0 overflow-hidden">
-              <div className="flex items-start justify-between gap-1">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleFactCheck}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      AI Fact-Check
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleBookmark} disabled={isBookmarking}>
-                      {isBookmarking ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : isBookmarked ? (
-                        <>
-                          <Bookmark className="mr-2 h-4 w-4 fill-current" />
-                          Remove Bookmark
-                        </>
-                      ) : (
-                        <>
-                          <BookmarkPlus className="mr-2 h-4 w-4" />
-                          Bookmark
-                        </>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleCopyText}>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy Text
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleShare}>
-                      <Share className="mr-2 h-4 w-4" />
-                      Copy Link
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={openOnBluesky}>
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Open on Bluesky
-                    </DropdownMenuItem>
-                    {isOwnPost && (
-                      <>
-                        <DropdownMenuSeparator />
-                        {isPinned ? (
-                          <DropdownMenuItem onClick={handleUnpinPost} disabled={isPinning}>
-                            <PinOff className="mr-2 h-4 w-4" />
-                            {isPinning ? "Unpinning..." : "Unpin from Profile"}
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={handlePinPost} disabled={isPinning}>
-                            <Pin className="mr-2 h-4 w-4" />
-                            {isPinning ? "Pinning..." : "Pin to Profile"}
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={handleAddHighlight} disabled={isHighlighting}>
-                          <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                          {isHighlighting ? "Adding..." : "Add to Highlights"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit (Pseudo)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setIsDeleteDialogOpen(true)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {!isOwnPost && isAuthenticated && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => setIsReportDialogOpen(true)}
-                          className="text-destructive"
-                        >
-                          <Flag className="mr-2 h-4 w-4" />
-                          Report Post
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+
 
               {/* Reply context */}
               {showReplyContext && post.record.reply && (
