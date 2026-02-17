@@ -1428,8 +1428,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
         </Dialog>
       </>
     )
+    console.log("JSX Returned")
     return jsx
   } catch {
+    console.error("JSX Error")
     return (<></>)
   }
 }
