@@ -716,6 +716,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {/* Video */}
                   {post?.embed?.video && (
                     <div className="mt-3">
+                      Video Should Be Here!
                       <video
                         controls
                         className="w-full rounded-lg"
