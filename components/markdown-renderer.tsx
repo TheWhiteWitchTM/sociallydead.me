@@ -43,9 +43,16 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 }
 
 function renderContent(content: string, combinedRegex: RegExp) {
-  if (!content.length) return null
-
   try {
+    if (!content) {
+      console.error("Emoty Narjdiwb!")
+      return (<span>MARKDOWN EMPTY ERROR!</span>)
+    }
+    if (!content.length) {
+      console.error("Emoty Narjdiwb!")
+      return (<span>MARKDOWN EMPTY ERROR!</span>)
+    }
+
     const parts: React.ReactNode[] = []
     let lastIndex = 0
     let match: RegExpExecArray | null
