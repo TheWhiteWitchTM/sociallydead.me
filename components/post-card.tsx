@@ -344,7 +344,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const handleShare = async () => {
-    const postUrl = `https://bsky.app/profile/${post.author?.handle || ""}/post/${post.uri.split('/').pop()}`
+    const postUrl = `https://bsky.app/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`
     try {
       await navigator.clipboard.writeText(postUrl)
     } catch {
@@ -353,7 +353,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const openOnBluesky = () => {
-    const postUrl = `https://bsky.app/profile/${post.author?.handle || ""}/post/${post.uri.split('/').pop()}`
+    const postUrl = `https://bsky.app/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`
     window.open(postUrl, '_blank')
   }
 
@@ -490,14 +490,14 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   useEffect(() => {
-    if (isAuthenticated && !isOwnPost && user?.did !== post.author?.did) {
-      getProfile(post.author?.handle || "").then(profile => {
+    if (isAuthenticated && !isOwnPost && user?.did !== post.author.did) {
+      getProfile(post.author.handle).then(profile => {
         if (profile) {
           setIsFollowing(!!profile.viewer?.following)
         }
       }).catch(() => {})
     }
-  }, [isAuthenticated, isOwnPost, post.author?.handle, post.author?.did, user?.did, getProfile])
+  }, [isAuthenticated, isOwnPost, post.author.handle, post.author.did, user?.did, getProfile])
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
@@ -506,7 +506,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     }
     setIsFollowLoading(true)
     try {
-      await followUser(post.author?.did || "")
+      await followUser(post.author.did)
       setIsFollowing(true)
     } catch (error) {
       console.error("Failed to follow:", error)
@@ -522,44 +522,46 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
       <div ref={cardRef} className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600">
         <div className="grid grid-cols-[auto_1fr_auto] gap-2">
           <div>
-            <UserHoverCard handle={post.author?.handle || ""}>
-              <Link href={`/profile/${post.author?.handle || ""}`} className="shrink-0 relative">
+            <UserHoverCard handle={post.author.handle}>
+              <Link href={`/profile/${post.author.handle}`} className="shrink-0 relative">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle || ""} />
+                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author.handle} />
                   <AvatarFallback className="text-sm">
-                    {(post.author?.displayName || post.author?.handle || "").slice(0, 2).toUpperCase()}
+                    {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {post.author?.did && (
-                  <VerifiedBadge
-                    handle={post.author.handle || ""}
-                    did={post.author.did}
-                    className="absolute left-5 top-7 rounded-full"
-                  />
-                )}
+                <VerifiedBadge
+                  handle={post.author.handle}
+                  did={post.author.did}
+                  className="absolute left-5 top-7 rounded-full"
+                />
               </Link>
             </UserHoverCard>
           </div>
 
           <div className="flex flex-col gap-0">
             <div>
-              {post.author?.displayName}
-              {post.author?.did && (
-                <VerifiedBadge handle={post.author.handle || ""} did={post.author.did} className="pt-1" />
-              )}
+              {post.author.displayName}
+              <VerifiedBadge
+                handle={post.author.handle}
+                did={post.author.did}
+                className={"pt-1"}
+              />
             </div>
             <div>
-              <HandleLink handle={post.author?.handle || ""} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+              <HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
             </div>
             <div className="flex flex-row gap-2">
               <Link
-                href={`/profile/${post.author?.handle || ""}/post/${post.uri.split('/').pop()}`}
+                href={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`}
                 className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
               >
                 {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
               </Link>
               {showReplyContext && post.record.reply && (
-                <div className="text-sm text-muted-foreground mb-1">Replying to a thread</div>
+                <div className="text-sm text-muted-foreground mb-1">
+                  Replying to a thread
+                </div>
               )}
               {isRepostReason && post.reason?.by && (
                 <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
@@ -653,7 +655,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit (Pseudo)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
+                      <DropdownMenuItem
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        className="text-destructive"
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
@@ -662,7 +667,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {!isOwnPost && isAuthenticated && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-destructive">
+                      <DropdownMenuItem
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-destructive"
+                      >
                         <Flag className="mr-2 h-4 w-4" />
                         Report Post
                       </DropdownMenuItem>
@@ -785,7 +793,11 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                             <div className="flex flex-col gap-0">
                               <div>
                                 {post.embed.record.author.displayName}
-                                <VerifiedBadge handle={post.embed.record.author.handle} did={post.embed.record.author.did} className="pt-1" />
+                                <VerifiedBadge
+                                  handle={post.embed.record.author.handle}
+                                  did={post.embed.record.author.did}
+                                  className={"pt-1"}
+                                />
                               </div>
                               <div>
                                 <HandleLink handle={post.embed.record.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
@@ -900,7 +912,11 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                               <div className="flex flex-col gap-0">
                                 <div>
                                   {post.embed.record.author.displayName}
-                                  <VerifiedBadge handle={post.embed.record.author.handle} did={post.embed.record.author.did} className="pt-1" />
+                                  <VerifiedBadge
+                                    handle={post.embed.record.author.handle}
+                                    did={post.embed.record.author.did}
+                                    className={"pt-1"}
+                                  />
                                 </div>
                                 <div>
                                   <HandleLink handle={post.embed.record.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
@@ -1264,7 +1280,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
           <DialogHeader>
             <DialogTitle>Report Post</DialogTitle>
             <DialogDescription>
-              Help us understand what's wrong with this post.
+              Help us understand what&apos;s wrong with this post.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
