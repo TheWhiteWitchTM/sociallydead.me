@@ -395,7 +395,7 @@ export function AppSidebar() {
             </div>
           )}
         </div>
-        <div className={"mt-5"}/>
+        <div className={"mt-8"}/>
       </aside>
 
       {/* Mobile Bottom Bar */}
