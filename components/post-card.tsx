@@ -710,6 +710,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           />
                         </a>
                       ))}
+                      <div>Video Check</div>
                       {/* Video with fallback placeholder when ref missing */}
                       {post.embed && post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
                         <div className="mt-3">
@@ -741,7 +742,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       )}
                     </div>
                   )}
-
+                  <div>
+                    Video Check
+                  </div>
                   {/* Direct video */}
                   {post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
                     <div className="mt-3">
