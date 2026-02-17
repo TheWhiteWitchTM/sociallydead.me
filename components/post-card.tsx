@@ -695,7 +695,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       imageLength === 2 && "grid-cols-2",
                       imageLength >= 3 && "grid-cols-2"
                     )}>
-                      {post.embed.images.map((img, idx) => (
+                      {post?.embed?.images?.map((img, idx) => (
                         <a
                           key={idx}
                           href={img.fullsize}
@@ -716,7 +716,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {/* Video */}
                   {post?.embed?.video && (
                     <div className="mt-3">
-                      Video Should Be Here!
                       <video
                         controls
                         className="w-full rounded-lg"
@@ -724,7 +723,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         <source src={`BLOB_URL_HERE_${post.embed.video.ref.$link}`} type={post.embed.video.mimeType} />
                         Your browser does not support the video tag.
                       </video>
-                      {post.embed.video.alt && (
+                      {post?.embed?.video?.alt && (
                         <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
                       )}
                     </div>
