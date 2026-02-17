@@ -1,6 +1,12 @@
 import createMDX from '@next/mdx'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    turbopackMinify: false,
+    serverMinification: false,
+    optimizeServerReact: false,
+    turbo: { minify: false },
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
