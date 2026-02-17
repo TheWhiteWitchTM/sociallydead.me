@@ -518,7 +518,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
-  if (!post.author.handle) {
+  if (!post.author?.handle) {
     return (
       <div>
         Author with no handle???
