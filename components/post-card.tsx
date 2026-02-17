@@ -32,6 +32,7 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
+import {embed} from "ai";
 
 function formatEngagement(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -501,10 +502,14 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
-  if (!post.embed?.media?.images?.length)
-    return
-  if (!post.embed.images?.length)
-    return
+  let mediaLength = 0;
+  let imageLength = 0;
+
+  if (post.embed?.media?.images?.length)
+    mediaLength = post.embed.media.images.length;
+
+  if (post.embed?.images?.length)
+    imageLength = post.embed.images.length
 
   return (
     <>
@@ -679,15 +684,15 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               <MarkdownRenderer content={post.record.text} />
 
               {/* Embedded content - expanded to handle video and recordWithMedia */}
-              {post.embed && (
+              {post.embed?.images && (
                 <>
                   {/* Direct images */}
-                  {post.embed.images?.length != undefined  && (
+                  {imageLength!=0  && (
                     <div className={cn(
                       "mt-3 grid gap-2",
-                      post.embed.images?.length === 1 && "grid-cols-1",
-                      post.embed.images?.length === 2 && "grid-cols-2",
-                      post.embed.images?.length >= 3 && "grid-cols-2"
+                      imageLength === 1 && "grid-cols-1",
+                      imageLength === 2 && "grid-cols-2",
+                      imageLength >= 3 && "grid-cols-2"
                     )}>
                       {post.embed.images.map((img, idx) => (
                         <a
@@ -799,14 +804,14 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
                     <>
                       {/* Media part first (same style as direct embeds) */}
-                      {post.embed.media.images?.length != undefined  && (
+                      {mediaLength != 0  && (
                         <div className={cn(
                           "mt-3 grid gap-2",
-                          post.embed.media.images?.length === 1 && "grid-cols-1",
-                          post.embed.media.images?.length === 2 && "grid-cols-2",
-                          post.embed.media.images?.length >= 3 && "grid-cols-2"
+                          mediaLength === 1 && "grid-cols-1",
+                          mediaLength === 2 && "grid-cols-2",
+                          mediaLength >= 3 && "grid-cols-2"
                         )}>
-                          {post.embed.media.images.map((img, idx) => (
+                          {post?.embed?.media?.images?.map((img, idx) => (
                             <a
                               key={idx}
                               href={img.fullsize}
