@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import {
 	Dialog,
 	DialogContent,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
+	DialogFooter,
+	DialogDescription,
 } from "@/components/ui/dialog"
 import { ComposeInput } from "@/components/compose-input"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
@@ -55,7 +56,6 @@ export function BlueskyFooter({
                               }: BlueskyFooterProps) {
 	const { isAuthenticated, login } = useBluesky()
 
-	// All local state for dialogs – no prop drilling needed
 	const [isReplyOpen, setIsReplyOpen] = useState(false)
 	const [isQuoteOpen, setIsQuoteOpen] = useState(false)
 	const [isRepostOpen, setIsRepostOpen] = useState(false)
@@ -76,21 +76,19 @@ export function BlueskyFooter({
 		}
 	}
 
-	// Placeholder handlers – replace with your real API calls
+	// Placeholder handlers – replace with real API calls in your PostCard handlers
 	const handleReply = () => {
 		setIsLoading(true)
-		// await createPost(replyText, { reply: { uri: post.uri, cid: post.cid } })
+		// Your real reply logic here (passed from PostCard if needed)
 		setTimeout(() => {
 			setIsLoading(false)
 			setIsReplyOpen(false)
 			setReplyText("")
-			// setReplyCount(c => c + 1) – move to PostCard if needed
 		}, 800)
 	}
 
 	const handleQuote = () => {
 		setIsLoading(true)
-		// await quotePost(quoteText, { uri: post.uri, cid: post.cid })
 		setTimeout(() => {
 			setIsLoading(false)
 			setIsQuoteOpen(false)
@@ -99,13 +97,11 @@ export function BlueskyFooter({
 	}
 
 	const handleRepost = () => {
-		// await repost or unrepost
 		setIsRepostOpen(false)
 	}
 
 	const handleReport = () => {
 		setIsLoading(true)
-		// await reportPost(...)
 		setTimeout(() => {
 			setIsLoading(false)
 			setIsReportOpen(false)
@@ -116,7 +112,9 @@ export function BlueskyFooter({
 
 	return (
 		<>
+			{/* Engagement bar – counts always visible */}
 			<div className="flex items-center -ml-2 mt-2 text-muted-foreground">
+				{/* Reply */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -125,9 +123,12 @@ export function BlueskyFooter({
 					disabled={!isAuthenticated}
 				>
 					<MessageCircle className="h-4 w-4" />
-					<span className="text-xs sm:text-sm tabular-nums">{replyCount}</span>
+					<span className={cn("text-xs sm:text-sm tabular-nums", !isAuthenticated && "text-muted-foreground font-medium")}>
+            {replyCount}
+          </span>
 				</Button>
 
+				{/* Repost */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -136,9 +137,12 @@ export function BlueskyFooter({
 					disabled={!isAuthenticated}
 				>
 					<Repeat2 className="h-4 w-4" />
-					<span className="text-xs sm:text-sm tabular-nums">{repostCount}</span>
+					<span className={cn("text-xs sm:text-sm tabular-nums", !isAuthenticated && "text-muted-foreground font-medium")}>
+            {repostCount}
+          </span>
 				</Button>
 
+				{/* Like */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -147,9 +151,12 @@ export function BlueskyFooter({
 					disabled={!isAuthenticated}
 				>
 					<Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-					<span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
+					<span className={cn("text-xs sm:text-sm tabular-nums", !isAuthenticated && "text-muted-foreground font-medium")}>
+            {likeCount}
+          </span>
 				</Button>
 
+				{/* Bookmark */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -159,8 +166,10 @@ export function BlueskyFooter({
 					title={isBookmarked ? "Remove bookmark" : "Bookmark"}
 				>
 					<Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
+					{/* No public count on Bluesky – so no number here */}
 				</Button>
 
+				{/* Analytics – always available */}
 				{(replyCount + repostCount + likeCount) > 0 && (
 					<Button
 						variant="ghost"
@@ -287,7 +296,7 @@ export function BlueskyFooter({
 								<RadioGroupItem value="spam" id="spam" />
 								<Label htmlFor="spam">Spam or misleading</Label>
 							</div>
-							{/* add your other radio options here */}
+							{/* ... add your other options ... */}
 						</RadioGroup>
 
 						<div>
@@ -312,7 +321,7 @@ export function BlueskyFooter({
 				</DialogContent>
 			</Dialog>
 
-			{/* Analytics Dialog – now fully here, opens for everyone */}
+			{/* Analytics Dialog – always available */}
 			<Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
 				<DialogContent className="sm:max-w-sm">
 					<DialogHeader>
@@ -371,22 +380,13 @@ export function BlueskyFooter({
 								<p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
 								<div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
 									{replyCount > 0 && (
-										<div
-											className="h-full bg-blue-500 transition-all"
-											style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-										/>
+										<div className="h-full bg-blue-500 transition-all" style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }} />
 									)}
 									{repostCount > 0 && (
-										<div
-											className="h-full bg-green-500 transition-all"
-											style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-										/>
+										<div className="h-full bg-green-500 transition-all" style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }} />
 									)}
 									{likeCount > 0 && (
-										<div
-											className="h-full bg-red-500 transition-all"
-											style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-										/>
+										<div className="h-full bg-red-500 transition-all" style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }} />
 									)}
 								</div>
 								<div className="flex justify-between text-xs text-muted-foreground">
