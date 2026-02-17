@@ -729,7 +729,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   )}
 
                   {/* External link card */}
-                  {post.embed.$type === 'app.bsky.embed.external#view' && post.embed.external && (
+                  {post?.embed?.external && (
                     <a
                       href={post.embed.external.uri}
                       target="_blank"
@@ -756,7 +756,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   )}
 
                   {/* Quoted post (record embed) */}
-                  {post.embed.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
+                  {post?.embed?.record && (
                     <div className="mt-1 border-border">
                       <div className="p-3">
                         <div className="flex items-center gap-2 mb-2">
