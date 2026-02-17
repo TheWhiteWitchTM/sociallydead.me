@@ -28,22 +28,14 @@ export function BlueskyExternal({
                                 }: BlueskyExternalProps) {
 	const [open, setOpen] = useState(false)
 
-	// Clean domain for display
 	const domain = new URL(uri).hostname.replace(/^www\./, "")
-
-	const handleOpen = (e: React.MouseEvent) => {
-		e.preventDefault()
-		e.stopPropagation()
-		setOpen(true)
-	}
 
 	return (
 		<>
-			<div>Warning External Content!</div>
-			{/* Preview card in feed */}
+			{/* Preview card – same as before */}
 			<button
 				type="button"
-				onClick={handleOpen}
+				onClick={() => setOpen(true)}
 				className={cn(
 					"mt-3 block w-full overflow-hidden rounded-xl border border-border bg-card text-left transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary",
 					className
@@ -62,16 +54,8 @@ export function BlueskyExternal({
 				)}
 
 				<div className="p-3 space-y-1">
-					{title && (
-						<h4 className="font-medium line-clamp-2 text-base leading-tight">
-							{title}
-						</h4>
-					)}
-					{description && (
-						<p className="text-sm text-muted-foreground line-clamp-2">
-							{description}
-						</p>
-					)}
+					{title && <h4 className="font-medium line-clamp-2 text-base leading-tight">{title}</h4>}
+					{description && <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>}
 					<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 						<ExternalLink className="h-3.5 w-3.5" />
 						<span className="truncate">{domain}</span>
@@ -79,54 +63,62 @@ export function BlueskyExternal({
 				</div>
 			</button>
 
-			{/* Fullscreen dialog with embedded content */}
+			{/* Dialog with always-visible controls */}
 			<Dialog open={open} onOpenChange={setOpen}>
-				<DialogContent className="max-w-screen h-screen max-h-screen w-screen border-0 bg-background p-0 sm:rounded-none">
+				<DialogContent className="h-screen w-screen max-w-none max-h-none p-0 border-0 bg-background sm:rounded-none">
 					<div className="relative flex h-full w-full flex-col">
-						{/* Header bar */}
-						<div className="flex items-center justify-between border-b bg-card px-4 py-3">
-							<div className="min-w-0">
-								{title && (
-									<h3 className="font-medium truncate">{title}</h3>
-								)}
-								<p className="text-xs text-muted-foreground truncate">
-									{domain}
-								</p>
-							</div>
-
-							<div className="flex items-center gap-2">
-								{/* Optional: open in new tab button */}
-								<Button
-									variant="ghost"
-									size="icon"
-									asChild
+						{/* Header / controls – always on top */}
+						<div className="absolute top-3 right-3 z-50 flex items-center gap-2 pointer-events-auto">
+							{/* Open in new tab */}
+							<Button
+								variant="secondary"
+								size="icon"
+								className="h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 backdrop-blur-sm border border-white/20 shadow-lg"
+								asChild
+							>
+								<a
+									href={uri}
+									target="_blank"
+									rel="noopener noreferrer"
 									onClick={(e) => e.stopPropagation()}
 								>
-									<a href={uri} target="_blank" rel="noopener noreferrer">
-										<ExternalLink className="h-5 w-5" />
-										<span className="sr-only">Open in new tab</span>
-									</a>
-								</Button>
+									<ExternalLink className="h-5 w-5" />
+									<span className="sr-only">Open in new tab</span>
+								</a>
+							</Button>
 
-								<DialogClose asChild>
-									<Button variant="ghost" size="icon">
-										<X className="h-5 w-5" />
-										<span className="sr-only">Close</span>
-									</Button>
-								</DialogClose>
-							</div>
+							{/* Close button */}
+							<DialogClose asChild>
+								<Button
+									variant="secondary"
+									size="icon"
+									className="h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 backdrop-blur-sm border border-white/20 shadow-lg"
+								>
+									<X className="h-5 w-5" />
+									<span className="sr-only">Close</span>
+								</Button>
+							</DialogClose>
 						</div>
 
-						{/* Main content: iframe */}
-						<div className="flex-1 relative">
+						{/* Iframe container */}
+						<div className="flex-1 relative bg-black">
 							<iframe
 								src={uri}
 								className="absolute inset-0 w-full h-full border-0"
-								allow="autoplay; fullscreen; picture-in-picture"
-								sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
+								allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+								sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
 								title={title || "External content"}
 								loading="lazy"
+								referrerPolicy="no-referrer"
 							/>
+						</div>
+
+						{/* Optional bottom bar with title/domain if you want */}
+						<div className="absolute bottom-3 left-3 right-3 z-40 pointer-events-none">
+							<div className="inline-flex max-w-[80%] items-center gap-2 rounded-lg bg-black/60 px-3 py-1.5 text-sm text-white backdrop-blur-sm">
+								{title && <span className="font-medium truncate">{title}</span>}
+								<span className="text-xs opacity-80 truncate">{domain}</span>
+							</div>
 						</div>
 					</div>
 				</DialogContent>
