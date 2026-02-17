@@ -502,6 +502,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     }
   }
 
+  function isVideoEmbed(embed: any): embed is { $type: 'app.bsky.embed.video#view'; video: { ref: { $link: string }; mimeType: string; /* ... */ }; alt?: string; thumbnail?: any; /* add other props if needed */ } {
+    return embed?.$type === 'app.bsky.embed.video#view' && 'video' in embed && !!embed.video?.ref?.$link;
+  }
+
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
   let mediaLength = 0;
@@ -716,7 +720,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     )}
 
                     {/* Video */}
-                    {post.embed.$type === 'app.bsky.embed.video#view' &&post?.embed?.video && (
+                    {isVideoEmbed(post.embed) && (
                       <div className="mt-3">
                         VIDEO DETECTED
                         <video
@@ -840,7 +844,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                             ))}
                           </div>
                         )}
-
                         {post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
                           <div className="mt-3">
                             VIDEO
