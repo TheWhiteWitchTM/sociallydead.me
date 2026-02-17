@@ -264,6 +264,9 @@ export default function HomePage() {
                 priority
               />
             </div>
+            <p>
+              <CoffeeWare/>
+            </p>
             <p className="text-lg text-muted-foreground mb-4">
               An <span className="text-primary font-semibold">alternative Bluesky client</span> with powerful features
             </p>
