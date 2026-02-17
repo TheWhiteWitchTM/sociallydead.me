@@ -722,7 +722,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     {/* Video */}
                     {post.embed.$type==='app.bsky.embed.video#view' && (
                       <div className="mt-3">
-                        <div>VIDEO DETECTED</div>
+                        <div>
+                          {JSON.stringify(post.embed)}
+                        </div>
                       </div>
                     )}
 
