@@ -684,7 +684,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               <MarkdownRenderer content={post.record.text} />
 
               {/* Embedded content - expanded to handle video and recordWithMedia */}
-              {post.embed?.images && (
+              {post?.embed && (
                 <>
                   {/* Direct images */}
                   {imageLength!=0  && (
@@ -713,7 +713,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   )}
 
                   {/* Video */}
-                  {post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
+                  {post?.embed?.video && (
                     <div className="mt-3">
                       <video
                         controls
