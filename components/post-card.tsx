@@ -689,7 +689,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
               {post.embed && (
                 <>
-                  {/* Images */}
                   {post.embed.images && post.embed.images.length > 0 && (
                     <div className={cn(
                       "mt-3 grid gap-2",
@@ -716,7 +715,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </div>
                   )}
 
-                  {/* Direct video */}
                   {post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && post.author?.did && (
                     <div className="mt-3">
                       <video
@@ -738,7 +736,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </div>
                   )}
 
-                  {/* External link card */}
                   {post.embed.$type === 'app.bsky.embed.external#view' && post.embed.external && (
                     <a
                       href={post.embed.external.uri}
@@ -767,7 +764,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </a>
                   )}
 
-                  {/* Quoted post */}
                   {post.embed.$type === 'app.bsky.embed.record#view' && post.embed.record && post.embed.record.author && (
                     <div className="mt-1 border-border">
                       <div className="p-3">
@@ -810,7 +806,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </div>
                   )}
 
-                  {/* Quote + attached media */}
                   {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
                     <>
                       {post.embed.media.images && post.embed.media.images.length > 0 && (
@@ -1280,7 +1275,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
           <DialogHeader>
             <DialogTitle>Report Post</DialogTitle>
             <DialogDescription>
-              Help us understand what&apos;s wrong with this post.
+              Help us understand what's wrong with this post.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
