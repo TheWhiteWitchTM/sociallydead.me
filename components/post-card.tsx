@@ -511,7 +511,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
             <UserHoverCard handle={post.author?.handle}>
               <Link href={`/profile/${post.author?.handle}`} className="shrink-0 relative">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={post.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
+                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
                   <AvatarFallback className="text-sm">
                     {(post.author.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -755,7 +755,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                               <UserHoverCard handle={post.embed.record.author?.handle}>
                                 <Link href={`/profile/${post.embed.record.author?.handle}`} className="shrink-0 relative">
                                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                                    <AvatarImage src={post.embed.record.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
+                                    <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
                                     <AvatarFallback className="text-sm">
                                       {(post.embed.record.author.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
@@ -870,7 +870,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                 <UserHoverCard handle={post.embed.record.author?.handle}>
                                   <Link href={`/profile/${post.embed.record.author?.handle}`} className="shrink-0 relative">
                                     <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                                      <AvatarImage src={post.embed.record.author.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
+                                      <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
                                       <AvatarFallback className="text-sm">
                                         {(post.embed.record.author.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
                                       </AvatarFallback>
@@ -1004,7 +1004,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative flex flex-row">
                   <Avatar className="h-6 w-6">
-                    <AvatarImage src={post.author.avatar || "/placeholder.svg"} />
+                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
                     <AvatarFallback className="text-xs">
                       {(post.author.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                     </AvatarFallback>
@@ -1112,7 +1112,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                 <div className="flex items-center gap-2 mb-2">
                   <div className="relative">
                     <Avatar className="h-5 w-5">
-                      <AvatarImage src={post.author.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
                       <AvatarFallback className="text-xs">
                         {(post.author.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                       </AvatarFallback>
