@@ -395,9 +395,7 @@ export function AppSidebar() {
             </div>
           )}
         </div>
-        <div className={"mt-10"}>
-          Spacer
-        </div>
+        <div className={"mt-5"}/>
       </aside>
 
       {/* Mobile Bottom Bar */}
