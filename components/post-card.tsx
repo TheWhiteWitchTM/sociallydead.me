@@ -325,7 +325,20 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
           <div className="flex gap-1 sm:gap-1">
             <div className="flex-1 min-w-0 overflow-hidden">
               <MarkdownRenderer content={post.record.text} />
-
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded text-sm text-yellow-900">
+                <strong>Video Detection Debug – remove later</strong><br />
+                • Embed exists: {!!post.embed}<br />
+                • Embed $type: {post.embed?.$type || 'missing'}<br />
+                • Direct video ref: {post.embed?.video?.ref?.$link ? 'yes' : 'no'}<br />
+                • Media video ref: {post.embed?.media?.video?.ref?.$link ? 'yes' : 'no'}<br />
+                • Author DID: {post.author?.did || 'missing'}<br />
+                <details className="mt-2">
+                  <summary>Raw embed JSON (click to expand)</summary>
+                  <pre className="bg-white p-2 rounded mt-1 text-xs overflow-auto max-h-60">
+      {JSON.stringify(post.embed, null, 2)}
+    </pre>
+                </details>
+              </div>
               {post.embed && (
                 <>
                   {/* Images */}
