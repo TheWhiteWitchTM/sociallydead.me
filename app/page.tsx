@@ -419,6 +419,7 @@ export default function HomePage() {
                 key={post.uri} 
                 post={post} 
                 isOwnPost={user?.did === post.author.did}
+
                 onPostUpdated={() => handleTabChange(activeTab)}
               />
             ))}

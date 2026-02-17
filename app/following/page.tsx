@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import {Users, Loader2, RefreshCw, Sparkles} from "lucide-react"
 import {PageHeader} from "@/components/page-header";
 
-export default function DiscoverPage() {
+export default function FollowingPage() {
   const { isAuthenticated, getTimeline } = useBluesky()
   const [posts, setPosts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
