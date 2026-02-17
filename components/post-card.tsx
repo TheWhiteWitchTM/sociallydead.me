@@ -719,21 +719,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       </div>
                     )}
 
-                    <div>Video Check</div>
                     {/* Video */}
                     {post.embed.$type==='app.bsky.embed.video#view' && (
                       <div className="mt-3">
                         <div>VIDEO DETECTED</div>
-                        <video
-                          controls
-                          className="w-full rounded-lg"
-                        >
-                          <source src={`BLOB_URL_HERE_${post.embed.video.ref.$link}`} type={post.embed.video.mimeType}/>
-                          Your browser does not support the video tag.
-                        </video>
-                        {post?.embed?.video?.alt && (
-                          <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
-                        )}
                       </div>
                     )}
 
