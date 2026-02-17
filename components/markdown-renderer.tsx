@@ -47,9 +47,11 @@ function renderContent(content: string, combinedRegex: RegExp) {
     if (!content) {
       return null
     }
+    content = content.trim()
     if (!content.length) {
       return null
     }
+
 
     const parts: React.ReactNode[] = []
     let lastIndex = 0
