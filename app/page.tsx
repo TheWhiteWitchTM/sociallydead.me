@@ -255,8 +255,8 @@ export default function HomePage() {
         <main className="container mx-auto px-4 py-2 sm:py-2">
           {/* Hero Section with Login */}
           <div className="text-center mb-1 max-w-4xl mx-auto">
-            <p className={"py-2"}>
-              <CoffeeWare/>
+            <p className={"py-6"}>
+              <center><CoffeeWare/></center>
             </p>
             <div className="flex justify-center mb-1">
               <Image
