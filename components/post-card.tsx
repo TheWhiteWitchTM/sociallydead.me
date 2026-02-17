@@ -78,6 +78,36 @@ interface PostCardProps {
         fullsize: string
         alt: string
       }>
+      video?: {
+        ref: { $link: string }
+        mimeType: string
+        alt?: string
+      }
+      external?: {
+        uri: string
+        title?: string
+        description?: string
+        thumb?: string
+      }
+      media?: {
+        $type: string
+        images?: Array<{
+          thumb: string
+          fullsize: string
+          alt: string
+        }>
+        video?: {
+          ref: { $link: string }
+          mimeType: string
+          alt?: string
+        }
+        external?: {
+          uri: string
+          title?: string
+          description?: string
+          thumb?: string
+        }
+      }
     }
     replyCount: number
     repostCount: number
@@ -124,6 +154,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     login,
     addBookmark,
     removeBookmark,
+    getImageUrl,
+    getVideoSourceUrl,
     isBookmarked: checkIsBookmarked,
   } = useBluesky()
 
@@ -662,7 +694,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           className="relative rounded-lg overflow-hidden"
                         >
                           <img
-                            src={img.thumb}
+                            src={getImageUrl(img.thumb, post.author.did)}
                             alt={img.alt || "Image"}
                             className="w-full h-auto max-h-80 object-cover rounded-lg"
                             loading="lazy"
@@ -672,6 +704,28 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </div>
                   )}
 
+                  {/* Direct video */}
+                  {post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
+                    <div className="mt-3">
+                      <video
+                        controls
+                        className="w-full rounded-lg"
+                        preload="metadata"
+                        crossOrigin="anonymous"
+                      >
+                        <source
+                          src={getVideoSourceUrl(post.embed.video, post.author.did)}
+                          type={post.embed.video.mimeType || "video/mp4"}
+                        />
+                        Your browser does not support the video tag.
+                      </video>
+                      {post.embed.video.alt && (
+                        <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* External link card */}
                   {post.embed.$type === 'app.bsky.embed.external#view' && post.embed.external && (
                     <a
                       href={post.embed.external.uri}
@@ -684,7 +738,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         {post.embed.external.thumb && (
                           <div className="aspect-video relative">
                             <img
-                              src={post.embed.external.thumb}
+                              src={getImageUrl(post.embed.external.thumb, post.author.did)}
                               alt=""
                               className="w-full h-full object-cover"
                               loading="lazy"
@@ -756,13 +810,33 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                               className="relative rounded-lg overflow-hidden"
                             >
                               <img
-                                src={img.thumb}
+                                src={getImageUrl(img.thumb, post.author.did)}
                                 alt={img.alt || "Image"}
                                 className="w-full h-auto max-h-80 object-cover rounded-lg"
                                 loading="lazy"
                               />
                             </a>
                           ))}
+                        </div>
+                      )}
+
+                      {post.embed.media.$type === 'app.bsky.embed.video#view' && post.embed.media.video && (
+                        <div className="mt-3">
+                          <video
+                            controls
+                            className="w-full rounded-lg"
+                            preload="metadata"
+                            crossOrigin="anonymous"
+                          >
+                            <source
+                              src={getVideoSourceUrl(post.embed.media.video, post.author.did)}
+                              type={post.embed.media.video.mimeType || "video/mp4"}
+                            />
+                            Your browser does not support the video tag.
+                          </video>
+                          {post.embed.media.video.alt && (
+                            <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
+                          )}
                         </div>
                       )}
 
@@ -778,7 +852,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                             {post.embed.media.external.thumb && (
                               <div className="aspect-video relative">
                                 <img
-                                  src={post.embed.media.external.thumb}
+                                  src={getImageUrl(post.embed.media.external.thumb, post.author.did)}
                                   alt=""
                                   className="w-full h-full object-cover"
                                   loading="lazy"
