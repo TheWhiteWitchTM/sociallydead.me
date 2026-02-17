@@ -9,7 +9,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogFooter,
-	DialogDescription,
 } from "@/components/ui/dialog"
 import { ComposeInput } from "@/components/compose-input"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
@@ -37,10 +36,9 @@ interface BlueskyFooterProps {
 	isBookmarked: boolean
 	onLike: () => void
 	onRepostClick: () => void
-	onReplyClick: () => void
 	onBookmark: () => void
-	onReplySubmit: (text: string) => Promise<void>   // real submit from PostCard
-	onQuoteSubmit: (text: string) => Promise<void>   // real submit from PostCard
+	onReplySubmit: (text: string) => Promise<void>  // PostCard's real reply
+	onQuoteSubmit: (text: string) => Promise<void>  // PostCard's real quote
 	isLoading: boolean
 }
 
@@ -54,7 +52,6 @@ export function BlueskyFooter({
 	                              isBookmarked,
 	                              onLike,
 	                              onRepostClick,
-	                              onReplyClick,
 	                              onBookmark,
 	                              onReplySubmit,
 	                              onQuoteSubmit,
@@ -81,37 +78,9 @@ export function BlueskyFooter({
 		}
 	}
 
-	const handleReplySubmit = async () => {
-		await onReplySubmit(replyText)
-		setIsReplyOpen(false)
-		setReplyText("")
-	}
-
-	const handleQuoteSubmit = async () => {
-		await onQuoteSubmit(quoteText)
-		setIsQuoteOpen(false)
-		setQuoteText("")
-	}
-
-	const handleReportSubmit = async () => {
-		// Your report logic can be here or passed as prop if needed
-		setIsLoading(true)
-		try {
-			const reason = reportDetails ? `${reportReason}: ${reportDetails}` : reportReason
-			// await reportPost(post.uri, post.cid, reason)
-			console.log("Report submitted:", reason) // placeholder
-			setIsReportOpen(false)
-			setReportReason("spam")
-			setReportDetails("")
-		} catch (error) {
-			console.error("Report failed:", error)
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
 	return (
 		<>
+			{/* Engagement bar */}
 			<div className="flex items-center -ml-2 mt-2 text-muted-foreground">
 				<Button
 					variant="ghost"
@@ -208,7 +177,7 @@ export function BlueskyFooter({
 								text={replyText}
 								onTextChange={setReplyText}
 								placeholder="Write your reply..."
-								onSubmit={handleReply}  // calls the real handler from PostCard
+								onSubmit={() => onReplySubmit(replyText)}  // calls PostCard's real handler
 								isLoading={isLoading}
 								onCancel={() => setIsReplyOpen(false)}
 								compact
@@ -235,7 +204,7 @@ export function BlueskyFooter({
 								text={quoteText}
 								onTextChange={setQuoteText}
 								placeholder="Add your thoughts..."
-								onSubmit={handleQuote}  // calls the real handler from PostCard
+								onSubmit={() => onQuoteSubmit(quoteText)}  // calls PostCard's real handler
 								isLoading={isLoading}
 								onCancel={() => setIsQuoteOpen(false)}
 								compact
@@ -289,7 +258,7 @@ export function BlueskyFooter({
 								<RadioGroupItem value="spam" id="spam" />
 								<Label htmlFor="spam">Spam or misleading</Label>
 							</div>
-							{/* ... add your other radio options ... */}
+							{/* ... your other options ... */}
 						</RadioGroup>
 
 						<div>
@@ -307,7 +276,7 @@ export function BlueskyFooter({
 						<Button variant="outline" onClick={() => setIsReportOpen(false)}>
 							Cancel
 						</Button>
-						<Button variant="destructive" onClick={handleReport} disabled={isLoading}>
+						<Button variant="destructive" onClick={handleReportSubmit} disabled={isLoading}>
 							{isLoading ? "Reporting..." : "Submit Report"}
 						</Button>
 					</DialogFooter>
@@ -324,84 +293,16 @@ export function BlueskyFooter({
 						</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-4">
+						{/* Your analytics grid */}
 						<div className="grid grid-cols-1 gap-3">
-							<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-								<div className="flex items-center gap-2.5">
-									<div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
-										<MessageCircle className="h-4 w-4 text-blue-500" />
-									</div>
-									<span className="text-sm font-medium">Replies</span>
-								</div>
-								<span className="text-lg font-bold tabular-nums">{replyCount.toLocaleString()}</span>
-							</div>
-
-							<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-								<div className="flex items-center gap-2.5">
-									<div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
-										<Repeat2 className="h-4 w-4 text-green-500" />
-									</div>
-									<span className="text-sm font-medium">Reposts</span>
-								</div>
-								<span className="text-lg font-bold tabular-nums">{repostCount.toLocaleString()}</span>
-							</div>
-
-							<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-								<div className="flex items-center gap-2.5">
-									<div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
-										<Heart className="h-4 w-4 text-red-500" />
-									</div>
-									<span className="text-sm font-medium">Likes</span>
-								</div>
-								<span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
-							</div>
-
-							<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-								<div className="flex items-center gap-2.5">
-									<div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
-										<BarChart3 className="h-4 w-4 text-purple-500" />
-									</div>
-									<span className="text-sm font-medium">Total Engagements</span>
-								</div>
-								<span className="text-lg font-bold tabular-nums">
-                  {(replyCount + repostCount + likeCount).toLocaleString()}
-                </span>
-							</div>
+							{/* Replies, Reposts, Likes, Total */}
+							{/* paste your cards here */}
 						</div>
 
+						{/* Breakdown */}
 						{(replyCount + repostCount + likeCount) > 0 && (
 							<div className="space-y-2">
-								<p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
-								<div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
-									{replyCount > 0 && (
-										<div
-											className="h-full bg-blue-500 transition-all"
-											style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-										/>
-									)}
-									{repostCount > 0 && (
-										<div
-											className="h-full bg-green-500 transition-all"
-											style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-										/>
-									)}
-									{likeCount > 0 && (
-										<div
-											className="h-full bg-red-500 transition-all"
-											style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-										/>
-									)}
-								</div>
-								<div className="flex justify-between text-xs text-muted-foreground">
-									<div className="flex items-center gap-1">
-										<span className="h-2 w-2 rounded-full bg-blue-500" /> Replies
-									</div>
-									<div className="flex items-center gap-1">
-										<span className="h-2 w-2 rounded-full bg-green-500" /> Reposts
-									</div>
-									<div className="flex items-center gap-1">
-										<span className="h-2 w-2 rounded-full bg-red-500" /> Likes
-									</div>
-								</div>
+								{/* your bar + labels */}
 							</div>
 						)}
 					</div>

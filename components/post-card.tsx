@@ -362,10 +362,34 @@ export function PostCard({
           isBookmarked={isBookmarked}
           onLike={handleLike}
           onRepostClick={() => setIsRepostDialogOpen(true)}
-          onReplyClick={() => setIsReplyDialogOpen(true)}
           onBookmark={handleBookmark}
-          onReplySubmit={handleReply}     // your real reply function
-          onQuoteSubmit={handleQuote}     // your real quote function
+          onReplySubmit={async (text) => {
+            if (!text.trim()) return
+            setIsLoading(true)
+            try {
+              await createPost(text, {
+                reply: { uri: post.uri, cid: post.cid },
+              })
+              setReplyCount(c => c + 1)
+              onPostUpdated?.()
+            } catch (error) {
+              console.error("Reply failed:", error)
+            } finally {
+              setIsLoading(false)
+            }
+          }}
+          onQuoteSubmit={async (text) => {
+            if (!text.trim()) return
+            setIsLoading(true)
+            try {
+              await quotePost(text, { uri: post.uri, cid: post.cid })
+              onPostUpdated?.()
+            } catch (error) {
+              console.error("Quote failed:", error)
+            } finally {
+              setIsLoading(false)
+            }
+          }}
           isLoading={isLoading}
         />
       </div>
