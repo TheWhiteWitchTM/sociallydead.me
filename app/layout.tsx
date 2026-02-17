@@ -15,6 +15,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 import { SociallyDeadRepoProvider } from "@/lib/sociallydead-repo-context";
 import { ComposeContextProvider } from "@/lib/compose-context";
+import ComposeButton from "@/components/compose";
 
 export const metadata: Metadata = {
 	// SEO title: Keep under ~60 chars, front-load keywords
@@ -133,6 +134,7 @@ export default function RootLayout({
                   <main className="flex-1 pb-16 md:pb-0">{children}</main>
                   <MainScrollIndicator />
                   <AppFooter />
+	                <ComposeButton />
                 </div>
               </ComposeContextProvider>
             </SociallyDeadRepoProvider>
