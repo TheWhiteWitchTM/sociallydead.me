@@ -483,31 +483,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     return () => observer.disconnect()
   }, [post.uri])
 
-  const trackLinkClick = () => {
-    fetch('/api/views', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postUri: post.uri, action: 'link_click' }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.linkClicks) setLinkClickCount(data.linkClicks)
-      })
-      .catch(() => { /* silently fail */ })
-  }
-
-  useEffect(() => {
-    if (isAuthenticated && !isOwnPost && user?.did !== post.author.did) {
-      getProfile(post.author.handle).then(profile => {
-        if (profile) {
-          setIsFollowing(!!profile.viewer?.following)
-        }
-      }).catch(() => {
-        // Silently fail - just don't show follow button
-      })
-    }
-  }, [isAuthenticated, isOwnPost, post.author.handle, post.author.did, user?.did, getProfile])
-
   const handleFollow = async () => {
     if (!isAuthenticated) {
       login()
@@ -750,7 +725,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block mt-3"
-                      onClick={trackLinkClick}
                     >
                       <div className="overflow-hidden hover:bg-accent/50 transition-colors">
                         {post.embed.external.thumb && (
@@ -867,7 +841,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           target="_blank"
                           rel="noopener noreferrer"
                           className="block mt-3"
-                          onClick={trackLinkClick}
                         >
                           <div className="overflow-hidden hover:bg-accent/50 transition-colors">
                             {post.embed.media.external.thumb && (
