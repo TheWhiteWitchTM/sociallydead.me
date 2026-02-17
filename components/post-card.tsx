@@ -501,6 +501,11 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
+  if (!post.embed?.media?.images?.length)
+    return
+  if (!post.embed.images?.length)
+    return
+
   return (
     <>
       <div ref={cardRef}
