@@ -676,11 +676,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               {/* Embedded content - expanded to handle video and recordWithMedia */}
               {post.embed && (
                 <>
-                  {!post.embed.images?.length  && (
-                    <></>
-                  )}
                   {/* Direct images */}
-                  {post.embed.images && post.embed.images?.length > 0 && (
+                  {post.embed.images?.length  && (
                     <div className={cn(
                       "mt-3 grid gap-2",
                       post.embed.images?.length === 1 && "grid-cols-1",
