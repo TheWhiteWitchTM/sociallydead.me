@@ -24,7 +24,8 @@ export function HandleLink({ handle, className = "" }: HandleLinkProps) {
     return (
       <>
       <span className={`text-muted-foreground ${className}`}>@{handle}</span>
-      <a
+        {"   "}
+        <a
         href={`https://${handle}`}
         target="_blank"
         rel="noopener noreferrer"
