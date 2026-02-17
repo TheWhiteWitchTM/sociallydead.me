@@ -1027,19 +1027,19 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative flex flex-row">
                   <Avatar className="h-6 w-6">
-                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
+                    <AvatarImage src={post.author.avatar || "/placeholder.svg"} />
                     <AvatarFallback className="text-xs">
-                      {(post.author?.displayName || post.author?.handle || "").slice(0, 2).toUpperCase()}
+                      {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                     <VerifiedBadge
-                      handle={post.author?.handle || ""}
-                      did={post.author?.did || ""}
+                      handle={post.author.handle}
+                      did={post.author.did}
                       className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
                     />
                   </Avatar>
                 </div>
-                <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
-                <HandleLink handle={post.author?.handle || ""} className="text-sm" />
+                <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                <HandleLink handle={post.author.handle} className="text-sm" />
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
             </div>
@@ -1135,19 +1135,19 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                 <div className="flex items-center gap-2 mb-2">
                   <div className="relative">
                     <Avatar className="h-5 w-5">
-                      <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={post.author.avatar || "/placeholder.svg"} />
                       <AvatarFallback className="text-xs">
-                        {(post.author?.displayName || post.author?.handle || "").slice(0, 2).toUpperCase()}
+                        {(post.author.displayName || post.author.handle).slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <VerifiedBadge
-                      handle={post.author?.handle || ""}
-                      did={post.author?.did || ""}
+                      handle={post.author.handle}
+                      did={post.author.did}
                       className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
                     />
                   </div>
-                  <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
-                  <HandleLink handle={post.author?.handle || ""} className="text-sm" />
+                  <span className="font-medium text-sm">{post.author.displayName || post.author.handle}</span>
+                  <HandleLink handle={post.author.handle} className="text-sm" />
                 </div>
                 <MarkdownRenderer content={post.record.text}/>
               </CardContent>
