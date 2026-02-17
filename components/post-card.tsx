@@ -722,9 +722,21 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     {/* Video */}
                     {post.embed.$type==='app.bsky.embed.video#view' && (
                       <div className="mt-3">
-                        <div>
-                          {JSON.stringify(post.embed)}
-                        </div>
+                        <video
+                          controls
+                          preload="metadata"
+                          playsInline
+                          className="w-full h-auto max-h-[500px] object-contain"
+                          poster={post.embed?.thumbnail || undefined}
+                          // Optional: add muted autoPlay loop if you want default Bluesky-like behavior
+                          // autoPlay muted loop
+                        >
+                          <source
+                            src={post.embed.playlist}
+                            type="application/x-mpegURL"  // required for HLS
+                          />
+                          Your browser does not support HLS video playback.
+                        </video>
                       </div>
                     )}
 
