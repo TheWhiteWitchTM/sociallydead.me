@@ -18,6 +18,8 @@ function isCustomDomain(handle: string): boolean {
 export function HandleLink({ handle, className = "" }: HandleLinkProps) {
   if (isCustomDomain(handle)) {
     return (
+      <>
+      <span className={`text-muted-foreground ${className}`}>@{handle}</span>
       <a
         href={`https://${handle}`}
         target="_blank"
@@ -26,8 +28,9 @@ export function HandleLink({ handle, className = "" }: HandleLinkProps) {
         onClick={(e) => e.stopPropagation()}
         title={`Visit ${handle}`}
       >
-        @{handle}
+        Website
       </a>
+      </>
     )
   }
 
