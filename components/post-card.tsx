@@ -287,16 +287,16 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const handleReply = async () => {
-    if (!replyText.trim() && replyMediaFiles.length === 0) return
+    if (!replyText.trim() && replyMediaFiles?.length === 0) return
     setIsLoading(true)
     try {
       const images = replyMediaFiles.filter(f => f.type === "image").map(f => f.file)
       const video = replyMediaFiles.find(f => f.type === "video")?.file
       await createPost(replyText, {
         reply: { uri: post.uri, cid: post.cid },
-        images: images.length > 0 ? images : undefined,
+        images: images?.length > 0 ? images : undefined,
         video: video || undefined,
-        linkCard: replyLinkCard && !replyMediaFiles.length ? replyLinkCard : undefined,
+        linkCard: replyLinkCard && !replyMediaFiles?.length ? replyLinkCard : undefined,
       })
       setReplyText("")
       setReplyMediaFiles([])
@@ -312,7 +312,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const handleQuote = async () => {
-    if (!quoteText.trim() && quoteMediaFiles.length === 0) return
+    if (!quoteText.trim() && quoteMediaFiles?.length === 0) return
     setIsLoading(true)
     try {
       await quotePost(quoteText, { uri: post.uri, cid: post.cid })
@@ -677,12 +677,12 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               {post.embed && (
                 <>
                   {/* Direct images */}
-                  {post.embed.images && post.embed.images.length > 0 && (
+                  {post.embed.images && post.embed.images?.length > 0 && (
                     <div className={cn(
                       "mt-3 grid gap-2",
-                      post.embed.images.length === 1 && "grid-cols-1",
-                      post.embed.images.length === 2 && "grid-cols-2",
-                      post.embed.images.length >= 3 && "grid-cols-2"
+                      post.embed.images?.length === 1 && "grid-cols-1",
+                      post.embed.images?.length === 2 && "grid-cols-2",
+                      post.embed.images?.length >= 3 && "grid-cols-2"
                     )}>
                       {post.embed.images.map((img, idx) => (
                         <a
@@ -794,12 +794,12 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
                     <>
                       {/* Media part first (same style as direct embeds) */}
-                      {post.embed.media.images && post.embed.media.images.length > 0 && (
+                      {post.embed.media.images && post.embed.media.images?.length > 0 && (
                         <div className={cn(
                           "mt-3 grid gap-2",
-                          post.embed.media.images.length === 1 && "grid-cols-1",
-                          post.embed.media.images.length === 2 && "grid-cols-2",
-                          post.embed.media.images.length >= 3 && "grid-cols-2"
+                          post.embed.media.images?.length === 1 && "grid-cols-1",
+                          post.embed.media.images?.length === 2 && "grid-cols-2",
+                          post.embed.media.images?.length >= 3 && "grid-cols-2"
                         )}>
                           {post.embed.media.images.map((img, idx) => (
                             <a
