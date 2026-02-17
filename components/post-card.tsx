@@ -288,9 +288,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const handleReply = async () => {
-    if (!replyText.trim() && replyMediaFiles?.length === 0) return
-    setIsLoading(true)
     try {
+      if (!replyText.trim() && replyMediaFiles?.length === 0) return
+      setIsLoading(true)
+
       const images = replyMediaFiles.filter(f => f.type === "image").map(f => f.file)
       const video = replyMediaFiles.find(f => f.type === "video")?.file
       await createPost(replyText, {
@@ -313,9 +314,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const handleQuote = async () => {
+    try {
     if (!quoteText.trim() && quoteMediaFiles?.length === 0) return
     setIsLoading(true)
-    try {
       await quotePost(quoteText, { uri: post.uri, cid: post.cid })
       setQuoteText("")
       setQuoteMediaFiles([])
