@@ -905,6 +905,44 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                             <MarkdownRenderer
                               content={post.embed.record.value?.text}
                             />
+                            {/* Quoted post with media (recordWithMedia) */}
+                            {post?.embed?.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.media && (
+                              <div className="mt-3 border border-border rounded-xl overflow-hidden bg-card">
+                                {/* Images attached to the quote */}
+                                {post.embed.media.images && (
+                                  <BlueskyImages
+                                    images={post.embed.media.images.map(img => ({
+                                      thumb: img.thumb,
+                                      fullsize: img.fullsize,
+                                      alt: img.alt ?? "",
+                                    }))}
+                                    className="p-3"
+                                  />
+                                )}
+
+                                {/* Video attached to the quote */}
+                                {post.embed.media.playlist && (
+                                  <BlueskyVideo
+                                    playlist={post.embed.media.playlist}
+                                    thumbnail={post.embed.media.thumbnail}
+                                    alt={post.embed.media.alt}
+                                    aspectRatio={post.embed.media.aspectRatio}
+                                    className="p-3"
+                                  />
+                                )}
+
+                                {/* External link card attached to the quote */}
+                                {post.embed.media.external && (
+                                  <BlueskyExternal
+                                    uri={post.embed.media.external.uri}
+                                    title={post.embed.media.external.title}
+                                    description={post.embed.media.external.description}
+                                    thumb={post.embed.media.external.thumb}
+                                    className="p-3"
+                                  />
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </>
