@@ -335,97 +335,110 @@ export default function HomePage() {
   }
 
   // Signed in - show profile and timeline
-  return (
-    <div className="min-h-screen">
-      <PageHeader>
-        <Home/>
-        {user?.displayName}
-      </PageHeader>
-      <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
-        <CoffeeWare/>
-	      {/* Feed Tabs - Horizontal Scrolling (Bluesky Style) */}
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <div className="overflow-x-auto scroll-smooth-x -mx-4 px-4 mb-4">
-            <TabsList className="inline-flex w-max min-w-full h-11 bg-transparent border-b rounded-none justify-start">
-              <TabsTrigger value="following" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
-                <Users className="h-4 w-4" />
-                <span>Following</span>
-              </TabsTrigger>
-              <TabsTrigger value="all" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
-                <Sparkles className="h-4 w-4" />
-                <span>All</span>
-              </TabsTrigger>
-              <TabsTrigger value="popular" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
-                <Globe className="h-4 w-4" />
-                <span>Popular</span>
-              </TabsTrigger>
-              <TabsTrigger value="with_friends" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
-                <Users className="h-4 w-4" />
-                <span>With Friends</span>
-              </TabsTrigger>
-              <TabsTrigger value="mutuals" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
-                <Heart className="h-4 w-4" />
-                <span>Mutuals</span>
-              </TabsTrigger>
-              <TabsTrigger value="best_of_follows" className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
-                <Star className="h-4 w-4" />
-                <span>Best of Follows</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-        </Tabs>
+  try {
+    const jsx = (
+      <div className="min-h-screen">
+        <PageHeader>
+          <Home/>
+          {user?.displayName}
+        </PageHeader>
+        <main className="max-w-2xl mx-auto px-0 sm:px-4 py-6">
+          <CoffeeWare/>
+          {/* Feed Tabs - Horizontal Scrolling (Bluesky Style) */}
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <div className="overflow-x-auto scroll-smooth-x -mx-4 px-4 mb-4">
+              <TabsList
+                className="inline-flex w-max min-w-full h-11 bg-transparent border-b rounded-none justify-start">
+                <TabsTrigger value="following"
+                             className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                  <Users className="h-4 w-4"/>
+                  <span>Following</span>
+                </TabsTrigger>
+                <TabsTrigger value="all"
+                             className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                  <Sparkles className="h-4 w-4"/>
+                  <span>All</span>
+                </TabsTrigger>
+                <TabsTrigger value="popular"
+                             className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                  <Globe className="h-4 w-4"/>
+                  <span>Popular</span>
+                </TabsTrigger>
+                <TabsTrigger value="with_friends"
+                             className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                  <Users className="h-4 w-4"/>
+                  <span>With Friends</span>
+                </TabsTrigger>
+                <TabsTrigger value="mutuals"
+                             className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                  <Heart className="h-4 w-4"/>
+                  <span>Mutuals</span>
+                </TabsTrigger>
+                <TabsTrigger value="best_of_follows"
+                             className="gap-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4">
+                  <Star className="h-4 w-4"/>
+                  <span>Best of Follows</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
 
-        {/* Compose Placeholder */}
-        <ComposePlaceholder
-          placeholder="What's happening?"
-          onSuccess={() => handleTabChange(activeTab)}
-        />
+          {/* Compose Placeholder */}
+          <ComposePlaceholder
+            placeholder="What's happening?"
+            onSuccess={() => handleTabChange(activeTab)}
+          />
 
-        {/* New Posts Indicator - Fixed at top below header */}
-        {newPostsAvailable && (
-          <div className="fixed top-14 left-0 right-0 z-30 flex justify-center pt-2 pointer-events-none">
-            <Button
-              onClick={handleShowNewPosts}
-              className="rounded-full shadow-lg animate-bounce pointer-events-auto"
-              size="sm"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              New posts available
-            </Button>
-          </div>
-        )}
+          {/* New Posts Indicator - Fixed at top below header */}
+          {newPostsAvailable && (
+            <div className="fixed top-14 left-0 right-0 z-30 flex justify-center pt-2 pointer-events-none">
+              <Button
+                onClick={handleShowNewPosts}
+                className="rounded-full shadow-lg animate-bounce pointer-events-auto"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4 mr-2"/>
+                New posts available
+              </Button>
+            </div>
+          )}
 
-        {/* Feed Content */}
-        {feedLoading && posts.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={() => handleTabChange(activeTab)}>Try Again</Button>
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No posts to show</p>
-            <Button asChild>
-              <Link href="/compose">Create your first post</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <PostCard 
-                key={post.uri} 
-                post={post} 
-                isOwnPost={user?.did === post.author.did}
+          {/* Feed Content */}
+          {feedLoading && posts.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={() => handleTabChange(activeTab)}>Try Again</Button>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">No posts to show</p>
+              <Button asChild>
+                <Link href="/compose">Create your first post</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.uri}
+                  post={post}
+                  isOwnPost={user?.did === post.author.did}
 
-                onPostUpdated={() => handleTabChange(activeTab)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
-  )
+                  onPostUpdated={() => handleTabChange(activeTab)}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    )
+    return jsx
+  } catch {
+    console.err("JSX Error!")
+    return (<></>)
+  }
 }
