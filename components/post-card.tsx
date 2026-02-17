@@ -718,6 +718,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     {/* Video */}
                     {post?.embed?.video && (
                       <div className="mt-3">
+                        VIDEO DETECTED
                         <video
                           controls
                           className="w-full rounded-lg"
@@ -1428,10 +1429,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
         </Dialog>
       </>
     )
-    console.log("JSX Returned")
     return jsx
   } catch {
     console.error("JSX Error")
-    return (<></>)
+    return (<div>Error Rendering Post!</div>)
   }
 }
