@@ -33,6 +33,7 @@ import { HandleLink } from "@/components/handle-link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 import {embed} from "ai";
+import { BlueskyVideo } from "./bluesky-video"
 
 function formatEngagement(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -721,23 +722,13 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
                     {/* Video */}
                     {post.embed.$type==='app.bsky.embed.video#view' && (
-                      <div className="mt-3">
-                        <video
-                          controls
-                          preload="metadata"
-                          playsInline
-                          className="w-full h-auto max-h-[500px] object-contain"
-                          poster={post.embed?.thumbnail || undefined}
-                          // Optional: add muted autoPlay loop if you want default Bluesky-like behavior
-                          // autoPlay muted loop
-                        >
-                          <source
-                            src={post.embed.playlist}
-                            type="application/x-mpegURL"  // required for HLS
-                          />
-                          Your browser does not support HLS video playback.
-                        </video>
-                      </div>
+                      <BlueskyVideo
+                        playlist={post.embed.playlist}
+                        thumbnail={post.embed.thumbnail}
+                        alt={post.embed.alt}           // if it exists in your data
+                        aspectRatio={post.embed.aspectRatio}
+                        className="mt-3"
+                      />
                     )}
 
                     {/* External link card */}
