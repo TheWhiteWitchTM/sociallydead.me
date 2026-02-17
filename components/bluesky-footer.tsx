@@ -39,6 +39,9 @@ interface BlueskyFooterProps {
 	onRepostClick: () => void
 	onReplyClick: () => void
 	onBookmark: () => void
+	onReplySubmit: (text: string) => Promise<void>   // real submit from PostCard
+	onQuoteSubmit: (text: string) => Promise<void>   // real submit from PostCard
+	isLoading: boolean
 }
 
 export function BlueskyFooter({
@@ -53,6 +56,9 @@ export function BlueskyFooter({
 	                              onRepostClick,
 	                              onReplyClick,
 	                              onBookmark,
+	                              onReplySubmit,
+	                              onQuoteSubmit,
+	                              isLoading,
                               }: BlueskyFooterProps) {
 	const { isAuthenticated, login } = useBluesky()
 
@@ -60,13 +66,12 @@ export function BlueskyFooter({
 	const [isQuoteOpen, setIsQuoteOpen] = useState(false)
 	const [isRepostOpen, setIsRepostOpen] = useState(false)
 	const [isReportOpen, setIsReportOpen] = useState(false)
-	const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false) // local state for analytics
+	const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false)
 
 	const [replyText, setReplyText] = useState("")
 	const [quoteText, setQuoteText] = useState("")
 	const [reportReason, setReportReason] = useState("spam")
 	const [reportDetails, setReportDetails] = useState("")
-	const [isLoading, setIsLoading] = useState(false)
 
 	const requireAuth = (action: () => void) => {
 		if (!isAuthenticated) {
@@ -76,44 +81,38 @@ export function BlueskyFooter({
 		}
 	}
 
-	// Placeholder handlers (replace with real API calls passed from PostCard)
-	const handleReply = () => {
-		setIsLoading(true)
-		setTimeout(() => {
-			setIsLoading(false)
-			setIsReplyOpen(false)
-			setReplyText("")
-		}, 800)
+	const handleReplySubmit = async () => {
+		await onReplySubmit(replyText)
+		setIsReplyOpen(false)
+		setReplyText("")
 	}
 
-	const handleQuote = () => {
-		setIsLoading(true)
-		setTimeout(() => {
-			setIsLoading(false)
-			setIsQuoteOpen(false)
-			setQuoteText("")
-		}, 800)
+	const handleQuoteSubmit = async () => {
+		await onQuoteSubmit(quoteText)
+		setIsQuoteOpen(false)
+		setQuoteText("")
 	}
 
-	const handleRepost = () => {
-		setIsRepostOpen(false)
-	}
-
-	const handleReport = () => {
+	const handleReportSubmit = async () => {
+		// Your report logic can be here or passed as prop if needed
 		setIsLoading(true)
-		setTimeout(() => {
-			setIsLoading(false)
+		try {
+			const reason = reportDetails ? `${reportReason}: ${reportDetails}` : reportReason
+			// await reportPost(post.uri, post.cid, reason)
+			console.log("Report submitted:", reason) // placeholder
 			setIsReportOpen(false)
 			setReportReason("spam")
 			setReportDetails("")
-		}, 800)
+		} catch (error) {
+			console.error("Report failed:", error)
+		} finally {
+			setIsLoading(false)
+		}
 	}
 
 	return (
 		<>
-			{/* Engagement bar */}
 			<div className="flex items-center -ml-2 mt-2 text-muted-foreground">
-				{/* Reply */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -122,26 +121,24 @@ export function BlueskyFooter({
 					disabled={!isAuthenticated}
 				>
 					<MessageCircle className="h-4 w-4" />
-					<span className={cn("text-xs sm:text-sm tabular-nums font-medium")}>
+					<span className="text-xs sm:text-sm tabular-nums font-medium">
             {replyCount}
           </span>
 				</Button>
 
-				{/* Repost */}
 				<Button
 					variant="ghost"
 					size="sm"
 					className={cn("gap-1 px-2 hover:text-green-500 hover:bg-green-500/10", isReposted && "text-green-500")}
-					onClick={() => requireAuth(() => setIsRepostOpen(true))}
+					onClick={() => requireAuth(onRepostClick)}
 					disabled={!isAuthenticated}
 				>
 					<Repeat2 className="h-4 w-4" />
-					<span className={cn("text-xs sm:text-sm tabular-nums font-medium")}>
+					<span className="text-xs sm:text-sm tabular-nums font-medium">
             {repostCount}
           </span>
 				</Button>
 
-				{/* Like */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -150,12 +147,11 @@ export function BlueskyFooter({
 					disabled={!isAuthenticated}
 				>
 					<Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-					<span className={cn("text-xs sm:text-sm tabular-nums font-medium")}>
+					<span className="text-xs sm:text-sm tabular-nums font-medium">
             {likeCount}
           </span>
 				</Button>
 
-				{/* Bookmark */}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -167,7 +163,6 @@ export function BlueskyFooter({
 					<Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
 				</Button>
 
-				{/* Analytics button - ALWAYS visible and clickable */}
 				{(replyCount + repostCount + likeCount) > 0 && (
 					<Button
 						variant="ghost"
@@ -213,7 +208,7 @@ export function BlueskyFooter({
 								text={replyText}
 								onTextChange={setReplyText}
 								placeholder="Write your reply..."
-								onSubmit={handleReply}
+								onSubmit={handleReply}  // calls the real handler from PostCard
 								isLoading={isLoading}
 								onCancel={() => setIsReplyOpen(false)}
 								compact
@@ -240,7 +235,7 @@ export function BlueskyFooter({
 								text={quoteText}
 								onTextChange={setQuoteText}
 								placeholder="Add your thoughts..."
-								onSubmit={handleQuote}
+								onSubmit={handleQuote}  // calls the real handler from PostCard
 								isLoading={isLoading}
 								onCancel={() => setIsQuoteOpen(false)}
 								compact
@@ -294,7 +289,7 @@ export function BlueskyFooter({
 								<RadioGroupItem value="spam" id="spam" />
 								<Label htmlFor="spam">Spam or misleading</Label>
 							</div>
-							{/* add other radio options here */}
+							{/* ... add your other radio options ... */}
 						</RadioGroup>
 
 						<div>
@@ -319,7 +314,7 @@ export function BlueskyFooter({
 				</DialogContent>
 			</Dialog>
 
-			{/* Analytics Dialog - always available */}
+			{/* Analytics Dialog */}
 			<Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
 				<DialogContent className="sm:max-w-sm">
 					<DialogHeader>

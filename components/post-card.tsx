@@ -364,7 +364,9 @@ export function PostCard({
           onRepostClick={() => setIsRepostDialogOpen(true)}
           onReplyClick={() => setIsReplyDialogOpen(true)}
           onBookmark={handleBookmark}
-          onAnalyticsClick={() => setIsAnalyticsOpen(true)} // this opens the dialog in footer
+          onReplySubmit={handleReply}     // your real reply function
+          onQuoteSubmit={handleQuote}     // your real quote function
+          isLoading={isLoading}
         />
       </div>
 
