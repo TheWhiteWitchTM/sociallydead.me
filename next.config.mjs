@@ -6,7 +6,6 @@ const nextConfig = {
     turbopackMinify: false,
     serverMinification: false,
     optimizeServerReact: false,
-    turbo: { minify: false },
   },
   typescript: {
     ignoreBuildErrors: true,

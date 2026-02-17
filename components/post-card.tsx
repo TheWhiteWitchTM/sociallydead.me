@@ -697,28 +697,14 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   <>
                     {/* Direct images */}
                     {imageLength != 0 && (
-                      <div className={cn(
-                        "mt-3 grid gap-2",
-                        imageLength === 1 && "grid-cols-1",
-                        imageLength === 2 && "grid-cols-2",
-                        imageLength >= 3 && "grid-cols-2"
-                      )}>
-                        {post?.embed?.images?.map((img, idx) => (
-                          <a
-                            key={idx}
-                            href={img.fullsize}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative rounded-lg overflow-hidden"
-                          >
-                            <img
-                              src={img.thumb}
-                              alt={img.alt || "Image"}
-                              className="w-full h-auto max-h-80 object-cover rounded-lg"
-                            />
-                          </a>
-                        ))}
-                      </div>
+                      <BlueskyImages
+                        images={post.embed.images.map(img => ({
+                          thumb: img.thumb,
+                          fullsize: img.fullsize,
+                          alt: img.alt ?? "",
+                        }))}
+                        className="mt-3"
+                      />
                     )}
 
                     {post?.embed?.$type === 'app.bsky.embed.recordWithMedia#view' &&
