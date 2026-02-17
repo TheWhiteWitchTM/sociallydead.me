@@ -295,7 +295,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
       const images = replyMediaFiles.filter(f => f.type === "image").map(f => f.file)
       const video = replyMediaFiles.find(f => f.type === "video")?.file
       await createPost(replyText, {
-        reply: { uri: post.uri, cid: post.cid },
+        reply: {uri: post.uri, cid: post.cid},
         images: images?.length > 0 ? images : undefined,
         video: video || undefined,
         linkCard: replyLinkCard && !replyMediaFiles?.length ? replyLinkCard : undefined,
@@ -315,9 +315,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
   const handleQuote = async () => {
     try {
-    if (!quoteText.trim() && quoteMediaFiles?.length === 0) return
-    setIsLoading(true)
-      await quotePost(quoteText, { uri: post.uri, cid: post.cid })
+      if (!quoteText.trim() && quoteMediaFiles?.length === 0) return
+      setIsLoading(true)
+      await quotePost(quoteText, {uri: post.uri, cid: post.cid})
       setQuoteText("")
       setQuoteMediaFiles([])
       setQuoteLinkCard(null)
@@ -372,8 +372,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     try {
       const response = await fetch('/api/fact-check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: post.record.text }),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text: post.record.text}),
       })
 
       if (response.ok) {
@@ -465,20 +465,21 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
             hasTrackedView.current = true
             fetch('/api/views', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ postUri: post.uri, action: 'view' }),
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({postUri: post.uri, action: 'view'}),
             })
               .then(res => res.json())
               .then(data => {
                 if (data.views) setViewCount(data.views)
                 if (data.linkClicks) setLinkClickCount(data.linkClicks)
               })
-              .catch(() => { /* silently fail */ })
+              .catch(() => { /* silently fail */
+              })
             observer.disconnect()
           }
         })
       },
-      { threshold: 0.5 }
+      {threshold: 0.5}
     )
 
     observer.observe(el)
@@ -511,383 +512,270 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
   if (post.embed?.images?.length)
     imageLength = post.embed.images.length
+  try {
+    const jsx = (
+      <>
+        <div ref={cardRef}
+             className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600"
+        >
+          <div className={"grid grid-cols-[auto_1fr_auto] gap-2"}>
+            <div>
+              <UserHoverCard handle={post.author?.handle}>
+                <Link href={`/profile/${post.author?.handle}`} className="shrink-0 relative">
+                  <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"}
+                                 alt={post.author?.displayName || post.author?.handle}/>
+                    <AvatarFallback className="text-sm">
+                      {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <VerifiedBadge
+                    handle={post.author?.handle}
+                    did={post.author?.did}
+                    className="absolute left-5 top-7 rounded-full"
+                  />
+                </Link>
+              </UserHoverCard>
+            </div>
 
-  return (
-    <>
-      <div ref={cardRef}
-           className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600"
-      >
-        <div className={"grid grid-cols-[auto_1fr_auto] gap-2"}>
-          <div>
-            <UserHoverCard handle={post.author?.handle}>
-              <Link href={`/profile/${post.author?.handle}`} className="shrink-0 relative">
-                <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
-                  <AvatarFallback className="text-sm">
-                    {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+            <div className={"flex flex-col gap-0"}>
+              <div>
+                {post.author?.displayName}
                 <VerifiedBadge
                   handle={post.author?.handle}
                   did={post.author?.did}
-                  className="absolute left-5 top-7 rounded-full"
+                  className={"pt-1"}
                 />
-              </Link>
-            </UserHoverCard>
-          </div>
-
-          <div className={"flex flex-col gap-0"}>
-            <div>
-              {post.author?.displayName}
-              <VerifiedBadge
-                handle={post.author?.handle}
-                did={post.author?.did}
-                className={"pt-1"}
-              />
-            </div>
-            <div>
-              <HandleLink handle={post.author?.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
-            </div>
-            <div className={"flex flex-row gap-2"}>
-              <Link
-                href={`/profile/${post.author?.handle}/post/${post.uri.split('/').pop()}`}
-                className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
-              >
-                {formatDistanceToNow(new Date(post.record.createdAt), { addSuffix: true })}
-              </Link>
-              {showReplyContext && post.record.reply && (
-                <div className="text-sm text-muted-foreground mb-1">
-                  Replying to a thread
-                </div>
-              )}
-              {isRepostReason && post.reason?.by && (
-                <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                  <Repeat2 className="h-4 w-4 shrink-0" />
-                  <Link href={`/profile/${post.reason.by?.handle}`} className="hover:underline truncate">
-                    {post.reason.by?.displayName || post.reason.by?.handle} reposted
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={"flex flex-row gap-1"}>
-            {!isOwnPost && isFollowing === false && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 px-2 text-xs ml-1"
-                onClick={handleFollow}
-                disabled={isFollowLoading}
-              >
-                {isFollowLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <UserPlus className="h-3 w-3 mr-1" />
-                    Follow
-                  </>
+              </div>
+              <div>
+                <HandleLink handle={post.author?.handle} className="text-sm truncate max-w-[120px] sm:max-w-none"/>
+              </div>
+              <div className={"flex flex-row gap-2"}>
+                <Link
+                  href={`/profile/${post.author?.handle}/post/${post.uri.split('/').pop()}`}
+                  className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap hover:underline"
+                >
+                  {formatDistanceToNow(new Date(post.record.createdAt), {addSuffix: true})}
+                </Link>
+                {showReplyContext && post.record.reply && (
+                  <div className="text-sm text-muted-foreground mb-1">
+                    Replying to a thread
+                  </div>
                 )}
-              </Button>
-            )}
-            <div className="flex items-start justify-between gap-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleFactCheck}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    AI Fact-Check
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleBookmark} disabled={isBookmarking}>
-                    {isBookmarking ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : isBookmarked ? (
+                {isRepostReason && post.reason?.by && (
+                  <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                    <Repeat2 className="h-4 w-4 shrink-0"/>
+                    <Link href={`/profile/${post.reason.by?.handle}`} className="hover:underline truncate">
+                      {post.reason.by?.displayName || post.reason.by?.handle} reposted
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={"flex flex-row gap-1"}>
+              {!isOwnPost && isFollowing === false && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs ml-1"
+                  onClick={handleFollow}
+                  disabled={isFollowLoading}
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="h-3 w-3 animate-spin"/>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3 w-3 mr-1"/>
+                      Follow
+                    </>
+                  )}
+                </Button>
+              )}
+              <div className="flex items-start justify-between gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4"/>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleFactCheck}>
+                      <Sparkles className="mr-2 h-4 w-4"/>
+                      AI Fact-Check
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBookmark} disabled={isBookmarking}>
+                      {isBookmarking ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                      ) : isBookmarked ? (
+                        <>
+                          <Bookmark className="mr-2 h-4 w-4 fill-current"/>
+                          Remove Bookmark
+                        </>
+                      ) : (
+                        <>
+                          <BookmarkPlus className="mr-2 h-4 w-4"/>
+                          Bookmark
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator/>
+                    <DropdownMenuItem onClick={handleCopyText}>
+                      <Copy className="mr-2 h-4 w-4"/>
+                      Copy Text
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleShare}>
+                      <Share className="mr-2 h-4 w-4"/>
+                      Copy Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={openOnBluesky}>
+                      <ExternalLink className="mr-2 h-4 w-4"/>
+                      Open on Bluesky
+                    </DropdownMenuItem>
+                    {isOwnPost && (
                       <>
-                        <Bookmark className="mr-2 h-4 w-4 fill-current" />
-                        Remove Bookmark
-                      </>
-                    ) : (
-                      <>
-                        <BookmarkPlus className="mr-2 h-4 w-4" />
-                        Bookmark
+                        <DropdownMenuSeparator/>
+                        {isPinned ? (
+                          <DropdownMenuItem onClick={handleUnpinPost} disabled={isPinning}>
+                            <PinOff className="mr-2 h-4 w-4"/>
+                            {isPinning ? "Unpinning..." : "Unpin from Profile"}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={handlePinPost} disabled={isPinning}>
+                            <Pin className="mr-2 h-4 w-4"/>
+                            {isPinning ? "Pinning..." : "Pin to Profile"}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={handleAddHighlight} disabled={isHighlighting}>
+                          <Star className="mr-2 h-4 w-4 text-yellow-500"/>
+                          {isHighlighting ? "Adding..." : "Add to Highlights"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                          <Pencil className="mr-2 h-4 w-4"/>
+                          Edit (Pseudo)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setIsDeleteDialogOpen(true)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4"/>
+                          Delete
+                        </DropdownMenuItem>
                       </>
                     )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleCopyText}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy Text
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleShare}>
-                    <Share className="mr-2 h-4 w-4" />
-                    Copy Link
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={openOnBluesky}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open on Bluesky
-                  </DropdownMenuItem>
-                  {isOwnPost && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {isPinned ? (
-                        <DropdownMenuItem onClick={handleUnpinPost} disabled={isPinning}>
-                          <PinOff className="mr-2 h-4 w-4" />
-                          {isPinning ? "Unpinning..." : "Unpin from Profile"}
+                    {!isOwnPost && isAuthenticated && (
+                      <>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem
+                          onClick={() => setIsReportDialogOpen(true)}
+                          className="text-destructive"
+                        >
+                          <Flag className="mr-2 h-4 w-4"/>
+                          Report Post
                         </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={handlePinPost} disabled={isPinning}>
-                          <Pin className="mr-2 h-4 w-4" />
-                          {isPinning ? "Pinning..." : "Pin to Profile"}
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={handleAddHighlight} disabled={isHighlighting}>
-                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                        {isHighlighting ? "Adding..." : "Add to Highlights"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit (Pseudo)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {!isOwnPost && isAuthenticated && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive"
-                      >
-                        <Flag className="mr-2 h-4 w-4" />
-                        Report Post
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-1 sm:p-1">
-          <div className="flex gap-1 sm:gap-1">
-            <div className="flex-1 min-w-0 overflow-hidden">
-              <MarkdownRenderer content={post.record.text} />
+          <div className="p-1 sm:p-1">
+            <div className="flex gap-1 sm:gap-1">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <MarkdownRenderer content={post.record.text}/>
 
-              {/* Embedded content - expanded to handle video and recordWithMedia */}
-              {post?.embed && (
-                <>
-                  {/* Direct images */}
-                  {imageLength!=0  && (
-                    <div className={cn(
-                      "mt-3 grid gap-2",
-                      imageLength === 1 && "grid-cols-1",
-                      imageLength === 2 && "grid-cols-2",
-                      imageLength >= 3 && "grid-cols-2"
-                    )}>
-                      {post?.embed?.images?.map((img, idx) => (
-                        <a
-                          key={idx}
-                          href={img.fullsize}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="relative rounded-lg overflow-hidden"
-                        >
-                          <img
-                            src={img.thumb}
-                            alt={img.alt || "Image"}
-                            className="w-full h-auto max-h-80 object-cover rounded-lg"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Video */}
-                  {post?.embed?.video && (
-                    <div className="mt-3">
-                      <video
-                        controls
-                        className="w-full rounded-lg"
-                      >
-                        <source src={`BLOB_URL_HERE_${post.embed.video.ref.$link}`} type={post.embed.video.mimeType} />
-                        Your browser does not support the video tag.
-                      </video>
-                      {post?.embed?.video?.alt && (
-                        <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* External link card */}
-                  {post?.embed?.external && (
-                    <a
-                      href={post.embed.external.uri}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block mt-3"
-                    >
-                      <div className="overflow-hidden hover:bg-accent/50 transition-colors">
-                        {post.embed.external.thumb && (
-                          <div className="aspect-video relative">
+                {/* Embedded content - expanded to handle video and recordWithMedia */}
+                {post?.embed && (
+                  <>
+                    {/* Direct images */}
+                    {imageLength != 0 && (
+                      <div className={cn(
+                        "mt-3 grid gap-2",
+                        imageLength === 1 && "grid-cols-1",
+                        imageLength === 2 && "grid-cols-2",
+                        imageLength >= 3 && "grid-cols-2"
+                      )}>
+                        {post?.embed?.images?.map((img, idx) => (
+                          <a
+                            key={idx}
+                            href={img.fullsize}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative rounded-lg overflow-hidden"
+                          >
                             <img
-                              src={post.embed.external.thumb}
-                              alt=""
-                              className="w-full h-full object-cover"
+                              src={img.thumb}
+                              alt={img.alt || "Image"}
+                              className="w-full h-auto max-h-80 object-cover rounded-lg"
                             />
-                          </div>
-                        )}
-                        <div className="p-1">
-                          <p className="font-medium line-clamp-2">{post.embed.external.title}</p>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.external.description}</p>
-                          <p className="text-xs text-muted-foreground mt-2 truncate">{post.embed.external.uri}</p>
-                        </div>
+                          </a>
+                        ))}
                       </div>
-                    </a>
-                  )}
+                    )}
 
-                  {/* Quoted post (record embed) */}
-                  {post?.embed?.record && (
-                    <div className="mt-1 border-border">
-                      <div className="p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={"grid grid-cols-[auto_1fr] gap-2"}>
-                            <div>
-                              <UserHoverCard handle={post.embed.record.author?.handle}>
-                                <Link href={`/profile/${post.embed.record.author?.handle}`} className="shrink-0 relative">
-                                  <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                                    <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
-                                    <AvatarFallback className="text-sm">
-                                      {post?.embed?.record?.author?.handle
-                                        ? post.embed.record?.author.handle
-                                        : "??"
-                                      }
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <VerifiedBadge
-                                    handle={post.embed.record.author?.handle}
-                                    did={post.embed.record.author?.did}
-                                    className="absolute left-5 top-7 rounded-full"
-                                  />
-                                </Link>
-                              </UserHoverCard>
-                            </div>
-                            <div className={"flex flex-col gap-0"}>
-                              <div>
-                                {post.embed.record.author?.displayName}
-                                <VerifiedBadge
-                                  handle={post.embed.record.author?.handle}
-                                  did={post.embed.record.author?.did}
-                                  className={"pt-1"}
-                                />
-                              </div>
-                              <div>
-                                <HandleLink handle={post.embed.record.author?.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <MarkdownRenderer
-                          content={post.embed.record.value?.text}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Quote + media (recordWithMedia) */}
-                  {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
-                    <>
-                      {/* Media part first (same style as direct embeds) */}
-                      {mediaLength != 0  && (
-                        <div className={cn(
-                          "mt-3 grid gap-2",
-                          mediaLength === 1 && "grid-cols-1",
-                          mediaLength === 2 && "grid-cols-2",
-                          mediaLength >= 3 && "grid-cols-2"
-                        )}>
-                          {post?.embed?.media?.images?.map((img, idx) => (
-                            <a
-                              key={idx}
-                              href={img.fullsize}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="relative rounded-lg overflow-hidden"
-                            >
-                              <img
-                                src={img.thumb}
-                                alt={img.alt || "Image"}
-                                className="w-full h-auto max-h-80 object-cover rounded-lg"
-                              />
-                            </a>
-                          ))}
-                        </div>
-                      )}
-
-                      {post.embed.media.$type === 'app.bsky.embed.video#view' && post.embed.media.video && (
-                        <div className="mt-3">
-                          {/* TODO: resolve actual playable blob URL */}
-                          <video
-                            controls
-                            className="w-full rounded-lg"
-                                                      >
-                            <source src={`BLOB_URL_HERE_${post.embed.media.video.ref.$link}`} type={post.embed.media.video.mimeType} />
-                            Your browser does not support the video tag.
-                          </video>
-                          {post.embed.media.video.alt && (
-                            <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
-                          )}
-                        </div>
-                      )}
-
-                      {post.embed.media.$type === 'app.bsky.embed.external#view' && post.embed.media.external && (
-                        <a
-                          href={post.embed.media.external.uri}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block mt-3"
+                    {/* Video */}
+                    {post?.embed?.video && (
+                      <div className="mt-3">
+                        <video
+                          controls
+                          className="w-full rounded-lg"
                         >
-                          <div className="overflow-hidden hover:bg-accent/50 transition-colors">
-                            {post.embed.media.external.thumb && (
-                              <div className="aspect-video relative">
-                                <img
-                                  src={post.embed.media.external.thumb}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="p-1">
-                              <p className="font-medium line-clamp-2">{post.embed.media.external.title}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.media.external.description}</p>
-                              <p className="text-xs text-muted-foreground mt-2 truncate">{post.embed.media.external.uri}</p>
-                            </div>
-                          </div>
-                        </a>
-                      )}
+                          <source src={`BLOB_URL_HERE_${post.embed.video.ref.$link}`} type={post.embed.video.mimeType}/>
+                          Your browser does not support the video tag.
+                        </video>
+                        {post?.embed?.video?.alt && (
+                          <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
+                        )}
+                      </div>
+                    )}
 
-                      {/* Then the quoted record part (same as record#view) */}
+                    {/* External link card */}
+                    {post?.embed?.external && (
+                      <a
+                        href={post.embed.external.uri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block mt-3"
+                      >
+                        <div className="overflow-hidden hover:bg-accent/50 transition-colors">
+                          {post.embed.external.thumb && (
+                            <div className="aspect-video relative">
+                              <img
+                                src={post.embed.external.thumb}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="p-1">
+                            <p className="font-medium line-clamp-2">{post.embed.external.title}</p>
+                            <p
+                              className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.external.description}</p>
+                            <p className="text-xs text-muted-foreground mt-2 truncate">{post.embed.external.uri}</p>
+                          </div>
+                        </div>
+                      </a>
+                    )}
+
+                    {/* Quoted post (record embed) */}
+                    {post?.embed?.record && (
                       <div className="mt-1 border-border">
                         <div className="p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <div className={"grid grid-cols-[auto_1fr] gap-2"}>
                               <div>
                                 <UserHoverCard handle={post.embed.record.author?.handle}>
-                                  <Link href={`/profile/${post.embed.record.author?.handle}`} className="shrink-0 relative">
-                                    <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                                      <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
+                                  <Link href={`/profile/${post.embed.record.author?.handle}`}
+                                        className="shrink-0 relative">
+                                    <Avatar
+                                      className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                                      <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"}
+                                                   alt={post.author?.displayName || post.author?.handle}/>
                                       <AvatarFallback className="text-sm">
-                                        {post.embed.record.author?.handle
-                                          ? post.embed.record.author.handle
+                                        {post?.embed?.record?.author?.handle
+                                          ? post.embed.record?.author.handle
                                           : "??"
                                         }
                                       </AvatarFallback>
@@ -910,7 +798,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                   />
                                 </div>
                                 <div>
-                                  <HandleLink handle={post.embed.record.author?.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+                                  <HandleLink handle={post.embed.record.author?.handle}
+                                              className="text-sm truncate max-w-[120px] sm:max-w-none"/>
                                 </div>
                               </div>
                             </div>
@@ -920,496 +809,627 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           />
                         </div>
                       </div>
-                    </>
-                  )}
-                </>
-              )}
+                    )}
 
-              <div className="mt-2 sm:mt-3 flex items-center -ml-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1 text-muted-foreground h-8 px-2 hover:text-primary hover:bg-primary/10"
-                  onClick={handleReplyClick}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span className="text-xs sm:text-sm tabular-nums">{replyCount}</span>
-                </Button>
+                    {/* Quote + media (recordWithMedia) */}
+                    {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
+                      <>
+                        {/* Media part first (same style as direct embeds) */}
+                        {mediaLength != 0 && (
+                          <div className={cn(
+                            "mt-3 grid gap-2",
+                            mediaLength === 1 && "grid-cols-1",
+                            mediaLength === 2 && "grid-cols-2",
+                            mediaLength >= 3 && "grid-cols-2"
+                          )}>
+                            {post?.embed?.media?.images?.map((img, idx) => (
+                              <a
+                                key={idx}
+                                href={img.fullsize}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative rounded-lg overflow-hidden"
+                              >
+                                <img
+                                  src={img.thumb}
+                                  alt={img.alt || "Image"}
+                                  className="w-full h-auto max-h-80 object-cover rounded-lg"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        )}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "gap-1 h-8 px-2 hover:text-green-500 hover:bg-green-500/10",
-                    isReposted ? "text-green-500" : "text-muted-foreground"
-                  )}
-                  onClick={handleRepostClick}
-                >
-                  <Repeat2 className="h-4 w-4" />
-                  <span className="text-xs sm:text-sm tabular-nums">{repostCount}</span>
-                </Button>
+                        {post.embed.media.$type === 'app.bsky.embed.video#view' && post.embed.media.video && (
+                          <div className="mt-3">
+                            {/* TODO: resolve actual playable blob URL */}
+                            <video
+                              controls
+                              className="w-full rounded-lg"
+                            >
+                              <source src={`BLOB_URL_HERE_${post.embed.media.video.ref.$link}`}
+                                      type={post.embed.media.video.mimeType}/>
+                              Your browser does not support the video tag.
+                            </video>
+                            {post.embed.media.video.alt && (
+                              <p className="text-xs text-muted-foreground mt-1">{post.embed.media.video.alt}</p>
+                            )}
+                          </div>
+                        )}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "gap-1 h-8 px-2 hover:text-red-500 hover:bg-red-500/10",
-                    isLiked ? "text-red-500" : "text-muted-foreground"
-                  )}
-                  onClick={handleLike}
-                >
-                  <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-                  <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
-                </Button>
+                        {post.embed.media.$type === 'app.bsky.embed.external#view' && post.embed.media.external && (
+                          <a
+                            href={post.embed.media.external.uri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block mt-3"
+                          >
+                            <div className="overflow-hidden hover:bg-accent/50 transition-colors">
+                              {post.embed.media.external.thumb && (
+                                <div className="aspect-video relative">
+                                  <img
+                                    src={post.embed.media.external.thumb}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div className="p-1">
+                                <p className="font-medium line-clamp-2">{post.embed.media.external.title}</p>
+                                <p
+                                  className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.media.external.description}</p>
+                                <p
+                                  className="text-xs text-muted-foreground mt-2 truncate">{post.embed.media.external.uri}</p>
+                              </div>
+                            </div>
+                          </a>
+                        )}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "gap-1 h-8 px-2 hover:text-blue-500 hover:bg-blue-500/10",
-                    isBookmarked ? "text-blue-500" : "text-muted-foreground"
-                  )}
-                  onClick={handleBookmark}
-                  title={isBookmarked ? "Remove bookmark" : "Bookmark"}
-                >
-                  <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
-                </Button>
+                        {/* Then the quoted record part (same as record#view) */}
+                        <div className="mt-1 border-border">
+                          <div className="p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={"grid grid-cols-[auto_1fr] gap-2"}>
+                                <div>
+                                  <UserHoverCard handle={post.embed.record.author?.handle}>
+                                    <Link href={`/profile/${post.embed.record.author?.handle}`}
+                                          className="shrink-0 relative">
+                                      <Avatar
+                                        className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                                        <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"}
+                                                     alt={post.author?.displayName || post.author?.handle}/>
+                                        <AvatarFallback className="text-sm">
+                                          {post.embed.record.author?.handle
+                                            ? post.embed.record.author.handle
+                                            : "??"
+                                          }
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <VerifiedBadge
+                                        handle={post.embed.record.author?.handle}
+                                        did={post.embed.record.author?.did}
+                                        className="absolute left-5 top-7 rounded-full"
+                                      />
+                                    </Link>
+                                  </UserHoverCard>
+                                </div>
+                                <div className={"flex flex-col gap-0"}>
+                                  <div>
+                                    {post.embed.record.author?.displayName}
+                                    <VerifiedBadge
+                                      handle={post.embed.record.author?.handle}
+                                      did={post.embed.record.author?.did}
+                                      className={"pt-1"}
+                                    />
+                                  </div>
+                                  <div>
+                                    <HandleLink handle={post.embed.record.author?.handle}
+                                                className="text-sm truncate max-w-[120px] sm:max-w-none"/>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <MarkdownRenderer
+                              content={post.embed.record.value?.text}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
 
-                {viewCount > 0 && (
-                  <span className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto" title={`${viewCount} views`}>
-                    <Eye className="h-3.5 w-3.5" />
+                <div className="mt-2 sm:mt-3 flex items-center -ml-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-muted-foreground h-8 px-2 hover:text-primary hover:bg-primary/10"
+                    onClick={handleReplyClick}
+                  >
+                    <MessageCircle className="h-4 w-4"/>
+                    <span className="text-xs sm:text-sm tabular-nums">{replyCount}</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "gap-1 h-8 px-2 hover:text-green-500 hover:bg-green-500/10",
+                      isReposted ? "text-green-500" : "text-muted-foreground"
+                    )}
+                    onClick={handleRepostClick}
+                  >
+                    <Repeat2 className="h-4 w-4"/>
+                    <span className="text-xs sm:text-sm tabular-nums">{repostCount}</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "gap-1 h-8 px-2 hover:text-red-500 hover:bg-red-500/10",
+                      isLiked ? "text-red-500" : "text-muted-foreground"
+                    )}
+                    onClick={handleLike}
+                  >
+                    <Heart className={cn("h-4 w-4", isLiked && "fill-current")}/>
+                    <span className="text-xs sm:text-sm tabular-nums">{likeCount}</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "gap-1 h-8 px-2 hover:text-blue-500 hover:bg-blue-500/10",
+                      isBookmarked ? "text-blue-500" : "text-muted-foreground"
+                    )}
+                    onClick={handleBookmark}
+                    title={isBookmarked ? "Remove bookmark" : "Bookmark"}
+                  >
+                    <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")}/>
+                  </Button>
+
+                  {viewCount > 0 && (
+                    <span className="flex items-center gap-1 h-8 px-2 text-muted-foreground ml-auto"
+                          title={`${viewCount} views`}>
+                    <Eye className="h-3.5 w-3.5"/>
                     <span className="text-xs tabular-nums">{formatEngagement(viewCount)}</span>
                   </span>
-                )}
+                  )}
 
-                {(replyCount + repostCount + likeCount + viewCount) > 0 && (
-                  <button
-                    onClick={() => setIsAnalyticsOpen(true)}
-                    className={cn(
-                      "flex items-center gap-1 h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors",
-                      viewCount === 0 && "ml-auto"
-                    )}
-                    title="View post analytics"
-                  >
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    <span className="text-xs tabular-nums">
+                  {(replyCount + repostCount + likeCount + viewCount) > 0 && (
+                    <button
+                      onClick={() => setIsAnalyticsOpen(true)}
+                      className={cn(
+                        "flex items-center gap-1 h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-md transition-colors",
+                        viewCount === 0 && "ml-auto"
+                      )}
+                      title="View post analytics"
+                    >
+                      <BarChart3 className="h-3.5 w-3.5"/>
+                      <span className="text-xs tabular-nums">
                       {formatEngagement(replyCount + repostCount + likeCount)}
                     </span>
-                  </button>
-                )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* The rest of the component (dialogs etc.) remains completely unchanged */}
-      {/* Reply Dialog */}
-      <Dialog open={isReplyDialogOpen} onOpenChange={(open) => {
-        setIsReplyDialogOpen(open)
-        if (!open) {
-          setReplyMediaFiles([])
-          setReplyLinkCard(null)
-        }
-      }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Reply to Post</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="relative flex flex-row">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="text-xs">
-                      {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                    <VerifiedBadge
-                      handle={post.author?.handle}
-                      did={post.author?.did}
-                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
-                    />
-                  </Avatar>
-                </div>
-                <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
-                <HandleLink handle={post.author?.handle} className="text-sm" />
-              </div>
-              <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
-            </div>
-
-            <ComposeInput
-              postType={"reply"}
-              text={replyText}
-              onTextChange={setReplyText}
-              mediaFiles={replyMediaFiles}
-              onMediaFilesChange={setReplyMediaFiles}
-              linkCard={replyLinkCard}
-              onLinkCardChange={setReplyLinkCard}
-              placeholder="Write your reply..."
-              minHeight="min-h-24"
-              onCancel={() =>setIsReplyDialogOpen(false)}
-              onSubmit={handleReply}
-              compact
-              autoFocus
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Repost/Quote Dialog */}
-      <Dialog open={isRepostDialogOpen} onOpenChange={setIsRepostDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Repost</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="outline"
-              className="justify-start h-12"
-              onClick={handleRepost}
-            >
-              <Repeat2 className="mr-3 h-5 w-5" />
-              <div className="text-left">
-                <div className="font-medium">{isReposted ? "Undo Repost" : "Repost"}</div>
-                <div className="text-xs text-muted-foreground">
-                  {isReposted ? "Remove this from your profile" : "Share to your followers"}
-                </div>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start h-12"
-              onClick={() => {
-                setIsRepostDialogOpen(false)
-                setIsQuoteDialogOpen(true)
-              }}
-            >
-              <Quote className="mr-3 h-5 w-5" />
-              <div className="text-left">
-                <div className="font-medium">Quote Post</div>
-                <div className="text-xs text-muted-foreground">Share with your commentary</div>
-              </div>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Quote Dialog */}
-      <Dialog open={isQuoteDialogOpen} onOpenChange={(open) => {
-        setIsQuoteDialogOpen(open)
-        if (!open) {
-          setQuoteMediaFiles([])
-          setQuoteLinkCard(null)
-        }
-      }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Quote Post</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <ComposeInput
-              postType={"quote"}
-              text={quoteText}
-              onTextChange={setQuoteText}
-              mediaFiles={quoteMediaFiles}
-              onMediaFilesChange={setQuoteMediaFiles}
-              linkCard={quoteLinkCard}
-              onLinkCardChange={setQuoteLinkCard}
-              placeholder="Add your thoughts..."
-              minHeight="min-h-24"
-              onCancel={() => setIsQuoteDialogOpen(false)}
-              onSubmit={handleQuote}
-              compact
-              autoFocus
-            />
-
-            <Card className="border-border">
-              <CardContent className="p-3">
+        {/* The rest of the component (dialogs etc.) remains completely unchanged */}
+        {/* Reply Dialog */}
+        <Dialog open={isReplyDialogOpen} onOpenChange={(open) => {
+          setIsReplyDialogOpen(open)
+          if (!open) {
+            setReplyMediaFiles([])
+            setReplyLinkCard(null)
+          }
+        }}>
+          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Reply to Post</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="relative">
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
+                  <div className="relative flex flex-row">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={post.author?.avatar || "/placeholder.svg"}/>
                       <AvatarFallback className="text-xs">
                         {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                       </AvatarFallback>
+                      <VerifiedBadge
+                        handle={post.author?.handle}
+                        did={post.author?.did}
+                        className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                      />
                     </Avatar>
-                    <VerifiedBadge
-                      handle={post.author?.handle}
-                      did={post.author?.did}
-                      className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
-                    />
                   </div>
                   <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
-                  <HandleLink handle={post.author?.handle} className="text-sm" />
+                  <HandleLink handle={post.author?.handle} className="text-sm"/>
                 </div>
-                <MarkdownRenderer content={post.record.text}/>
-              </CardContent>
-            </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
+                <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
+              </div>
 
-      {/* Post Analytics Dialog */}
-      <Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Post Analytics
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-sky-500/10">
-                    <Eye className="h-4 w-4 text-sky-500" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium">Views</span>
-                    <p className="text-xs text-muted-foreground">SociallyDead only</p>
-                  </div>
-                </div>
-                <span className="text-lg font-bold tabular-nums">{viewCount.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-500/10">
-                    <MousePointerClick className="h-4 w-4 text-amber-500" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium">Link Clicks</span>
-                    <p className="text-xs text-muted-foreground">SociallyDead only</p>
-                  </div>
-                </div>
-                <span className="text-lg font-bold tabular-nums">{linkClickCount.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
-                    <MessageCircle className="h-4 w-4 text-blue-500" />
-                  </div>
-                  <span className="text-sm font-medium">Replies</span>
-                </div>
-                <span className="text-lg font-bold tabular-nums">{replyCount.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
-                    <Repeat2 className="h-4 w-4 text-green-500" />
-                  </div>
-                  <span className="text-sm font-medium">Reposts</span>
-                </div>
-                <span className="text-lg font-bold tabular-nums">{repostCount.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
-                    <Heart className="h-4 w-4 text-red-500" />
-                  </div>
-                  <span className="text-sm font-medium">Likes</span>
-                </div>
-                <span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
-                    <BarChart3 className="h-4 w-4 text-purple-500" />
-                  </div>
-                  <span className="text-sm font-medium">Total Engagements</span>
-                </div>
-                <span className="text-lg font-bold tabular-nums">{(replyCount + repostCount + likeCount).toLocaleString()}</span>
-              </div>
-            </div>
-            {(replyCount + repostCount + likeCount) > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
-                <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
-                  {replyCount > 0 && (
-                    <div
-                      className="h-full bg-blue-500 transition-all"
-                      style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-                      title={`Replies: ${((replyCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
-                    />
-                  )}
-                  {repostCount > 0 && (
-                    <div
-                      className="h-full bg-green-500 transition-all"
-                      style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-                      title={`Reposts: ${((repostCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
-                    />
-                  )}
-                  {likeCount > 0 && (
-                    <div
-                      className="h-full bg-red-500 transition-all"
-                      style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
-                      title={`Likes: ${((likeCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
-                    />
-                  )}
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
-                    Replies
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
-                    Reposts
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    Likes
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Report Dialog */}
-      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Report Post</DialogTitle>
-            <DialogDescription>
-              Help us understand what&apos;s wrong with this post.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <RadioGroup value={reportReason} onValueChange={setReportReason}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="spam" id="spam" />
-                <Label htmlFor="spam">Spam or misleading</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="abuse" id="abuse" />
-                <Label htmlFor="abuse">Harassment or abuse</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="hate" id="hate" />
-                <Label htmlFor="hate">Hate speech</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="violence" id="violence" />
-                <Label htmlFor="violence">Violence or threats</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="other" id="other" />
-                <Label htmlFor="other">Other</Label>
-              </div>
-            </RadioGroup>
-
-            <div>
-              <Label htmlFor="details">Additional details (optional)</Label>
-              <Textarea
-                id="details"
-                value={reportDetails}
-                onChange={(e) => setReportDetails(e.target.value)}
-                className="mt-1"
-                placeholder="Provide more context..."
+              <ComposeInput
+                postType={"reply"}
+                text={replyText}
+                onTextChange={setReplyText}
+                mediaFiles={replyMediaFiles}
+                onMediaFilesChange={setReplyMediaFiles}
+                linkCard={replyLinkCard}
+                onLinkCardChange={setReplyLinkCard}
+                placeholder="Write your reply..."
+                minHeight="min-h-24"
+                onCancel={() => setIsReplyDialogOpen(false)}
+                onSubmit={handleReply}
+                compact
+                autoFocus
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleReport} disabled={isLoading}>
-              {isLoading ? "Reporting..." : "Submit Report"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Post (Pseudo-Edit)</DialogTitle>
-            <DialogDescription>
-              This will delete your original post and create a new one with the edited content.
-              Likes and reposts will be lost.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            className="min-h-32"
-            placeholder="What's happening?"
-          />
-          <p className="text-xs text-muted-foreground">
-            Supports Markdown: **bold**, *italic*, `code`, [links](url), lists, etc.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} disabled={isLoading || !editText.trim()}>
-              {isLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Repost/Quote Dialog */}
+        <Dialog open={isRepostDialogOpen} onOpenChange={setIsRepostDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Repost</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="justify-start h-12"
+                onClick={handleRepost}
+              >
+                <Repeat2 className="mr-3 h-5 w-5"/>
+                <div className="text-left">
+                  <div className="font-medium">{isReposted ? "Undo Repost" : "Repost"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {isReposted ? "Remove this from your profile" : "Share to your followers"}
+                  </div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-12"
+                onClick={() => {
+                  setIsRepostDialogOpen(false)
+                  setIsQuoteDialogOpen(true)
+                }}
+              >
+                <Quote className="mr-3 h-5 w-5"/>
+                <div className="text-left">
+                  <div className="font-medium">Quote Post</div>
+                  <div className="text-xs text-muted-foreground">Share with your commentary</div>
+                </div>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-      {/* Delete Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Post</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this post? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
-              {isLoading ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Quote Dialog */}
+        <Dialog open={isQuoteDialogOpen} onOpenChange={(open) => {
+          setIsQuoteDialogOpen(open)
+          if (!open) {
+            setQuoteMediaFiles([])
+            setQuoteLinkCard(null)
+          }
+        }}>
+          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Quote Post</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <ComposeInput
+                postType={"quote"}
+                text={quoteText}
+                onTextChange={setQuoteText}
+                mediaFiles={quoteMediaFiles}
+                onMediaFilesChange={setQuoteMediaFiles}
+                linkCard={quoteLinkCard}
+                onLinkCardChange={setQuoteLinkCard}
+                placeholder="Add your thoughts..."
+                minHeight="min-h-24"
+                onCancel={() => setIsQuoteDialogOpen(false)}
+                onSubmit={handleQuote}
+                compact
+                autoFocus
+              />
 
-      {/* AI Fact-Check Dialog */}
-      <Dialog open={isFactCheckOpen} onOpenChange={setIsFactCheckOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              AI Fact-Check
-            </DialogTitle>
-            <DialogDescription>
-              AI-powered analysis of the claims in this post
-            </DialogDescription>
-          </DialogHeader>
+              <Card className="border-border">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="relative">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={post.author?.avatar || "/placeholder.svg"}/>
+                        <AvatarFallback className="text-xs">
+                          {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <VerifiedBadge
+                        handle={post.author?.handle}
+                        did={post.author?.did}
+                        className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
+                      />
+                    </div>
+                    <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
+                    <HandleLink handle={post.author?.handle} className="text-sm"/>
+                  </div>
+                  <MarkdownRenderer content={post.record.text}/>
+                </CardContent>
+              </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-          <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-sm line-clamp-4">{post.record.text}</p>
+        {/* Post Analytics Dialog */}
+        <Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5"/>
+                Post Analytics
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-sky-500/10">
+                      <Eye className="h-4 w-4 text-sky-500"/>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium">Views</span>
+                      <p className="text-xs text-muted-foreground">SociallyDead only</p>
+                    </div>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{viewCount.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-500/10">
+                      <MousePointerClick className="h-4 w-4 text-amber-500"/>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium">Link Clicks</span>
+                      <p className="text-xs text-muted-foreground">SociallyDead only</p>
+                    </div>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{linkClickCount.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
+                      <MessageCircle className="h-4 w-4 text-blue-500"/>
+                    </div>
+                    <span className="text-sm font-medium">Replies</span>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{replyCount.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
+                      <Repeat2 className="h-4 w-4 text-green-500"/>
+                    </div>
+                    <span className="text-sm font-medium">Reposts</span>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{repostCount.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
+                      <Heart className="h-4 w-4 text-red-500"/>
+                    </div>
+                    <span className="text-sm font-medium">Likes</span>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
+                      <BarChart3 className="h-4 w-4 text-purple-500"/>
+                    </div>
+                    <span className="text-sm font-medium">Total Engagements</span>
+                  </div>
+                  <span
+                    className="text-lg font-bold tabular-nums">{(replyCount + repostCount + likeCount).toLocaleString()}</span>
+                </div>
+              </div>
+              {(replyCount + repostCount + likeCount) > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
+                  <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+                    {replyCount > 0 && (
+                      <div
+                        className="h-full bg-blue-500 transition-all"
+                        style={{width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%`}}
+                        title={`Replies: ${((replyCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                      />
+                    )}
+                    {repostCount > 0 && (
+                      <div
+                        className="h-full bg-green-500 transition-all"
+                        style={{width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%`}}
+                        title={`Reposts: ${((repostCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                      />
+                    )}
+                    {likeCount > 0 && (
+                      <div
+                        className="h-full bg-red-500 transition-all"
+                        style={{width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%`}}
+                        title={`Likes: ${((likeCount / (replyCount + repostCount + likeCount)) * 100).toFixed(1)}%`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-blue-500"/>
+                      Replies
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-green-500"/>
+                      Reposts
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-red-500"/>
+                      Likes
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Report Dialog */}
+        <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Report Post</DialogTitle>
+              <DialogDescription>
+                Help us understand what&apos;s wrong with this post.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <RadioGroup value={reportReason} onValueChange={setReportReason}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="spam" id="spam"/>
+                  <Label htmlFor="spam">Spam or misleading</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="abuse" id="abuse"/>
+                  <Label htmlFor="abuse">Harassment or abuse</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="hate" id="hate"/>
+                  <Label htmlFor="hate">Hate speech</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="violence" id="violence"/>
+                  <Label htmlFor="violence">Violence or threats</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="other" id="other"/>
+                  <Label htmlFor="other">Other</Label>
+                </div>
+              </RadioGroup>
+
+              <div>
+                <Label htmlFor="details">Additional details (optional)</Label>
+                <Textarea
+                  id="details"
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  className="mt-1"
+                  placeholder="Provide more context..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleReport} disabled={isLoading}>
+                {isLoading ? "Reporting..." : "Submit Report"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Post (Pseudo-Edit)</DialogTitle>
+              <DialogDescription>
+                This will delete your original post and create a new one with the edited content.
+                Likes and reposts will be lost.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="min-h-32"
+              placeholder="What's happening?"
+            />
+            <p className="text-xs text-muted-foreground">
+              Supports Markdown: **bold**, *italic*, `code`, [links](url), lists, etc.
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEdit} disabled={isLoading || !editText.trim()}>
+                {isLoading ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Post</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this post? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
+                {isLoading ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* AI Fact-Check Dialog */}
+        <Dialog open={isFactCheckOpen} onOpenChange={setIsFactCheckOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary"/>
+                AI Fact-Check
+              </DialogTitle>
+              <DialogDescription>
+                AI-powered analysis of the claims in this post
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm line-clamp-4">{post.record.text}</p>
+              </div>
+
+              {isFactChecking ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                  <p className="text-sm text-muted-foreground">Analyzing claims...</p>
+                </div>
+              ) : factCheckResult ? (
+                <div className="p-4 rounded-lg border bg-background">
+                  <RichMarkdownRenderer content={factCheckResult}/>
+                </div>
+              ) : null}
             </div>
 
-            {isFactChecking ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Analyzing claims...</p>
-              </div>
-            ) : factCheckResult ? (
-              <div className="p-4 rounded-lg border bg-background">
-                <RichMarkdownRenderer content={factCheckResult} />
-              </div>
-            ) : null}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFactCheckOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsFactCheckOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    )
+    return jsx
+  } catch {
+    return (<></>)
+  }
 }
