@@ -710,21 +710,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           />
                         </a>
                       ))}
-                      <div>Video Check</div>
-                      {/* Video with fallback placeholder when ref missing */}
-                      {post.embed && post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
-                        <div className="mt-3">
-                          VIDEO DETECTED
-                          {post.embed.video.ref?.$link && post.author?.did ? (
-                           <div>Video Player</div>
-                          ) : (
-                            <div>VIdeo Placeholder</div>
-                          )}
-                          {post.embed.video.alt && (
-                            <div>VIdeo Alt</div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
                   <div>
