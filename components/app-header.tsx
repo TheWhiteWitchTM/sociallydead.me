@@ -25,7 +25,7 @@ import {
   Users,
   ChevronDown,
   Rss,
-  TrendingUp
+  TrendingUp, CreditCard
 } from "lucide-react"
 import { VerificationCheckout } from "@/components/verification-checkout"
 import { useTheme } from "next-themes"
@@ -165,7 +165,7 @@ export function AppHeader() {
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   size="sm"
-                  className={cn("gap-1", isActive && "text-red-600 font-semibold")}
+                  className={cn("gap-0", isActive && "bg-primary text-primary-foreground font-semibold")}
                 >
                   <item.icon className="h-4 w-4" />
                   <span>{item.label}</span>
@@ -179,7 +179,7 @@ export function AppHeader() {
               <Button
                 variant={pathname.startsWith("/feed/") ? "default" : "ghost"}
                 size="sm"
-                className={cn("gap-1", pathname.startsWith("/feed/") && "text-red-600 font-semibold")}
+                className={cn("gap-0", pathname.startsWith("/feed/") && "bg-primary text-primary-foreground font-semibold")}
               >
                 <Rss className="h-4 w-4" />
                 <span>Feeds</span>
@@ -208,7 +208,7 @@ export function AppHeader() {
               <Button
                 variant={pathname.startsWith("/trending/") ? "default" : "ghost"}
                 size="sm"
-                className={cn("gap-1.5 px-3", pathname.startsWith("/trending/") && "text-red-600 font-semibold")}
+                className={cn("gap-0", pathname.startsWith("/trending/") && "bg-primary text-primary-foreground font-semibold")}
               >
                 <TrendingUp className="h-4 w-4" />
                 <span>Trending</span>
@@ -234,7 +234,7 @@ export function AppHeader() {
         </nav>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -262,7 +262,7 @@ export function AppHeader() {
             <VerificationCheckout
               trigger={
                 <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified">
-                  <BadgeCheck className="h-5 w-5 text-blue-500" />
+                  <CreditCard className="h-5 w-5" />
                   <span className="sr-only">Get Verified</span>
                 </Button>
               }
