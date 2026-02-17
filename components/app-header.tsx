@@ -210,7 +210,7 @@ export function AppHeader() {
                 size="sm"
                 className={cn("gap-0", pathname.startsWith("/trending/") && "bg-primary text-primary-foreground font-semibold")}
               >
-                <TrendingUp className="h-4 w-4" />
+                <TrendingUp className="h-4 w-4 pr-1" />
                 <span>Trending</span>
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
