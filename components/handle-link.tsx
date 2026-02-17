@@ -23,8 +23,7 @@ export function HandleLink({ handle, className = "" }: HandleLinkProps) {
   if (isCustomDomain(handle)) {
     return (
       <>
-      <span className={`text-muted-foreground ${className}`}>@{handle}</span>
-        {"   "}
+      <span className={`text-muted-foreground mr-3 ${className}`}>@{handle}</span>
         <a
         href={`https://${handle}`}
         target="_blank"
