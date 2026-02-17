@@ -518,6 +518,15 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
   const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
+  if (!post.author.handle) {
+    return (
+      <div>
+        Author with no handle???
+      </div>
+    )
+  }
+
+
   return (
     <>
       <div ref={cardRef} className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600">
