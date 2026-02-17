@@ -306,25 +306,6 @@ export function AppSidebar() {
             />
           )}
         </div>
-        {/* Compose Button - Pinned at bottom */}
-        {isAuthenticated && (
-          <div className="border-t border-sidebar-border p-2 lg:p-4">
-            <Link href="/compose">
-              <Button
-                className={cn(
-                  "w-full h-12 text-base font-semibold shadow-lg",
-                  "bg-primary hover:bg-primary/90 text-primary-foreground",
-                  "transition-all duration-200 hover:scale-105"
-                )}
-                size="lg"
-              >
-                <PenSquare className="h-5 w-5 lg:mr-3" />
-                <span className="hidden lg:inline">Compose</span>
-              </Button>
-            </Link>
-          </div>
-        )}
-
         {/* Main Navigation */}
         <div className="relative flex-1 min-h-0 overflow-hidden">
           <nav ref={navRef} className="absolute inset-0 space-y-1 overflow-y-auto overscroll-contain p-2 lg:p-2">
