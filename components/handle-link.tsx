@@ -16,6 +16,10 @@ function isCustomDomain(handle: string): boolean {
 }
 
 export function HandleLink({ handle, className = "" }: HandleLinkProps) {
+  if (!handle) return (
+    <span className={`text-muted-foreground ${className}`}>Invalid</span>
+  )
+
   if (isCustomDomain(handle)) {
     return (
       <>
