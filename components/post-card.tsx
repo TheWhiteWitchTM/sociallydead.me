@@ -719,10 +719,11 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       </div>
                     )}
 
+                    <div>Video Check</div>
                     {/* Video */}
                     {isVideoEmbed(post.embed) && (
                       <div className="mt-3">
-                        VIDEO DETECTED
+                        <div>VIDEO DETECTED</div>
                         <video
                           controls
                           className="w-full rounded-lg"
