@@ -344,7 +344,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const handleShare = async () => {
-    const postUrl = `https://bsky.app/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`
+    const postUrl = `https://bsky.app/profile/${post.author?.handle || ""}/post/${post.uri.split('/').pop()}`
     try {
       await navigator.clipboard.writeText(postUrl)
     } catch {
@@ -353,7 +353,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   }
 
   const openOnBluesky = () => {
-    const postUrl = `https://bsky.app/profile/${post.author.handle}/post/${post.uri.split('/').pop()}`
+    const postUrl = `https://bsky.app/profile/${post.author?.handle || ""}/post/${post.uri.split('/').pop()}`
     window.open(postUrl, '_blank')
   }
 
@@ -525,14 +525,14 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
             <UserHoverCard handle={post.author?.handle || ""}>
               <Link href={`/profile/${post.author?.handle || ""}`} className="shrink-0 relative">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle || "User"} />
+                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle || ""} />
                   <AvatarFallback className="text-sm">
                     {(post.author?.displayName || post.author?.handle || "").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {post.author?.handle && post.author?.did && (
+                {post.author?.did && (
                   <VerifiedBadge
-                    handle={post.author.handle}
+                    handle={post.author.handle || ""}
                     did={post.author.did}
                     className="absolute left-5 top-7 rounded-full"
                   />
@@ -544,8 +544,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
           <div className="flex flex-col gap-0">
             <div>
               {post.author?.displayName}
-              {post.author?.handle && post.author?.did && (
-                <VerifiedBadge handle={post.author.handle} did={post.author.did} className="pt-1" />
+              {post.author?.did && (
+                <VerifiedBadge handle={post.author.handle || ""} did={post.author.did} className="pt-1" />
               )}
             </div>
             <div>
@@ -653,10 +653,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit (Pseudo)
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="text-destructive"
-                      >
+                      <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
@@ -665,10 +662,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {!isOwnPost && isAuthenticated && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive"
-                      >
+                      <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-destructive">
                         <Flag className="mr-2 h-4 w-4" />
                         Report Post
                       </DropdownMenuItem>
@@ -684,11 +678,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
           <div className="flex gap-1 sm:gap-1">
             <div className="flex-1 min-w-0 overflow-hidden">
               <MarkdownRenderer content={post.record.text} />
-
-              {/* Debug – remove after testing */}
-              {/* <pre className="text-xs bg-gray-100 p-2 mt-2 rounded">
-                {JSON.stringify(post.embed, null, 2)}
-              </pre> */}
 
               {post.embed && (
                 <>
