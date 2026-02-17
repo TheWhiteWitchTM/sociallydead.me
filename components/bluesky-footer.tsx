@@ -8,8 +8,6 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
-	DialogFooter,
-	DialogDescription,
 } from "@/components/ui/dialog"
 import { ComposeInput } from "@/components/compose-input"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
@@ -39,7 +37,6 @@ interface BlueskyFooterProps {
 	onRepostClick: () => void
 	onReplyClick: () => void
 	onBookmark: () => void
-	onAnalyticsClick: () => void
 }
 
 export function BlueskyFooter({
@@ -54,10 +51,10 @@ export function BlueskyFooter({
 	                              onRepostClick,
 	                              onReplyClick,
 	                              onBookmark,
-	                              onAnalyticsClick,
                               }: BlueskyFooterProps) {
 	const { isAuthenticated, login } = useBluesky()
 
+	// All local state for dialogs – no prop drilling needed
 	const [isReplyOpen, setIsReplyOpen] = useState(false)
 	const [isQuoteOpen, setIsQuoteOpen] = useState(false)
 	const [isRepostOpen, setIsRepostOpen] = useState(false)
@@ -78,40 +75,42 @@ export function BlueskyFooter({
 		}
 	}
 
+	// Placeholder handlers – replace with your real API calls
 	const handleReply = () => {
-		// call createPost etc.
-		// placeholder: just close for now – add your real logic
 		setIsLoading(true)
+		// await createPost(replyText, { reply: { uri: post.uri, cid: post.cid } })
 		setTimeout(() => {
 			setIsLoading(false)
 			setIsReplyOpen(false)
 			setReplyText("")
-		}, 1000) // simulate API call
+			// setReplyCount(c => c + 1) – move to PostCard if needed
+		}, 800)
 	}
 
 	const handleQuote = () => {
-		// call quotePost etc.
 		setIsLoading(true)
+		// await quotePost(quoteText, { uri: post.uri, cid: post.cid })
 		setTimeout(() => {
 			setIsLoading(false)
 			setIsQuoteOpen(false)
 			setQuoteText("")
-		}, 1000)
+		}, 800)
 	}
 
 	const handleRepost = () => {
-		// call repost logic
+		// await repost or unrepost
 		setIsRepostOpen(false)
 	}
 
 	const handleReport = () => {
 		setIsLoading(true)
+		// await reportPost(...)
 		setTimeout(() => {
 			setIsLoading(false)
 			setIsReportOpen(false)
 			setReportReason("spam")
 			setReportDetails("")
-		}, 1000)
+		}, 800)
 	}
 
 	return (
@@ -121,7 +120,7 @@ export function BlueskyFooter({
 					variant="ghost"
 					size="sm"
 					className="gap-1 px-2 hover:text-blue-500 hover:bg-blue-500/10"
-					onClick={() => requireAuth(onReplyClick)}
+					onClick={() => requireAuth(() => setIsReplyOpen(true))}
 					disabled={!isAuthenticated}
 				>
 					<MessageCircle className="h-4 w-4" />
@@ -132,7 +131,7 @@ export function BlueskyFooter({
 					variant="ghost"
 					size="sm"
 					className={cn("gap-1 px-2 hover:text-green-500 hover:bg-green-500/10", isReposted && "text-green-500")}
-					onClick={() => requireAuth(onRepostClick)}
+					onClick={() => requireAuth(() => setIsRepostOpen(true))}
 					disabled={!isAuthenticated}
 				>
 					<Repeat2 className="h-4 w-4" />
@@ -166,7 +165,7 @@ export function BlueskyFooter({
 						variant="ghost"
 						size="sm"
 						className="gap-1 px-2 ml-auto hover:text-blue-500 hover:bg-blue-500/10"
-						onClick={onAnalyticsClick}
+						onClick={() => setIsAnalyticsOpen(true)}
 					>
 						<BarChart3 className="h-3.5 w-3.5" />
 						<span className="text-xs tabular-nums">
@@ -287,7 +286,7 @@ export function BlueskyFooter({
 								<RadioGroupItem value="spam" id="spam" />
 								<Label htmlFor="spam">Spam or misleading</Label>
 							</div>
-							{/* ... your other radio options ... */}
+							{/* add your other radio options here */}
 						</RadioGroup>
 
 						<div>
@@ -312,7 +311,7 @@ export function BlueskyFooter({
 				</DialogContent>
 			</Dialog>
 
-			{/* Analytics Dialog – restored here */}
+			{/* Analytics Dialog – now fully here, opens for everyone */}
 			<Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
 				<DialogContent className="sm:max-w-sm">
 					<DialogHeader>
