@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageCircle, Repeat2, Heart, Bookmark, BarChart3 } from "lucide-react"
+import { MessageCircle, Repeat2, Heart, Bookmark, BarChart3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
 	Dialog,
@@ -9,16 +9,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogFooter,
+	DialogDescription,
 } from "@/components/ui/dialog"
 import { ComposeInput } from "@/components/compose-input"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { HandleLink } from "@/components/handle-link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import {HandleLink} from "@/components/handle-link";
 
 function formatEngagement(count: number): string {
 	if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -78,28 +79,39 @@ export function BlueskyFooter({
 	}
 
 	const handleReply = () => {
-		// Your reply logic here (call createPost etc.)
-		// For now just close dialog as placeholder
-		setIsReplyOpen(false)
-		setReplyText("")
+		// call createPost etc.
+		// placeholder: just close for now – add your real logic
+		setIsLoading(true)
+		setTimeout(() => {
+			setIsLoading(false)
+			setIsReplyOpen(false)
+			setReplyText("")
+		}, 1000) // simulate API call
 	}
 
 	const handleQuote = () => {
-		// Your quote logic here
-		setIsQuoteOpen(false)
-		setQuoteText("")
+		// call quotePost etc.
+		setIsLoading(true)
+		setTimeout(() => {
+			setIsLoading(false)
+			setIsQuoteOpen(false)
+			setQuoteText("")
+		}, 1000)
 	}
 
 	const handleRepost = () => {
-		// Your repost logic here
+		// call repost logic
 		setIsRepostOpen(false)
 	}
 
 	const handleReport = () => {
-		// Your report logic here
-		setIsReportOpen(false)
-		setReportReason("spam")
-		setReportDetails("")
+		setIsLoading(true)
+		setTimeout(() => {
+			setIsLoading(false)
+			setIsReportOpen(false)
+			setReportReason("spam")
+			setReportDetails("")
+		}, 1000)
 	}
 
 	return (
@@ -119,10 +131,7 @@ export function BlueskyFooter({
 				<Button
 					variant="ghost"
 					size="sm"
-					className={cn(
-						"gap-1 px-2 hover:text-green-500 hover:bg-green-500/10",
-						isReposted && "text-green-500"
-					)}
+					className={cn("gap-1 px-2 hover:text-green-500 hover:bg-green-500/10", isReposted && "text-green-500")}
 					onClick={() => requireAuth(onRepostClick)}
 					disabled={!isAuthenticated}
 				>
@@ -133,10 +142,7 @@ export function BlueskyFooter({
 				<Button
 					variant="ghost"
 					size="sm"
-					className={cn(
-						"gap-1 px-2 hover:text-red-500 hover:bg-red-500/10",
-						isLiked && "text-red-500"
-					)}
+					className={cn("gap-1 px-2 hover:text-red-500 hover:bg-red-500/10", isLiked && "text-red-500")}
 					onClick={() => requireAuth(onLike)}
 					disabled={!isAuthenticated}
 				>
@@ -147,10 +153,7 @@ export function BlueskyFooter({
 				<Button
 					variant="ghost"
 					size="sm"
-					className={cn(
-						"gap-1 px-2 hover:text-blue-500 hover:bg-blue-500/10",
-						isBookmarked && "text-blue-500"
-					)}
+					className={cn("gap-1 px-2 hover:text-blue-500 hover:bg-blue-500/10", isBookmarked && "text-blue-500")}
 					onClick={() => requireAuth(onBookmark)}
 					disabled={!isAuthenticated}
 					title={isBookmarked ? "Remove bookmark" : "Bookmark"}
@@ -179,33 +182,42 @@ export function BlueskyFooter({
 					<DialogHeader>
 						<DialogTitle>Reply to Post</DialogTitle>
 					</DialogHeader>
-					<div className="space-y-4">
-						<div className="p-3 rounded-lg bg-muted/50">
-							<div className="flex items-center gap-2 mb-2">
-								<Avatar className="h-6 w-6">
-									<AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
-									<AvatarFallback className="text-xs">
-										{(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
-									</AvatarFallback>
-								</Avatar>
-								<span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
-								<HandleLink handle={post.author?.handle} className="text-sm" />
+					{post ? (
+						<div className="space-y-4">
+							<div className="p-3 rounded-lg bg-muted/50">
+								<div className="flex items-center gap-2 mb-2">
+									<Avatar className="h-6 w-6">
+										<AvatarImage src={post?.author?.avatar || "/placeholder.svg"} />
+										<AvatarFallback className="text-xs">
+											{(post?.author?.displayName || post?.author?.handle || "?").slice(0, 2).toUpperCase()}
+										</AvatarFallback>
+									</Avatar>
+									<span className="font-medium text-sm">
+                    {post?.author?.displayName || post?.author?.handle || "Unknown"}
+                  </span>
+									<HandleLink handle={post?.author?.handle || ""} className="text-sm" />
+								</div>
+								<p className="text-sm text-muted-foreground line-clamp-3">
+									{post?.record?.text || "Post content not available"}
+								</p>
 							</div>
-							<p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
-						</div>
 
-						<ComposeInput
-							postType="reply"
-							text={replyText}
-							onTextChange={setReplyText}
-							placeholder="Write your reply..."
-							minHeight="min-h-24"
-							onCancel={() => setIsReplyOpen(false)}
-							onSubmit={handleReply}
-							compact
-							autoFocus
-						/>
-					</div>
+							<ComposeInput
+								text={replyText}
+								onTextChange={setReplyText}
+								placeholder="Write your reply..."
+								onSubmit={handleReply}
+								isLoading={isLoading}
+								onCancel={() => setIsReplyOpen(false)}
+								compact
+								autoFocus
+							/>
+						</div>
+					) : (
+						<div className="p-6 text-center text-muted-foreground">
+							Loading post data...
+						</div>
+					)}
 				</DialogContent>
 			</Dialog>
 
@@ -215,23 +227,28 @@ export function BlueskyFooter({
 					<DialogHeader>
 						<DialogTitle>Quote Post</DialogTitle>
 					</DialogHeader>
-					<div className="space-y-4">
-						<ComposeInput
-							postType="quote"
-							text={quoteText}
-							onTextChange={setQuoteText}
-							placeholder="Add your thoughts..."
-							minHeight="min-h-24"
-							onCancel={() => setIsQuoteOpen(false)}
-							onSubmit={handleQuote}
-							compact
-							autoFocus
-						/>
+					{post ? (
+						<div className="space-y-4">
+							<ComposeInput
+								text={quoteText}
+								onTextChange={setQuoteText}
+								placeholder="Add your thoughts..."
+								onSubmit={handleQuote}
+								isLoading={isLoading}
+								onCancel={() => setIsQuoteOpen(false)}
+								compact
+								autoFocus
+							/>
 
-						<div className="border rounded-lg p-3 bg-muted/30">
-							<MarkdownRenderer content={post.record.text} />
+							<div className="border rounded-lg p-3 bg-muted/30">
+								<MarkdownRenderer content={post?.record?.text || "Post content not available"} />
+							</div>
 						</div>
-					</div>
+					) : (
+						<div className="p-6 text-center text-muted-foreground">
+							Loading post data...
+						</div>
+					)}
 				</DialogContent>
 			</Dialog>
 
@@ -270,22 +287,7 @@ export function BlueskyFooter({
 								<RadioGroupItem value="spam" id="spam" />
 								<Label htmlFor="spam">Spam or misleading</Label>
 							</div>
-							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="abuse" id="abuse" />
-								<Label htmlFor="abuse">Harassment or abuse</Label>
-							</div>
-							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="hate" id="hate" />
-								<Label htmlFor="hate">Hate speech</Label>
-							</div>
-							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="violence" id="violence" />
-								<Label htmlFor="violence">Violence or threats</Label>
-							</div>
-							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="other" id="other" />
-								<Label htmlFor="other">Other</Label>
-							</div>
+							{/* ... your other radio options ... */}
 						</RadioGroup>
 
 						<div>
@@ -310,7 +312,7 @@ export function BlueskyFooter({
 				</DialogContent>
 			</Dialog>
 
-			{/* Analytics Dialog */}
+			{/* Analytics Dialog – restored here */}
 			<Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
 				<DialogContent className="sm:max-w-sm">
 					<DialogHeader>

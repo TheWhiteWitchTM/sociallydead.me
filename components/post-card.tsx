@@ -353,6 +353,7 @@ export function PostCard({
 
         {/* Footer engagement bar */}
         <BlueskyFooter
+          post={post}
           replyCount={replyCount}
           repostCount={repostCount}
           likeCount={likeCount}
@@ -363,7 +364,7 @@ export function PostCard({
           onRepostClick={() => setIsRepostDialogOpen(true)}
           onReplyClick={() => setIsReplyDialogOpen(true)}
           onBookmark={handleBookmark}
-          onAnalyticsClick={() => setIsAnalyticsOpen(true)}
+          onAnalyticsClick={() => setIsAnalyticsOpen(true)} // this opens the dialog in footer
         />
       </div>
 
