@@ -54,6 +54,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <div className="bg-muted rounded-lg p-4 text-sm">
                   <p className="font-mono text-destructive break-all">
                     {this.state.error.message || "Unknown error"}
+                    <br/>
+                    {this.state.error.stack}
                   </p>
                 </div>
               )}
