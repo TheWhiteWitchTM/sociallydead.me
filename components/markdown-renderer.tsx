@@ -43,60 +43,67 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 }
 
 function renderContent(content: string, combinedRegex: RegExp) {
-  const parts: React.ReactNode[] = []
-  let lastIndex = 0
-  let match: RegExpExecArray | null
+  if (!content.length) return null
 
-  while ((match = combinedRegex.exec(content)) !== null) {
-    // Text before the match
-    if (match.index > lastIndex) {
-      parts.push(content.slice(lastIndex, match.index))
+  try {
+    const parts: React.ReactNode[] = []
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = combinedRegex.exec(content)) !== null) {
+      // Text before the match
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index))
+      }
+
+      const [fullMatch, mentionMatch, mention, hashtagMatch, hashtag, urlMatch] = match
+
+      if (mention) {
+        parts.push(
+          <a
+            key={match.index}
+            href={`/profile/${mention}`}
+            className="text-blue-500 hover:underline font-medium"
+          >
+            {mentionMatch}
+          </a>
+        )
+      } else if (hashtag) {
+        parts.push(
+          <a
+            key={match.index}
+            href={`/search?q=${encodeURIComponent('#' + hashtag)}`}
+            className="text-blue-500 hover:underline font-medium"
+          >
+            {hashtagMatch}
+          </a>
+        )
+      } else if (urlMatch) {
+        const href = urlMatch.startsWith('http') ? urlMatch : urlMatch.startsWith('www.') ? `https://${urlMatch}` : `https://${urlMatch}`
+        parts.push(
+          <a
+            key={match.index}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline break-all"
+          >
+            {urlMatch}
+          </a>
+        )
+      }
+
+      lastIndex = combinedRegex.lastIndex
     }
-
-    const [fullMatch, mentionMatch, mention, hashtagMatch, hashtag, urlMatch] = match
-
-    if (mention) {
-      parts.push(
-        <a
-          key={match.index}
-          href={`/profile/${mention}`}
-          className="text-blue-500 hover:underline font-medium"
-        >
-          {mentionMatch}
-        </a>
-      )
-    } else if (hashtag) {
-      parts.push(
-        <a
-          key={match.index}
-          href={`/search?q=${encodeURIComponent('#' + hashtag)}`}
-          className="text-blue-500 hover:underline font-medium"
-        >
-          {hashtagMatch}
-        </a>
-      )
-    } else if (urlMatch) {
-      const href = urlMatch.startsWith('http') ? urlMatch : urlMatch.startsWith('www.') ? `https://${urlMatch}` : `https://${urlMatch}`
-      parts.push(
-        <a
-          key={match.index}
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-500 hover:underline break-all"
-        >
-          {urlMatch}
-        </a>
-      )
+    // Remaining text after last URL
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex))
     }
-
-    lastIndex = combinedRegex.lastIndex
+    return parts
+  } catch {
+    console.log ("Markdown Error!")
+    return "";
   }
-  // Remaining text after last URL
-  if (lastIndex < content.length) {
-    parts.push(content.slice(lastIndex))
-  }
-  return parts
 }
 
 /**
