@@ -13,7 +13,8 @@ export default function ComposeButton() {
 		return null
 	}
 	return(
-		<div className={"fixed z-50 right-12 bottom-14"}>
+		<div className={"fixed right-12 bottom-14 z-9999]" +
+			""}>
 		<div className="rounded-lg border-t border-sidebar-border p-2 lg:p-4">
 			<Link href="/compose">
 				<Button
