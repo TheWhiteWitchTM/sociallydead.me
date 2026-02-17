@@ -511,9 +511,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
             <UserHoverCard handle={post.author?.handle}>
               <Link href={`/profile/${post.author?.handle}`} className="shrink-0 relative">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
+                  <AvatarImage src={post.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
                   <AvatarFallback className="text-sm">
-                    {(post.author.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
+                    {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <VerifiedBadge
@@ -527,7 +527,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
           <div className={"flex flex-col gap-0"}>
             <div>
-              {post.author.displayName}
+              {post.author?.displayName}
               <VerifiedBadge
                 handle={post.author?.handle}
                 did={post.author.did}
@@ -553,7 +553,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                 <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
                   <Repeat2 className="h-4 w-4 shrink-0" />
                   <Link href={`/profile/${post.reason.by?.handle}`} className="hover:underline truncate">
-                    {post.reason.by.displayName || post.reason.by?.handle} reposted
+                    {post.reason.by?.displayName || post.reason.by?.handle} reposted
                   </Link>
                 </div>
               )}
@@ -755,9 +755,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                               <UserHoverCard handle={post.embed.record.author?.handle}>
                                 <Link href={`/profile/${post.embed.record.author?.handle}`} className="shrink-0 relative">
                                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                                    <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
+                                    <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
                                     <AvatarFallback className="text-sm">
-                                      {(post.embed.record.author.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
+                                      {(post.embed.record.author?.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <VerifiedBadge
@@ -770,7 +770,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                             </div>
                             <div className={"flex flex-col gap-0"}>
                               <div>
-                                {post.embed.record.author.displayName}
+                                {post.embed.record.author?.displayName}
                                 <VerifiedBadge
                                   handle={post.embed.record.author?.handle}
                                   did={post.embed.record.author.did}
@@ -870,9 +870,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                 <UserHoverCard handle={post.embed.record.author?.handle}>
                                   <Link href={`/profile/${post.embed.record.author?.handle}`} className="shrink-0 relative">
                                     <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                                      <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author.displayName || post.author?.handle} />
+                                      <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
                                       <AvatarFallback className="text-sm">
-                                        {(post.embed.record.author.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
+                                        {(post.embed.record.author?.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
                                     <VerifiedBadge
@@ -885,7 +885,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                               </div>
                               <div className={"flex flex-col gap-0"}>
                                 <div>
-                                  {post.embed.record.author.displayName}
+                                  {post.embed.record.author?.displayName}
                                   <VerifiedBadge
                                     handle={post.embed.record.author?.handle}
                                     did={post.embed.record.author.did}
@@ -1006,7 +1006,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
                     <AvatarFallback className="text-xs">
-                      {(post.author.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
+                      {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                     <VerifiedBadge
                       handle={post.author?.handle}
@@ -1015,7 +1015,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     />
                   </Avatar>
                 </div>
-                <span className="font-medium text-sm">{post.author.displayName || post.author?.handle}</span>
+                <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
                 <HandleLink handle={post.author?.handle} className="text-sm" />
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3">{post.record.text}</p>
@@ -1114,7 +1114,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     <Avatar className="h-5 w-5">
                       <AvatarImage src={post.author?.avatar || "/placeholder.svg"} />
                       <AvatarFallback className="text-xs">
-                        {(post.author.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
+                        {(post.author?.displayName || post.author?.handle).slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <VerifiedBadge
@@ -1123,7 +1123,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
                     />
                   </div>
-                  <span className="font-medium text-sm">{post.author.displayName || post.author?.handle}</span>
+                  <span className="font-medium text-sm">{post.author?.displayName || post.author?.handle}</span>
                   <HandleLink handle={post.author?.handle} className="text-sm" />
                 </div>
                 <MarkdownRenderer content={post.record.text}/>
