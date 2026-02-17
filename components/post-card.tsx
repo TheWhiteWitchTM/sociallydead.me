@@ -767,7 +767,10 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 cursor-pointer hover:opacity-80 transition-opacity">
                                     <AvatarImage src={post.embed.record.author?.avatar || "/placeholder.svg"} alt={post.author?.displayName || post.author?.handle} />
                                     <AvatarFallback className="text-sm">
-                                      {(post.embed.record.author?.displayName || post.embed.record.author?.handle).slice(0, 2).toUpperCase()}
+                                      {post?.embed?.record?.author?.handle
+                                        ? post.embed.record?.author.handle
+                                        : "??"
+                                      }
                                     </AvatarFallback>
                                   </Avatar>
                                   <VerifiedBadge
