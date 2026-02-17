@@ -794,7 +794,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                   {post.embed.$type === 'app.bsky.embed.recordWithMedia#view' && post.embed.record && post.embed.media && (
                     <>
                       {/* Media part first (same style as direct embeds) */}
-                      {post.embed.media.images && post.embed.media.images?.length > 0 && (
+                      {post.embed.media.images?.length != undefined  && (
                         <div className={cn(
                           "mt-3 grid gap-2",
                           post.embed.media.images?.length === 1 && "grid-cols-1",
