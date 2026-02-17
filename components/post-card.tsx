@@ -223,6 +223,19 @@ export function PostCard({ post, isOwnPost, isPinned, onPostUpdated, showReplyCo
     )
   }
 
+  const trackLinkClick = () => {
+    fetch('/api/views', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postUri: post.uri, action: 'link_click' }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.linkClicks) setLinkClickCount(data.linkClicks)
+      })
+      .catch(() => { /* silently fail */ })
+  }
+
   return (
     <>
       <div ref={cardRef} className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600">
