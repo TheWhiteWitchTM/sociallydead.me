@@ -243,8 +243,8 @@ export function AppSidebar() {
               <Image
                 src={"/icons/icon-192x192.png"}
                 alt={"SD"}
-                width={192}
-                height={192}
+                width={32}
+                height={32}
                 priority
               />
             </div>
@@ -380,7 +380,7 @@ export function AppSidebar() {
 
         {/* Compose Button - Pinned at bottom */}
         {isAuthenticated && (
-          <div className="border-t border-sidebar-border p-2 lg:p-4">
+          <div className="sticky bottom-0 right-0 border-t border-sidebar-border p-2 lg:p-4">
             <Link href="/compose">
               <Button
                 className={cn(
