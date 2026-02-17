@@ -843,7 +843,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
                         {post.embed.media.$type === 'app.bsky.embed.video#view' && post.embed.media.video && (
                           <div className="mt-3">
-                            {/* TODO: resolve actual playable blob URL */}
+                            VIDEO
                             <video
                               controls
                               className="w-full rounded-lg"
