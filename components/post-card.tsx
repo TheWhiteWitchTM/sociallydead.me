@@ -490,7 +490,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
     }
     setIsFollowLoading(true)
     try {
-      await followUser(post.author.did)
+      await followUser(post.author?.did)
       setIsFollowing(true)
     } catch (error) {
       console.error("Failed to follow:", error)
@@ -518,7 +518,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                 </Avatar>
                 <VerifiedBadge
                   handle={post.author?.handle}
-                  did={post.author.did}
+                  did={post.author?.did}
                   className="absolute left-5 top-7 rounded-full"
                 />
               </Link>
@@ -530,7 +530,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
               {post.author?.displayName}
               <VerifiedBadge
                 handle={post.author?.handle}
-                did={post.author.did}
+                did={post.author?.did}
                 className={"pt-1"}
               />
             </div>
@@ -762,7 +762,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                   </Avatar>
                                   <VerifiedBadge
                                     handle={post.embed.record.author?.handle}
-                                    did={post.embed.record.author.did}
+                                    did={post.embed.record.author?.did}
                                     className="absolute left-5 top-7 rounded-full"
                                   />
                                 </Link>
@@ -773,7 +773,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                 {post.embed.record.author?.displayName}
                                 <VerifiedBadge
                                   handle={post.embed.record.author?.handle}
-                                  did={post.embed.record.author.did}
+                                  did={post.embed.record.author?.did}
                                   className={"pt-1"}
                                 />
                               </div>
@@ -880,7 +880,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                     </Avatar>
                                     <VerifiedBadge
                                       handle={post.embed.record.author?.handle}
-                                      did={post.embed.record.author.did}
+                                      did={post.embed.record.author?.did}
                                       className="absolute left-5 top-7 rounded-full"
                                     />
                                   </Link>
@@ -891,7 +891,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                                   {post.embed.record.author?.displayName}
                                   <VerifiedBadge
                                     handle={post.embed.record.author?.handle}
-                                    did={post.embed.record.author.did}
+                                    did={post.embed.record.author?.did}
                                     className={"pt-1"}
                                   />
                                 </div>
@@ -1013,7 +1013,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </AvatarFallback>
                     <VerifiedBadge
                       handle={post.author?.handle}
-                      did={post.author.did}
+                      did={post.author?.did}
                       className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
                     />
                   </Avatar>
@@ -1122,7 +1122,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                     </Avatar>
                     <VerifiedBadge
                       handle={post.author?.handle}
-                      did={post.author.did}
+                      did={post.author?.did}
                       className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
                     />
                   </div>
