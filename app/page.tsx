@@ -255,6 +255,9 @@ export default function HomePage() {
         <main className="container mx-auto px-4 py-2 sm:py-2">
           {/* Hero Section with Login */}
           <div className="text-center mb-1 max-w-4xl mx-auto">
+            <p className={"py-2"}>
+              <CoffeeWare/>
+            </p>
             <div className="flex justify-center mb-1">
               <Image
                 src={"/banner.jpg"}
@@ -264,9 +267,6 @@ export default function HomePage() {
                 priority
               />
             </div>
-            <p>
-              <CoffeeWare/>
-            </p>
             <p className="text-lg text-muted-foreground mb-4">
               An <span className="text-primary font-semibold">alternative Bluesky client</span> with powerful features
             </p>
