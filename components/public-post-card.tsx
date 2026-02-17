@@ -54,7 +54,7 @@ interface PostCardProps {
   showReplyContext?: boolean
 }
 
-export function PuvlicPostCard({
+export function PublicPostCard({
                            post,
                            isOwnPost = false,
                            isPinned = false,
