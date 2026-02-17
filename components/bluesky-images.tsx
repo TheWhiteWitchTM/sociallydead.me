@@ -48,7 +48,6 @@ export function BlueskyImages({ images, className }: BlueskyImagesProps) {
 	return (
 		<>
 			<div className={cn(gridClasses, className)}>
-				<div>IMAGE GALLERY</div>
 				{images.map((img, idx) => (
 					<button
 						key={idx}
