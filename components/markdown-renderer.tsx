@@ -45,12 +45,10 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 function renderContent(content: string, combinedRegex: RegExp) {
   try {
     if (!content) {
-      console.error("Emoty Narjdiwb!")
-      return (<span>MARKDOWN EMPTY ERROR!</span>)
+      return null
     }
     if (!content.length) {
-      console.error("Emoty Narjdiwb!")
-      return (<span>MARKDOWN EMPTY ERROR!</span>)
+      return null
     }
 
     const parts: React.ReactNode[] = []
