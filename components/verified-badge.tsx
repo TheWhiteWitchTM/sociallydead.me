@@ -27,8 +27,10 @@ async function checkBlueskyVerification(did: string): Promise<boolean> {
 		)
 		if (!res.ok) return false
 		const data = await res.json()
-		if (data.verification?.verifications?.length > 0) {
-			return true
+		if (data.verification.verifications) {
+			if (data.verification.verifications.length > 0) {
+				return true
+			}
 		}
 		return false
 	} catch {
