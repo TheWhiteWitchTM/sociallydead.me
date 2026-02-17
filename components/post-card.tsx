@@ -701,6 +701,34 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                           />
                         </a>
                       ))}
+                      {/* Video with fallback placeholder when ref missing */}
+                      {post.embed && post.embed.$type === 'app.bsky.embed.video#view' && post.embed.video && (
+                        <div className="mt-3">
+                          {post.embed.video.ref?.$link && post.author?.did ? (
+                            <video
+                              controls
+                              className="w-full rounded-lg"
+                              preload="metadata"
+                              crossOrigin="anonymous"
+                            >
+                              <source
+                                src={getVideoSourceUrl(post.embed.video, post.author.did)}
+                                type={post.embed.video.mimeType || "video/mp4"}
+                              />
+                              Your browser does not support the video tag.
+                            </video>
+                          ) : (
+                            <div className="aspect-video bg-gray-200 rounded-lg flex flex-col items-center justify-center text-center text-sm text-gray-600 p-4">
+                              <span className="text-3xl mb-2">🎥</span>
+                              Video detected (plays in Bluesky app)<br />
+                              Full details not loaded in feed
+                            </div>
+                          )}
+                          {post.embed.video.alt && (
+                            <p className="text-xs text-muted-foreground mt-1">{post.embed.video.alt}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
