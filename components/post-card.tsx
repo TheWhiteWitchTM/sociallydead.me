@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils"
 import {embed} from "ai";
 import { BlueskyVideo } from "./bluesky-video"
 import {BlueskyImages} from "@/components/bluesky-images";
+import {BlueskyExternal} from "@/components/bluesky-external";
 
 function formatEngagement(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -519,6 +520,9 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
   if (post.embed?.images?.length)
     imageLength = post.embed.images.length
   try {
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
     const jsx = (
       <>
         <div ref={cardRef}
@@ -696,7 +700,7 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                 {post?.embed && (
                   <>
                     {/* Direct images */}
-                    {imageLength != 0 && (
+                    {post?.embed?.images && (
                       <BlueskyImages
                         images={post.embed.images.map(img => ({
                           thumb: img.thumb,
@@ -706,18 +710,6 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         className="mt-3"
                       />
                     )}
-
-                    {post?.embed?.$type === 'app.bsky.embed.recordWithMedia#view' &&
-                      post?.embed?.media?.images && (
-                        <BlueskyImages
-                          images={post.embed.media.images.map(img => ({
-                            thumb: img.thumb,
-                            fullsize: img.fullsize,
-                            alt: img.alt ?? "",
-                          }))}
-                          className="mt-3"
-                        />
-                      )}
 
                     {/* Video */}
                     {post.embed.$type==='app.bsky.embed.video#view' && (
@@ -732,30 +724,13 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
 
                     {/* External link card */}
                     {post?.embed?.external && (
-                      <a
-                        href={post.embed.external.uri}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block mt-3"
-                      >
-                        <div className="overflow-hidden hover:bg-accent/50 transition-colors">
-                          {post.embed.external.thumb && (
-                            <div className="aspect-video relative">
-                              <img
-                                src={post.embed.external.thumb}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="p-1">
-                            <p className="font-medium line-clamp-2">{post.embed.external.title}</p>
-                            <p
-                              className="text-sm text-muted-foreground line-clamp-2 mt-1">{post.embed.external.description}</p>
-                            <p className="text-xs text-muted-foreground mt-2 truncate">{post.embed.external.uri}</p>
-                          </div>
-                        </div>
-                      </a>
+                      <BlueskyExternal
+                        uri={post.embed.external.uri}
+                        title={post.embed.external.title}
+                        description={post.embed.external.description}
+                        thumb={post.embed.external.thumb}
+                        className="mt-3"
+                      />
                     )}
 
                     {/* Quoted post (record embed) */}
