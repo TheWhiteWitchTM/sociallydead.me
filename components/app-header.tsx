@@ -167,7 +167,7 @@ export function AppHeader() {
                   size="sm"
                   className={cn("gap-0", isActive && "bg-primary text-primary-foreground font-semibold")}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className="h-4 w-4 pr-1" />
                   <span>{item.label}</span>
                 </Button>
               </Link>
@@ -181,7 +181,7 @@ export function AppHeader() {
                 size="sm"
                 className={cn("gap-0", pathname.startsWith("/feed/") && "bg-primary text-primary-foreground font-semibold")}
               >
-                <Rss className="h-4 w-4" />
+                <Rss className="h-4 w-4 pr-1" />
                 <span>Feeds</span>
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
@@ -193,7 +193,7 @@ export function AppHeader() {
                 return (
                   <DropdownMenuItem key={cat.id} asChild>
                     <Link href={cat.href} className={cn("flex items-center gap-2", active && "bg-accent font-medium")}>
-                      <cat.icon className="h-4 w-4" />
+                      <cat.icon className="h-4 w-4 pt-1" />
                       <span>{cat.label}</span>
                       {cat.adult && <span className="text-red-600 text-xs">18+</span>}
                     </Link>
@@ -239,7 +239,6 @@ export function AppHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">
                 <HelpCircle className="h-5 w-5" />
-                <span className="sr-only">Help</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -263,7 +262,6 @@ export function AppHeader() {
               trigger={
                 <Button variant="ghost" size="icon" className="h-9 w-9" title="Get Verified">
                   <CreditCard className="h-5 w-5" />
-                  <span className="sr-only">Get Verified</span>
                 </Button>
               }
             />
@@ -272,13 +270,11 @@ export function AppHeader() {
           {canInstall && (
             <Button variant="outline" size="sm" onClick={handleInstall} className="gap-2 bg-transparent">
               <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Install</span>
             </Button>
           )}
 
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            <span className="sr-only">Toggle theme</span>
           </Button>
         </div>
       </div>
