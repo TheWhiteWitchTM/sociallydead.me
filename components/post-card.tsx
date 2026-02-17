@@ -34,6 +34,7 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 import {embed} from "ai";
 import { BlueskyVideo } from "./bluesky-video"
+import {BlueskyImages} from "@/components/bluesky-images";
 
 function formatEngagement(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -720,6 +721,18 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                       </div>
                     )}
 
+                    {post?.embed?.$type === 'app.bsky.embed.recordWithMedia#view' &&
+                      post?.embed?.media?.images && (
+                        <BlueskyImages
+                          images={post.embed.media.images.map(img => ({
+                            thumb: img.thumb,
+                            fullsize: img.fullsize,
+                            alt: img.alt ?? "",
+                          }))}
+                          className="mt-3"
+                        />
+                      )}
+
                     {/* Video */}
                     {post.embed.$type==='app.bsky.embed.video#view' && (
                       <BlueskyVideo
@@ -727,8 +740,8 @@ export function PostCard({post, isOwnPost, isPinned, onPostUpdated, showReplyCon
                         thumbnail={post.embed.thumbnail}
                         alt={post.embed.alt}           // if it exists in your data
                         aspectRatio={post.embed.aspectRatio}
-                        className="mt-3"
-                      />
+                          className="mt-3"
+                        />
                     )}
 
                     {/* External link card */}
