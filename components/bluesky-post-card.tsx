@@ -45,36 +45,38 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { ComposeInput } from "@/components/compose-input"
+import { UserHoverCard } from "@/components/user-hover-card"
+import { VerifiedBadge } from "@/components/verified-badge"
+import { HandleLink } from "@/components/handle-link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 import { BlueskyContent } from "@/components/bluesky-content"
 import { BlueskyHeader } from "@/components/bluesky-header"
 import { BlueskyFooter } from "@/components/bluesky-footer"
 
-interface BlueskyPostCardProps {
+function formatEngagement(count: number): string {
+	if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+	if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+	return count.toString()
+}
+
+interface PostCardProps {
 	post: any
 	isOwnPost?: boolean
 	isPinned?: boolean
 	onPostUpdated?: () => void
 	showReplyContext?: boolean
-	isQuoted?: boolean
-	isReply?: boolean
-	depth?: number
-	className?: string
 }
 
-export function BlueskyPostCard({
-	                                post,
-	                                isOwnPost = false,
-	                                isPinned = false,
-	                                onPostUpdated,
-	                                showReplyContext = true,
-	                                isQuoted = false,
-	                                isReply = false,
-	                                depth = 0,
-	                                className = "",
-                                }: BlueskyPostCardProps) {
+export function PostCard({
+	                         post,
+	                         isOwnPost = false,
+	                         isPinned = false,
+	                         onPostUpdated,
+	                         showReplyContext = true,
+                         }: PostCardProps) {
 	const {
 		likePost,
 		unlikePost,
@@ -91,7 +93,7 @@ export function BlueskyPostCard({
 		followUser,
 		addBookmark,
 		removeBookmark,
-		checkIsBookmarked,
+		isBookmarked: checkIsBookmarked,
 		user,
 		isAuthenticated,
 		login,
@@ -101,13 +103,13 @@ export function BlueskyPostCard({
 
 	const [isLiked, setIsLiked] = useState(!!post.viewer?.like)
 	const [isReposted, setIsReposted] = useState(!!post.viewer?.repost)
-	const [likeCount, setLikeCount] = useState(post.likeCount ?? 0)
-	const [repostCount, setRepostCount] = useState(post.repostCount ?? 0)
-	const [replyCount, setReplyCount] = useState(post.replyCount ?? 0)
+	const [likeCount, setLikeCount] = useState(post.likeCount)
+	const [repostCount, setRepostCount] = useState(post.repostCount)
+	const [replyCount, setReplyCount] = useState(post.replyCount)
 	const [likeUri, setLikeUri] = useState(post.viewer?.like)
 	const [repostUri, setRepostUri] = useState(post.viewer?.repost)
 
-	const [editText, setEditText] = useState(post.record?.text || "")
+	const [editText, setEditText] = useState(post.record.text || "")
 	const [replyText, setReplyText] = useState("")
 	const [quoteText, setQuoteText] = useState("")
 	const [reportReason, setReportReason] = useState("spam")
@@ -143,12 +145,12 @@ export function BlueskyPostCard({
 			if (isLiked && likeUri) {
 				await unlikePost(likeUri)
 				setIsLiked(false)
-				setLikeCount((c) => c - 1)
+				setLikeCount(c => c - 1)
 				setLikeUri(undefined)
 			} else {
 				const newLikeUri = await likePost(post.uri, post.cid)
 				setIsLiked(true)
-				setLikeCount((c) => c + 1)
+				setLikeCount(c => c + 1)
 				setLikeUri(newLikeUri)
 			}
 		} catch (error) {
@@ -162,12 +164,12 @@ export function BlueskyPostCard({
 			if (isReposted && repostUri) {
 				await unrepost(repostUri)
 				setIsReposted(false)
-				setRepostCount((c) => c - 1)
+				setRepostCount(c => c - 1)
 				setRepostUri(undefined)
 			} else {
 				const newRepostUri = await repost(post.uri, post.cid)
 				setIsReposted(true)
-				setRepostCount((c) => c + 1)
+				setRepostCount(c => c + 1)
 				setRepostUri(newRepostUri)
 			}
 			setIsRepostDialogOpen(false)
@@ -184,7 +186,7 @@ export function BlueskyPostCard({
 				reply: { uri: post.uri, cid: post.cid },
 			})
 			setReplyText("")
-			setReplyCount((c) => c + 1)
+			setReplyCount(c => c + 1)
 			setIsReplyDialogOpen(false)
 			onPostUpdated?.()
 		} catch (error) {
@@ -271,7 +273,7 @@ export function BlueskyPostCard({
 	}
 
 	const handleCopyText = () => {
-		navigator.clipboard.writeText(post.record?.text || "").catch(() => {})
+		navigator.clipboard.writeText(post.record.text).catch(() => {})
 	}
 
 	const handleShare = () => {
@@ -299,9 +301,9 @@ export function BlueskyPostCard({
 		setIsFactChecking(true)
 		setIsFactCheckOpen(true)
 		setFactCheckResult(null)
-		// Placeholder - replace with real logic if you have it
 		try {
-			setFactCheckResult("Fact-check placeholder result")
+			// await fetch('/api/fact-check', ...)
+			setFactCheckResult("Fact-check placeholder")
 		} catch {
 			setFactCheckResult("Unable to fact-check right now.")
 		} finally {
@@ -336,40 +338,13 @@ export function BlueskyPostCard({
 		}
 	}
 
-	// ── Render ───────────────────────────────────────────────────────────────
-
-	const record = post.record ?? post.value
-	const author = post.author
-	const uri = post.uri ?? ""
-	const createdAt = record?.createdAt ? new Date(record.createdAt) : new Date()
-	const timeAgo = formatDistanceToNow(createdAt, { addSuffix: true })
-
-	const embed = post.embed ?? {}
-	const isRepostReason = post.reason?.$type === "app.bsky.feed.defs#reasonRepost"
-	const repostAuthor = isRepostReason ? post.reason.by : null
-	const mainPost = isRepostReason && post.post ? post.post : post
+	const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
 	return (
-		<div
-			className={cn(
-				"bg-card border border-border rounded-xl overflow-hidden shadow-sm",
-				isQuoted && "bg-muted/30 border-muted-foreground/60",
-				isReply && "border-l-4 border-l-blue-500/70 pl-5 bg-blue-50/20 dark:bg-blue-950/10",
-				className
-			)}
-		>
+		<div className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600">
 			<div className="p-3">
-				{/* Repost banner */}
-				{repostAuthor && (
-					<div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2 bg-muted/50 p-2 rounded">
-						<Repeat className="h-4 w-4" />
-						Reposted by {repostAuthor.displayName || `@${repostAuthor.handle}`}
-					</div>
-				)}
-
-				{/* Header */}
 				<BlueskyHeader
-					post={mainPost}
+					post={post}
 					isOwnPost={isOwnPost}
 					isPinned={isPinned}
 					showReplyContext={showReplyContext}
@@ -387,12 +362,9 @@ export function BlueskyPostCard({
 					onFactCheck={handleFactCheck}
 				/>
 
-				{/* Content */}
-				<BlueskyContent post={mainPost} className="mt-2" />
+				<BlueskyContent post={post} className="mt-2" />
 
-				{/* Footer */}
 				<BlueskyFooter
-					post={mainPost}
 					replyCount={replyCount}
 					repostCount={repostCount}
 					likeCount={likeCount}
@@ -406,23 +378,6 @@ export function BlueskyPostCard({
 					onAnalyticsClick={() => setIsAnalyticsOpen(true)}
 				/>
 			</div>
-
-			{/* Recursive nested post */}
-			{embed.record && (
-				<div className="px-3 pb-3 border-t border-border">
-					<BlueskyPostCard
-						post={embed.record}
-						isQuoted={true}
-						depth={depth + 1}
-						isOwnPost={isOwnPost}
-						isPinned={isPinned}
-						showReplyContext={showReplyContext}
-						onPostUpdated={onPostUpdated}
-					/>
-				</div>
-			)}
-
-			{/* ── All original dialogs restored ── */}
 
 			{/* Reply Dialog */}
 			<Dialog open={isReplyDialogOpen} onOpenChange={setIsReplyDialogOpen}>
@@ -478,8 +433,7 @@ export function BlueskyPostCard({
 						/>
 
 						<div className="border rounded-lg p-3 bg-muted/30">
-							{/* Use your MarkdownRenderer or BlueskyContent preview */}
-							<p className="text-sm line-clamp-6">{post.record.text}</p>
+							<MarkdownRenderer content={post.record.text} />
 						</div>
 					</div>
 				</DialogContent>
@@ -520,10 +474,7 @@ export function BlueskyPostCard({
 								<RadioGroupItem value="spam" id="spam" />
 								<Label htmlFor="spam">Spam or misleading</Label>
 							</div>
-							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="other" id="other" />
-								<Label htmlFor="other">Other</Label>
-							</div>
+							{/* ... your other radio options ... */}
 						</RadioGroup>
 
 						<div>
@@ -552,17 +503,21 @@ export function BlueskyPostCard({
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Edit Post</DialogTitle>
+						<DialogTitle>Edit Post (Pseudo-Edit)</DialogTitle>
 						<DialogDescription>
-							This will create a new post with the edited content. Original likes/reposts may not carry over.
+							This will delete your original post and create a new one with the edited content.
+							Likes and reposts will be lost.
 						</DialogDescription>
 					</DialogHeader>
 					<Textarea
 						value={editText}
-						onChange={(e) => setEditText(e.target.value)}
+						onChange={e => setEditText(e.target.value)}
 						className="min-h-32"
 						placeholder="What's happening?"
 					/>
+					<p className="text-xs text-muted-foreground">
+						Supports Markdown: **bold**, *italic*, `code`, [links](url), lists, etc.
+					</p>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
 							Cancel
@@ -614,7 +569,7 @@ export function BlueskyPostCard({
 							</div>
 						) : factCheckResult ? (
 							<div className="p-4 rounded-lg border bg-background">
-								<p>{factCheckResult}</p>
+								<MarkdownRenderer content={factCheckResult} />
 							</div>
 						) : null}
 					</div>
@@ -666,7 +621,56 @@ export function BlueskyPostCard({
 								</div>
 								<span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
 							</div>
+
+							<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+								<div className="flex items-center gap-2.5">
+									<div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
+										<BarChart3 className="h-4 w-4 text-purple-500" />
+									</div>
+									<span className="text-sm font-medium">Total Engagements</span>
+								</div>
+								<span className="text-lg font-bold tabular-nums">
+                  {(replyCount + repostCount + likeCount).toLocaleString()}
+                </span>
+							</div>
 						</div>
+
+						{(replyCount + repostCount + likeCount) > 0 && (
+							<div className="space-y-2">
+								<p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
+								<div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+									{replyCount > 0 && (
+										<div
+											className="h-full bg-blue-500 transition-all"
+											style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+										/>
+									)}
+									{repostCount > 0 && (
+										<div
+											className="h-full bg-green-500 transition-all"
+											style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+										/>
+									)}
+									{likeCount > 0 && (
+										<div
+											className="h-full bg-red-500 transition-all"
+											style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+										/>
+									)}
+								</div>
+								<div className="flex justify-between text-xs text-muted-foreground">
+									<div className="flex items-center gap-1">
+										<span className="h-2 w-2 rounded-full bg-blue-500" /> Replies
+									</div>
+									<div className="flex items-center gap-1">
+										<span className="h-2 w-2 rounded-full bg-green-500" /> Reposts
+									</div>
+									<div className="flex items-center gap-1">
+										<span className="h-2 w-2 rounded-full bg-red-500" /> Likes
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 				</DialogContent>
 			</Dialog>
