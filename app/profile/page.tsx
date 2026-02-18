@@ -21,7 +21,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Bug, Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star, FileText, Image, Plus, X, Pin, Rss, ListIcon, Package, Heart, UserPlus, UserMinus } from "lucide-react"
+import {
+  Bug, Loader2, Settings, Camera, ArrowLeft, ExternalLink, Calendar, Star,
+  FileText, Image, Plus, X, Pin, Rss, ListIcon, Package, Heart, UserPlus,
+  UserMinus, Video   // ← added Video icon
+} from "lucide-react"
 import { VerificationPrompt } from "@/components/verification-checkout"
 import { formatDistanceToNow } from "date-fns"
 import { VerifiedBadge } from "@/components/verified-badge"
@@ -78,6 +82,24 @@ interface Post {
       fullsize: string
       alt: string
     }>
+    video?: {  // added for video support
+      ref: { $link: string }
+      mimeType: string
+      thumb?: {
+        fullsize?: string
+        [key: string]: any
+      }
+    }
+    external?: {
+      uri: string
+      title: string
+      description: string
+      thumb?: {
+        fullsize?: string
+        [key: string]: any
+      }
+      mimeType?: string
+    }
   }
   replyCount: number
   repostCount: number
@@ -114,9 +136,9 @@ interface FullProfile {
 }
 
 function ProfileContent() {
-  const { 
-    user, 
-    isAuthenticated, 
+  const {
+    user,
+    isAuthenticated,
     isLoading,
     updateProfile,
     getFollowers,
@@ -135,50 +157,48 @@ function ProfileContent() {
     unfollowUser,
     followUser,
   } = useBluesky()
-  
-  // Store full profile data with banner
+
   const [fullProfile, setFullProfile] = useState<FullProfile | null>(null)
-  
+
   const searchParams = useSearchParams()
   const initialTab = searchParams.get("tab") || "posts"
-  
+
   const [activeTab, setActiveTab] = useState(initialTab)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
-  
-  // Edit form state
+
   const [displayName, setDisplayName] = useState("")
   const [description, setDescription] = useState("")
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
-  
-  // Posts state
+
   const [posts, setPosts] = useState<Post[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
   const [pinnedPostData, setPinnedPostData] = useState<Post | null>(null)
-  
-  // Highlights and Articles (SociallyDead exclusive)
+
   const [highlights, setHighlights] = useState<Array<{ uri: string; postUri: string; postCid: string; createdAt: string }>>([])
   const [highlightPosts, setHighlightPosts] = useState<Post[]>([])
   const [articles, setArticles] = useState<Array<{ uri: string; rkey: string; title: string; content: string; createdAt: string }>>([])
   const [highlightLoading, setHighlightLoading] = useState(false)
-  
-  // Feeds, Lists, Starter Packs state
+
   const [feeds, setFeeds] = useState<Array<{ uri: string; displayName: string; description?: string; avatar?: string; likeCount?: number; creator: { handle: string; displayName?: string } }>>([])
   const [lists, setLists] = useState<Array<{ uri: string; name: string; purpose: string; description?: string; avatar?: string; listItemCount?: number }>>([])
   const [starterPacks, setStarterPacks] = useState<Array<{ uri: string; cid: string; record: { name: string; description?: string; createdAt: string } }>>([])
   const [feedsLoading, setFeedsLoading] = useState(false)
   const [listsLoading, setListsLoading] = useState(false)
   const [starterPacksLoading, setStarterPacksLoading] = useState(false)
-  
-  // Followers/Following modal state
+
   const [showFollowersModal, setShowFollowersModal] = useState(false)
   const [showFollowingModal, setShowFollowingModal] = useState(false)
   const [followers, setFollowers] = useState<UserProfile[]>([])
   const [following, setFollowing] = useState<UserProfile[]>([])
   const [listLoading, setListLoading] = useState(false)
+
+  // ── New state for Videos tab ────────────────────────────────────────
+  const [videos, setVideos] = useState<Post[]>([])
+  const [videosLoading, setVideosLoading] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -187,7 +207,6 @@ function ProfileContent() {
     }
   }, [user])
 
-  // Load pinned post
   const loadPinnedPost = useCallback(async () => {
     if (!user) return
     try {
@@ -204,7 +223,6 @@ function ProfileContent() {
     }
   }, [user, getProfile, getPost])
 
-  // Load pinned post on mount
   useEffect(() => {
     if (user) {
       loadPinnedPost()
@@ -253,10 +271,10 @@ function ProfileContent() {
   const loadPosts = useCallback(async (type: string) => {
     if (!user) return
     setPostsLoading(true)
-    
+
     try {
       let fetchedPosts: Post[]
-      
+
       switch (type) {
         case "posts":
           fetchedPosts = await getUserPosts(user.did)
@@ -270,7 +288,7 @@ function ProfileContent() {
         default:
           fetchedPosts = await getUserPosts(user.did)
       }
-      
+
       setPosts(fetchedPosts)
     } catch (err) {
       console.error("Failed to load posts:", err)
@@ -279,16 +297,51 @@ function ProfileContent() {
     }
   }, [user, getUserPosts, getUserReplies, getUserMedia])
 
+  // ── New: load videos ─────────────────────────────────────────────────
+  const loadVideos = useCallback(async () => {
+    if (!user) return
+    setVideosLoading(true)
+
+    try {
+      // For simplicity we fetch regular posts and filter client-side
+      // (you could later optimize with a dedicated API call if available)
+      const allPosts = await getUserPosts(user.did)
+
+      const videoPosts = allPosts.filter(post => {
+        if (!post.embed) return false
+        const embed = post.embed
+
+        // Official Bluesky video embed (most common)
+        if (embed.$type === "app.bsky.embed.video") return true
+
+        // Some external videos might come as external embed with video mime
+        if (
+          embed.$type === "app.bsky.embed.external" &&
+          embed.external?.mimeType?.startsWith("video/")
+        ) {
+          return true
+        }
+
+        return false
+      })
+
+      setVideos(videoPosts)
+    } catch (err) {
+      console.error("Failed to load videos:", err)
+      setVideos([])
+    } finally {
+      setVideosLoading(false)
+    }
+  }, [user, getUserPosts])
+
   const loadHighlightsAndArticles = useCallback(async () => {
     if (!user) return
     setHighlightLoading(true)
-    
+
     try {
-      // Load highlights
       const highlightData = await getHighlights(user.did)
       setHighlights(highlightData)
-      
-      // Load the actual posts for highlights
+
       if (highlightData.length > 0) {
         const highlightPostPromises = highlightData.map(h => getPost(h.postUri))
         const fetchedPosts = await Promise.all(highlightPostPromises)
@@ -296,8 +349,7 @@ function ProfileContent() {
       } else {
         setHighlightPosts([])
       }
-      
-      // Load articles
+
       const articleData = await getArticles(user.did)
       setArticles(articleData)
     } catch (error) {
@@ -307,21 +359,22 @@ function ProfileContent() {
     }
   }, [user, getHighlights, getArticles, getPost])
 
-  // Load posts when tab changes
   useEffect(() => {
     if (user && (activeTab === "posts" || activeTab === "replies" || activeTab === "media")) {
       loadPosts(activeTab)
     }
-  }, [user, activeTab, loadPosts])
+    // ── added videos loading ────────────────────────────────
+    if (user && activeTab === "videos") {
+      loadVideos()
+    }
+  }, [user, activeTab, loadPosts, loadVideos])
 
-  // Load highlights and articles on mount
   useEffect(() => {
     if (user) {
       loadHighlightsAndArticles()
     }
   }, [user, loadHighlightsAndArticles])
 
-  // Auto-load feeds, lists, and starter packs on mount so tabs show if they have content
   useEffect(() => {
     if (user) {
       loadFeeds()
@@ -330,14 +383,11 @@ function ProfileContent() {
     }
   }, [user, loadFeeds, loadLists, loadStarterPacks])
 
-  // Load full profile data (including banner) on mount - always fetch fresh
   useEffect(() => {
     if (user) {
       getProfile(user.handle).then((profile) => {
         setFullProfile(profile)
-      }).catch(() => {
-        // Silently fail - will use context user data
-      })
+      }).catch(() => {})
     }
   }, [user, getProfile])
 
@@ -405,8 +455,7 @@ function ProfileContent() {
       setAvatarPreview(null)
       setBannerFile(null)
       setBannerPreview(null)
-      
-      // Refresh full profile to get updated banner
+
       if (user) {
         const updatedProfile = await getProfile(user.handle)
         setFullProfile(updatedProfile)
@@ -462,19 +511,16 @@ function ProfileContent() {
       </header>
 
       <main className="mx-auto max-w-2xl">
-        {/* Profile Header */}
         <div className="relative">
-          {/* Banner - use fullProfile for latest data including banner */}
           {(fullProfile?.banner || user.banner) ? (
-            <div 
-              className="h-32 sm:h-48 w-full bg-cover bg-center" 
-              style={{ backgroundImage: `url(${fullProfile?.banner || user.banner})` }} 
+            <div
+              className="h-32 sm:h-48 w-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${fullProfile?.banner || user.banner})` }}
             />
           ) : (
             <div className="h-32 sm:h-48 w-full bg-gradient-to-r from-primary/30 to-primary/10" />
           )}
-          
-          {/* Avatar */}
+
           <div className="absolute -bottom-16 left-4">
             <div className="relative">
               <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
@@ -483,15 +529,14 @@ function ProfileContent() {
                   {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <VerifiedBadge 
-                handle={user.handle} 
+              <VerifiedBadge
+                handle={user.handle}
                 did={user.did}
-                className="absolute right-0 bottom-0 scale-125 origin-bottom-right bg-background rounded-full border-2 border-background" 
+                className="absolute right-0 bottom-0 scale-125 origin-bottom-right bg-background rounded-full border-2 border-background"
               />
             </div>
           </div>
-          
-          {/* Edit Button */}
+
           <div className="absolute right-4 bottom-4 flex gap-1">
             <Button variant="outline" size="sm" onClick={openEditDialog}>
               Edit Profile
@@ -501,34 +546,33 @@ function ProfileContent() {
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
-	          <Link href="/debug">
-		          <Button variant="outline" size="icon" className="h-9 w-9">
-			          <Bug className="h-4 w-4" />
-		          </Button>
-	          </Link>
+            <Link href="/debug">
+              <Button variant="outline" size="icon" className="h-9 w-9">
+                <Bug className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
-        
-{/* Profile Info */}
+
         <div className="px-4 pt-20 pb-4">
           <h2 className="text-xl font-bold inline-flex items-center gap-1.5">
             {user.displayName || user.handle}
             <VerifiedBadge handle={user.handle} did={user.did} className="h-5 w-5" />
           </h2>
           <HandleLink handle={user.handle} />
-          
+
           {user.description && (
             <p className="mt-3 whitespace-pre-wrap">{user.description}</p>
           )}
-          
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
               <span>Joined Bluesky</span>
             </div>
-            <a 
-              href={`https://bsky.app/profile/${user.handle}`} 
-              target="_blank" 
+            <a
+              href={`https://bsky.app/profile/${user.handle}`}
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
@@ -536,10 +580,9 @@ function ProfileContent() {
               <span>View on Bluesky</span>
             </a>
           </div>
-          
-          {/* Stats */}
+
           <div className="flex gap-4 mt-3 text-sm">
-            <button 
+            <button
               onClick={() => {
                 setShowFollowingModal(true)
                 loadFollowing()
@@ -549,7 +592,7 @@ function ProfileContent() {
               <span className="font-semibold">{user.followsCount || 0}</span>
               <span className="text-muted-foreground ml-1">Following</span>
             </button>
-            <button 
+            <button
               onClick={() => {
                 setShowFollowersModal(true)
                 loadFollowers()
@@ -563,7 +606,6 @@ function ProfileContent() {
           <VerificationPrompt className="mt-2" />
         </div>
 
-        {/* Profile Tabs - X/Twitter Style */}
         <Tabs value={activeTab} onValueChange={(tab) => {
           setActiveTab(tab)
           if (tab === "feeds") loadFeeds()
@@ -590,6 +632,13 @@ function ProfileContent() {
                 <Image className="h-3 w-3 shrink-0" />
                 Media
               </TabsTrigger>
+
+              {/* ── NEW VIDEOS TAB ─────────────────────────────────────── */}
+              <TabsTrigger value="videos" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
+                <Video className="h-3 w-3 shrink-0" />
+                Videos
+              </TabsTrigger>
+
               {feeds.length > 0 && (
                 <TabsTrigger value="feeds" className="flex-none flex items-center gap-1 text-xs sm:text-sm px-2.5 sm:px-3">
                   <Rss className="h-3 w-3 shrink-0" />
@@ -610,17 +659,16 @@ function ProfileContent() {
               )}
             </TabsList>
           </div>
-          
-<TabsContent value="posts" className="mt-4">
-            {/* Pinned Post */}
+
+          <TabsContent value="posts" className="mt-4">
             {pinnedPostData && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2 px-2 text-sm text-muted-foreground">
                   <Pin className="h-4 w-4" />
                   <span>Pinned</span>
                 </div>
-                <PostCard 
-                  post={pinnedPostData} 
+                <PostCard
+                  post={pinnedPostData}
                   isOwnPost={true}
                   isPinned={true}
                   onPostUpdated={() => {
@@ -654,7 +702,7 @@ function ProfileContent() {
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="replies" className="mt-4">
             {postsLoading ? (
               <div className="flex justify-center py-12">
@@ -677,7 +725,7 @@ function ProfileContent() {
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="highlights" className="mt-4">
             {highlightLoading ? (
               <div className="flex justify-center py-12">
@@ -722,7 +770,7 @@ function ProfileContent() {
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="articles" className="mt-4">
             {highlightLoading ? (
               <div className="flex justify-center py-12">
@@ -767,7 +815,7 @@ function ProfileContent() {
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="media" className="mt-4">
             {postsLoading ? (
               <div className="flex justify-center py-12">
@@ -778,7 +826,22 @@ function ProfileContent() {
             )}
           </TabsContent>
 
-          {/* Feeds Tab */}
+          {/* ── NEW VIDEOS TAB CONTENT ─────────────────────────────────── */}
+          <TabsContent value="videos" className="mt-4">
+            {videosLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : videos.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Video className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No videos yet</p>
+              </div>
+            ) : (
+              <VideoGrid posts={videos} userHandle={user.handle} />
+            )}
+          </TabsContent>
+
           <TabsContent value="feeds" className="mt-4">
             {feedsLoading ? (
               <div className="flex justify-center py-12">
@@ -823,7 +886,6 @@ function ProfileContent() {
             )}
           </TabsContent>
 
-          {/* Lists Tab */}
           <TabsContent value="lists" className="mt-4">
             {listsLoading ? (
               <div className="flex justify-center py-12">
@@ -865,7 +927,6 @@ function ProfileContent() {
             )}
           </TabsContent>
 
-          {/* Starter Packs Tab */}
           <TabsContent value="starterpacks" className="mt-4">
             {starterPacksLoading ? (
               <div className="flex justify-center py-12">
@@ -904,7 +965,6 @@ function ProfileContent() {
         </Tabs>
       </main>
 
-      {/* Followers Modal */}
       <Dialog open={showFollowersModal} onOpenChange={setShowFollowersModal}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -928,7 +988,6 @@ function ProfileContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Following Modal */}
       <Dialog open={showFollowingModal} onOpenChange={setShowFollowingModal}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -952,7 +1011,6 @@ function ProfileContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Profile Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -961,20 +1019,19 @@ function ProfileContent() {
               Update your profile information. Changes will be visible on Bluesky.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
-            {/* Banner Upload */}
             <div>
               <Label>Banner Image</Label>
               <div className="mt-2 relative">
-                <div 
+                <div
                   className="h-24 w-full rounded-lg bg-cover bg-center bg-muted"
-                  style={{ 
-                    backgroundImage: bannerPreview 
-                      ? `url(${bannerPreview})` 
+                  style={{
+                    backgroundImage: bannerPreview
+                      ? `url(${bannerPreview})`
                       : (fullProfile?.banner || user.banner)
-                        ? `url(${fullProfile?.banner || user.banner})` 
-                        : undefined 
+                        ? `url(${fullProfile?.banner || user.banner})`
+                        : undefined
                   }}
                 />
                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
@@ -991,16 +1048,15 @@ function ProfileContent() {
                 Recommended: 1500x500 pixels
               </p>
             </div>
-            
-            {/* Avatar Upload */}
+
             <div>
               <Label>Profile Picture</Label>
               <div className="mt-2 flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage 
-                      src={avatarPreview || user.avatar || "/placeholder.svg"} 
-                      alt="Profile" 
+                    <AvatarImage
+                      src={avatarPreview || user.avatar || "/placeholder.svg"}
+                      alt="Profile"
                     />
                     <AvatarFallback className="text-xl">
                       {(displayName || user.handle).slice(0, 2).toUpperCase()}
@@ -1022,8 +1078,7 @@ function ProfileContent() {
                 </div>
               </div>
             </div>
-            
-            {/* Display Name */}
+
             <div>
               <Label htmlFor="displayName">Display Name</Label>
               <Input
@@ -1038,8 +1093,7 @@ function ProfileContent() {
                 {displayName.length}/64
               </p>
             </div>
-            
-            {/* Bio/Description */}
+
             <div>
               <Label htmlFor="description">Bio</Label>
               <Textarea
@@ -1055,7 +1109,7 @@ function ProfileContent() {
               </p>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
@@ -1113,10 +1167,10 @@ function UserCard({ user, onNavigate }: { user: UserProfile & { viewer?: { follo
                   {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <VerifiedBadge 
-                handle={user.handle} 
+              <VerifiedBadge
+                handle={user.handle}
                 did={user.did}
-                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full" 
+                className="absolute -right-1 -bottom-1 scale-50 origin-bottom-right bg-background rounded-full"
               />
             </Link>
           </UserHoverCard>
@@ -1164,7 +1218,6 @@ function UserCard({ user, onNavigate }: { user: UserProfile & { viewer?: { follo
 }
 
 function MediaGrid({ posts, userHandle }: { posts: Post[]; userHandle: string }) {
-  // Extract all images from posts
   const allMedia = posts.flatMap(post => {
     if (post.embed?.images) {
       return post.embed.images.map(img => ({
@@ -1189,7 +1242,7 @@ function MediaGrid({ posts, userHandle }: { posts: Post[]; userHandle: string })
   return (
     <div className="grid grid-cols-3 gap-1 sm:gap-2">
       {allMedia.map((media, index) => (
-        <Link 
+        <Link
           key={`${media.postUri}-${index}`}
           href={`/profile/${userHandle}/post/${media.postUri.split('/').pop()}`}
           className="aspect-square relative overflow-hidden rounded-md bg-muted hover:opacity-90 transition-opacity"
@@ -1199,6 +1252,64 @@ function MediaGrid({ posts, userHandle }: { posts: Post[]; userHandle: string })
             alt={media.alt || "Media"}
             className="w-full h-full object-cover"
           />
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+// ── NEW COMPONENT: VideoGrid ─────────────────────────────────────────────
+function VideoGrid({ posts, userHandle }: { posts: Post[]; userHandle: string }) {
+  const allVideos = posts
+    .map(post => {
+      if (!post.embed) return null
+
+      let thumbUrl: string | undefined = undefined
+
+      if (post.embed.$type === "app.bsky.embed.video") {
+        thumbUrl = post.embed.video?.thumb?.fullsize || post.embed.video?.thumb
+      } else if (
+        post.embed.$type === "app.bsky.embed.external" &&
+        post.embed.external?.mimeType?.startsWith("video/")
+      ) {
+        thumbUrl = post.embed.external.thumb?.fullsize || post.embed.external.thumb
+      }
+
+      if (!thumbUrl) return null
+
+      return {
+        postUri: post.uri,
+        thumb: thumbUrl,
+        alt: "Video thumbnail",
+      }
+    })
+    .filter((v): v is NonNullable<typeof v> => !!v)
+
+  if (allVideos.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Video className="h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">No video posts with thumbnails found</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-1 sm:gap-2">
+      {allVideos.map((video, index) => (
+        <Link
+          key={`${video.postUri}-${index}`}
+          href={`/profile/${userHandle}/post/${video.postUri.split('/').pop()}`}
+          className="aspect-square relative overflow-hidden rounded-md bg-muted hover:opacity-90 transition-opacity group"
+        >
+          <img
+            src={video.thumb}
+            alt={video.alt}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-70 group-hover:opacity-90 transition-opacity">
+            <Video className="h-10 w-10 sm:h-12 sm:w-12 text-white drop-shadow-lg" fill="currentColor" />
+          </div>
         </Link>
       ))}
     </div>
