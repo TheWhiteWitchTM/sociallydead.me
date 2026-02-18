@@ -158,23 +158,13 @@ export function ComposeInput({
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
 
-  const [mentionPickerOpen, setMentionPickerOpen] = useState(false)
-  const [mentionSearch, setMentionSearch] = useState("")
-  const [mentionPickerResults, setMentionPickerResults] = useState<MentionSuggestion[]>([])
-  const [selectedMentions, setSelectedMentions] = useState<Set<string>>(new Set())
-  const [isSearchingPicker, setIsSearchingPicker] = useState(false)
-
-  const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
-  const [hashtagSearch, setHashtagSearch] = useState("")
-  const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
-
   const hasVideo = mediaFiles.some(f => f.type === "video")
   const hasImages = mediaFiles.some(f => f.type === "image")
   const imageCount = mediaFiles.filter(f => f.type === "image").length
   const canAddMedia = !hasVideo && imageCount < MAX_IMAGES
 
   const charCount = text.length
-  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars   // ← THE ONLY NEW LINE
+  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
 
   const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
   const isNearLimit = progress >= 70
@@ -477,68 +467,6 @@ export function ComposeInput({
     }, 0)
   }
 
-  const searchMentionsPicker = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setMentionPickerResults([])
-      return
-    }
-    setIsSearchingPicker(true)
-    try {
-      const typeahead = await searchActorsTypeahead(query)
-      let actors = typeahead.actors
-      if ((!actors || actors.length === 0) && query.length > 0) {
-        const result = await searchActors(query)
-        actors = result.actors
-      }
-      setMentionPickerResults((actors || []).slice(0, 20))
-    } catch (error) {
-      console.error('Error searching mentions:', error)
-      setMentionPickerResults([])
-    } finally {
-      setIsSearchingPicker(false)
-    }
-  }, [searchActors, searchActorsTypeahead])
-
-  const insertSelectedMentions = () => {
-    if (selectedMentions.size === 0) return
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
-    const mentions = Array.from(selectedMentions).map(h => `@${h}`).join(' ')
-    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + mentions + ' ' + after
-    onTextChange(newText)
-    setSelectedMentions(new Set())
-    setMentionPickerOpen(false)
-    setMentionSearch("")
-    setTimeout(() => textareaRef.current?.focus(), 100)
-  }
-
-  const insertSelectedHashtags = () => {
-    if (selectedHashtags.size === 0) return
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
-    const hashtags = Array.from(selectedHashtags).map(h => `#${h}`).join(' ')
-    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + hashtags + ' ' + after
-    onTextChange(newText)
-    setSelectedHashtags(new Set())
-    setHashtagPickerOpen(false)
-    setHashtagSearch("")
-    setTimeout(() => textareaRef.current?.focus(), 100)
-  }
-
-  const filteredHashtags = hashtagSearch.trim() === ""
-    ? POPULAR_HASHTAGS
-    : POPULAR_HASHTAGS.filter(tag => tag.toLowerCase().includes(hashtagSearch.toLowerCase()))
-
-  useEffect(() => {
-    if (!mentionPickerOpen) return
-    const timer = setTimeout(() => {
-      searchMentionsPicker(mentionSearch)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [mentionSearch, mentionPickerOpen, searchMentionsPicker])
-
   const wrapSelection = (prefix: string, suffix: string) => {
     const textarea = textareaRef.current
     if (!textarea) return
@@ -614,10 +542,10 @@ export function ComposeInput({
       if (headingMatch) {
         const [, hashes, content] = headingMatch
         lineParts.push(
-          <span key={`${lineKey}-heading`} className="text-primary font-bold text-lg">
-            <span className="text-muted-foreground">{hashes} </span>
-            {content}
-          </span>
+          <>
+            <span key={`${lineKey}-heading-syntax`} className="text-muted-foreground/60">{hashes} </span>
+            <span key={`${lineKey}-heading-content`} className="text-primary font-bold">{content}</span>
+          </>
         )
         return <span key={lineKey}>{lineParts}</span>
       }
@@ -647,68 +575,68 @@ export function ComposeInput({
           switch (type) {
             case 'bold':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                <>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[1]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="font-bold">{match[2]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[3]}</span>
+                </>
               )
               break
             case 'italic':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="italic">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                <>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[1]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="italic">{match[2]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[3]}</span>
+                </>
               )
               break
             case 'strikethrough':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                <>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[1]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="line-through">{match[2]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[3]}</span>
+                </>
               )
               break
             case 'code':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="bg-muted text-primary px-1 rounded font-mono text-xs">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                <>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[1]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="bg-muted text-primary">{match[2]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[3]}</span>
+                </>
               )
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="underline">{match[2]}</span>
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                  <span className="text-blue-400 text-xs">{match[4]}</span>
-                  <span className="text-muted-foreground/60">{match[5]}</span>
-                </span>
+                <>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[1]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline">{match[2]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[3]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-blue-400 text-xs">{match[4]}</span>
+                  <span key={`${lineKey}-${keyCounter++}`} className="text-muted-foreground/60">{match[5]}</span>
+                </>
               )
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 bg-blue-500/10">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 bg-blue-500/10">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10">
                   {match[0]}
                 </span>
               )
@@ -819,7 +747,7 @@ export function ComposeInput({
                 disabled={
                   isSubmitting ||
                   (!text.trim() && mediaFiles.length === 0) ||
-                  isOverLimit   // ← THE ONLY CHANGE THAT WAS ACTUALLY REQUESTED
+                  isOverLimit
                 }
                 size="sm"
                 className="h-7 px-3 text-xs font-bold"
@@ -1020,41 +948,26 @@ export function ComposeInput({
 
             <Separator orientation="vertical" className="h-5 mx-1" />
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setMentionPickerOpen(true)}
-                >
-                  <AtSign className="h-3.5 w-3.5" />
-                  <span className="sr-only">Add Mentions</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Add Mentions</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setHashtagPickerOpen(true)}
-                >
-                  <Hash className="h-3.5 w-3.5" />
-                  <span className="sr-only">Add Hashtags</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Add Hashtags</p>
-              </TooltipContent>
-            </Tooltip>
+            {!isDM && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!canAddMedia}
+                  >
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    <span className="sr-only">Add Media</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Add Media</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       </TooltipProvider>
@@ -1145,155 +1058,6 @@ export function ComposeInput({
         </div>
       )}
 
-      <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Mentions</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Search for people..."
-              value={mentionSearch}
-              onChange={(e) => setMentionSearch(e.target.value)}
-              autoFocus
-              className="h-10 text-base"
-            />
-            <ScrollArea className="h-72 border rounded-lg">
-              {isSearchingPicker ? (
-                <div className="flex items-center justify-center p-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : mentionPickerResults.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  {mentionSearch ? "No users found" : "Type to search for people"}
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {mentionPickerResults.map((user) => (
-                    <div
-                      key={user.did}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
-                      onClick={() => {
-                        const newSelected = new Set(selectedMentions)
-                        if (newSelected.has(user.handle)) {
-                          newSelected.delete(user.handle)
-                        } else {
-                          newSelected.add(user.handle)
-                        }
-                        setSelectedMentions(newSelected)
-                      }}
-                    >
-                      <Checkbox
-                        checked={selectedMentions.has(user.handle)}
-                        onCheckedChange={() => {}}
-                      />
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                        <AvatarFallback>
-                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate flex items-center gap-1">
-                          {user.displayName || user.handle}
-                          <VerifiedBadge handle={user.handle} />
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                {selectedMentions.size} selected
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => {
-                  setMentionPickerOpen(false)
-                  setSelectedMentions(new Set())
-                  setMentionSearch("")
-                }}>
-                  Cancel
-                </Button>
-                <Button onClick={insertSelectedMentions} disabled={selectedMentions.size === 0}>
-                  Add {selectedMentions.size > 0 && `(${selectedMentions.size})`}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={hashtagPickerOpen} onOpenChange={setHashtagPickerOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Hashtags</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Search hashtags..."
-              value={hashtagSearch}
-              onChange={(e) => setHashtagSearch(e.target.value)}
-              autoFocus
-              className="h-10 text-base"
-            />
-            <ScrollArea className="h-72 border rounded-lg">
-              {filteredHashtags.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  No hashtags found
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {filteredHashtags.map((tag) => (
-                    <div
-                      key={tag}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
-                      onClick={() => {
-                        const newSelected = new Set(selectedHashtags)
-                        if (newSelected.has(tag)) {
-                          newSelected.delete(tag)
-                        } else {
-                          newSelected.add(tag)
-                        }
-                        setSelectedHashtags(newSelected)
-                      }}
-                    >
-                      <Checkbox
-                        checked={selectedHashtags.has(tag)}
-                        onCheckedChange={() => {}}
-                      />
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                        <Hash className="h-5 w-5" />
-                      </div>
-                      <span className="text-sm font-medium">#{tag}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                {selectedHashtags.size} selected
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => {
-                  setHashtagPickerOpen(false)
-                  setSelectedHashtags(new Set())
-                  setHashtagSearch("")
-                }}>
-                  Cancel
-                </Button>
-                <Button onClick={insertSelectedHashtags} disabled={selectedHashtags.size === 0}>
-                  Add {selectedHashtags.size > 0 && `(${selectedHashtags.size})`}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1313,6 +1077,15 @@ export function ComposeInput({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleMediaSelect}
+        multiple
+        accept={ALL_MEDIA_TYPES.join(',')}
+        className="hidden"
+      />
 
     </div>
   )
