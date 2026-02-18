@@ -9,6 +9,8 @@ import { Button } from "./ui/button"
 import { BlueskyImages } from "@/components/bluesky-images"
 import { BlueskyVideo } from "@/components/bluesky-video"
 import { BlueskyExternal } from "@/components/bluesky-external"
+import {BlueskyHeader} from "@/components/bluesky-header";
+import {BlueskyEmbedHeader} from "@/components/bluesky-embed-header";
 
 interface BlueskyContentProps {
 	post: any
@@ -228,7 +230,10 @@ export function BlueskyContent({
 						<div className="p-3">
 							{/* Quote label if has text */}
 							{!isPureRepost && text.trim() && (
-								<div className="text-xs text-muted-foreground mb-2">Quote</div>
+								<>
+									<div className="text-xs text-muted-foreground mb-2">Quote</div>
+									<BlueskyEmbedHeader post={embeddedPost}/>
+								</>
 							)}
 
 							<BlueskyContent
