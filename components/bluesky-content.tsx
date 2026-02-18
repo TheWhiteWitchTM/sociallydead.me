@@ -2,15 +2,13 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { cn } from "@/lib/utils"
+import { X } from "lucide-react"
+import { Dialog, DialogContent } from "./ui/dialog"
+import { Button } from "./ui/button"
 import { BlueskyImages } from "@/components/bluesky-images"
 import { BlueskyVideo } from "@/components/bluesky-video"
 import { BlueskyExternal } from "@/components/bluesky-external"
-import { cn } from "@/lib/utils"
-import {X} from "lucide-react";
-import {Dialog, DialogContent} from "./ui/dialog"
-import {Button} from "./ui/button"
 
 interface BlueskyContentProps {
 	post: any
@@ -51,63 +49,126 @@ export function BlueskyContent({
 		setExternalOpen(true)
 	}
 
+	const record = post.record
+	const embed = record.embed
+	const text = record.text ?? ""
+	const facets = record.facets ?? []
+
+	// Determine if this is a pure repost (no text + embed record)
+	const isPureRepost = !text.trim() && embed?.$type === "app.bsky.embed.record"
+
+	// The embedded post (quote or repost target)
+	const embeddedPost = embed?.record
+
+	// ── Rich text rendering with facets ──
+	const renderRichText = () => {
+		if (!text) return null
+
+		if (!facets.length) {
+			return <div className="whitespace-pre-wrap break-words">{text}</div>
+		}
+
+		const segments: JSX.Element[] = []
+		let lastByteEnd = 0
+
+		// Sort facets by byteStart (should already be sorted, but safe)
+		const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
+
+		for (const facet of sortedFacets) {
+			const { byteStart, byteEnd } = facet.index
+			const feature = facet.features?.[0]
+
+			// Text before facet
+			if (byteStart > lastByteEnd) {
+				segments.push(
+					<span key={lastByteEnd} className="whitespace-pre-wrap">
+            {text.slice(lastByteEnd, byteStart)}
+          </span>
+				)
+			}
+
+			const slice = text.slice(byteStart, byteEnd)
+
+			if (feature?.$type === "app.bsky.richtext.facet#mention") {
+				const handle = feature.handle || slice.slice(1)
+				segments.push(
+					<Link
+						key={byteStart}
+						href={`/profile/${handle}`}
+						className="text-blue-600 hover:underline font-medium"
+					>
+						@{handle}
+					</Link>
+				)
+			} else if (feature?.$type === "app.bsky.richtext.facet#link") {
+				const uri = feature.uri || slice
+				segments.push(
+					<a
+						key={byteStart}
+						href="#"
+						onClick={(e) => {
+							e.preventDefault()
+							if (uri) handleExternalClick(uri)
+						}}
+						className="text-blue-600 hover:underline"
+					>
+						{slice}
+					</a>
+				)
+			} else if (feature?.$type === "app.bsky.richtext.facet#tag") {
+				const tag = feature.tag || slice.slice(1)
+				segments.push(
+					<Link
+						key={byteStart}
+						href={`/feed/${encodeURIComponent(tag)}`}
+						className="text-blue-600 hover:underline"
+					>
+						#{tag}
+					</Link>
+				)
+			} else {
+				// fallback
+				segments.push(<span key={byteStart}>{slice}</span>)
+			}
+
+			lastByteEnd = byteEnd
+		}
+
+		// Trailing text
+		if (lastByteEnd < text.length) {
+			segments.push(
+				<span key={lastByteEnd} className="whitespace-pre-wrap">
+          {text.slice(lastByteEnd)}
+        </span>
+			)
+		}
+
+		return <div className="whitespace-pre-wrap break-words">{segments}</div>
+	}
+
 	return (
 		<Link
-			href={`/profile/${post.author?.handle || 'unknown'}/post/${post.uri?.split('/').pop() || ''}`}
-			className={cn("block cursor-pointer hover:bg-accent/30 transition-colors rounded-lg p-2 -m-2", className)}
+			href={`/profile/${post.author?.handle || "unknown"}/post/${post.uri?.split("/").pop() || ""}`}
+			className={cn(
+				"block cursor-pointer hover:bg-accent/30 transition-colors rounded-lg p-2 -m-2",
+				className
+			)}
 		>
 			<div className="space-y-3">
-				{/* Text */}
-				{post.record?.text && (
-					<ReactMarkdown
-						remarkPlugins={[remarkGfm]}
-						components={{
-							a: ({ href, children, ...props }) => {
-								// Handle @username
-								if (href?.startsWith('@')) {
-									const handle = href.slice(1)
-									return (
-										<Link href={`/profile/${handle}`} className="text-blue-500 hover:underline" {...props}>
-											{children}
-										</Link>
-									)
-								}
-
-								// Handle #hashtag
-								if (href?.startsWith('#')) {
-									const tag = href.slice(1)
-									return (
-										<Link href={`/feed/${tag}`} className="text-blue-500 hover:underline" {...props}>
-											{children}
-										</Link>
-									)
-								}
-
-								// External link → open in dialog
-								return (
-									<a
-										href="#"
-										onClick={(e) => {
-											e.preventDefault()
-											if (href) handleExternalClick(href)
-										}}
-										className="text-blue-500 hover:underline"
-										{...props}
-									>
-										{children}
-									</a>
-								)
-							},
-						}}
-					>
-						{post.record.text}
-					</ReactMarkdown>
+				{/* Repost label if pure repost */}
+				{isPureRepost && (
+					<div className="text-xs text-muted-foreground font-medium">
+						Reposted
+					</div>
 				)}
 
-				{/* Images */}
-				{post.embed?.images && (
+				{/* Main text (with facets) */}
+				{renderRichText()}
+
+				{/* Images (top-level) */}
+				{embed?.images && (
 					<BlueskyImages
-						images={post.embed.images.map((img: any) => ({
+						images={embed.images.map((img: any) => ({
 							thumb: img.thumb,
 							fullsize: img.fullsize,
 							alt: img.alt ?? "",
@@ -116,45 +177,53 @@ export function BlueskyContent({
 				)}
 
 				{/* Video */}
-				{post.embed?.playlist && (
+				{embed?.playlist && (
 					<BlueskyVideo
-						playlist={post.embed.playlist}
-						thumbnail={post.embed.thumbnail}
-						alt={post.embed.alt}
-						aspectRatio={post.embed.aspectRatio}
+						playlist={embed.playlist}
+						thumbnail={embed.thumbnail}
+						alt={embed.alt}
+						aspectRatio={embed.aspectRatio}
 					/>
 				)}
 
-				{/* External */}
-				{post.embed?.external && (
+				{/* External card */}
+				{embed?.external && (
 					<BlueskyExternal
-						uri={post.embed.external.uri}
-						title={post.embed.external.title}
-						description={post.embed.external.description}
-						thumb={post.embed.external.thumb}
+						uri={embed.external.uri}
+						title={embed.external.title}
+						description={embed.external.description}
+						thumb={embed.external.thumb}
 					/>
 				)}
 
-				{/* Quoted post */}
-				{post.embed?.record && (
-					<div className={cn(
-						"mt-3 border border-border rounded-xl overflow-hidden bg-muted/30",
-						isQuoted && "bg-muted/20"
-					)}>
+				{/* Quoted / Reposted content */}
+				{embeddedPost && (
+					<div
+						className={cn(
+							"mt-3 border border-border rounded-xl overflow-hidden bg-muted/30",
+							isQuoted && "bg-muted/20"
+						)}
+					>
 						<div className="p-3">
+							{/* If pure repost → no extra header; else show quote header if text exists */}
+							{!isPureRepost && text.trim() && (
+								<div className="text-xs text-muted-foreground mb-2">Quote</div>
+							)}
+
 							<BlueskyContent
-								post={post.embed.record}
+								post={embeddedPost}
 								isQuoted={true}
 								currentDepth={currentDepth + 1}
 								maxDepth={maxDepth}
 							/>
 						</div>
 
-						{post.embed.$type?.includes("recordWithMedia") && post.embed.media && (
+						{/* Attached media in recordWithMedia */}
+						{embed?.$type?.includes("recordWithMedia") && embed.media && (
 							<div className="border-t border-border bg-card p-3">
-								{post.embed.media.images && (
+								{embed.media.images && (
 									<BlueskyImages
-										images={post.embed.media.images.map((img: any) => ({
+										images={embed.media.images.map((img: any) => ({
 											thumb: img.thumb,
 											fullsize: img.fullsize,
 											alt: img.alt ?? "",
@@ -162,21 +231,21 @@ export function BlueskyContent({
 									/>
 								)}
 
-								{post.embed.media.playlist && (
+								{embed.media.playlist && (
 									<BlueskyVideo
-										playlist={post.embed.media.playlist}
-										thumbnail={post.embed.media.thumbnail}
-										alt={post.embed.media.alt}
-										aspectRatio={post.embed.media.aspectRatio}
+										playlist={embed.media.playlist}
+										thumbnail={embed.media.thumbnail}
+										alt={embed.media.alt}
+										aspectRatio={embed.media.aspectRatio}
 									/>
 								)}
 
-								{post.embed.media.external && (
+								{embed.media.external && (
 									<BlueskyExternal
-										uri={post.embed.media.external.uri}
-										title={post.embed.media.external.title}
-										description={post.embed.media.external.description}
-										thumb={post.embed.media.external.thumb}
+										uri={embed.media.external.uri}
+										title={embed.media.external.title}
+										description={embed.media.external.description}
+										thumb={embed.media.external.thumb}
 									/>
 								)}
 							</div>
@@ -185,7 +254,7 @@ export function BlueskyContent({
 				)}
 			</div>
 
-			{/* External link iframe dialog */}
+			{/* External link dialog */}
 			<Dialog open={externalOpen} onOpenChange={setExternalOpen}>
 				<DialogContent className="max-w-screen h-screen max-h-screen w-screen border-0 bg-background p-0 sm:rounded-none">
 					<div className="relative flex h-full w-full flex-col">
