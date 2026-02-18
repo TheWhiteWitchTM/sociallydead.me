@@ -1,218 +1,112 @@
 "use client"
 
-import Link from "next/link"
-import { formatDistanceToNow } from "date-fns"
-import {
-	MoreHorizontal,
-	Pencil,
-	Trash2,
-	Flag,
-	Share,
-	ExternalLink,
-	Sparkles,
-	Bookmark,
-	Copy,
-	Pin,
-	PinOff,
-	Star,
-	UserPlus,
-} from "lucide-react"
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
 import { cn } from "@/lib/utils"
-import { UserHoverCard } from "@/components/user-hover-card"
-import { VerifiedBadge } from "@/components/verified-badge"
-import { HandleLink } from "@/components/handle-link"
+import { BlueskyHeader } from "./BlueskyHeader"
+import { BlueskyContent } from "./BlueskyContent"
+import { BlueskyFooter } from "./BlueskyFooter"
+import { formatDistanceToNow } from "date-fns"
 
-interface BlueskyHeaderProps {
+interface BlueskyPostCardProps {
 	post: any
-	isOwnPost?: boolean
-	isPinned?: boolean
-	showReplyContext?: boolean
-	isFollowLoading?: boolean
-	onFollow?: () => void
-	onBookmark?: () => void
-	onCopyText?: () => void
-	onShare?: () => void
-	onOpenBluesky?: () => void
-	onPinToggle?: () => void
-	onHighlight?: () => void
-	onEdit?: () => void
-	onDelete?: () => void
-	onReport?: () => void
-	onFactCheck?: () => void
-	currentDepth?: number
+	isReply?: boolean
+	isQuoted?: boolean
+	className?: string
+	depth?: number
 }
 
-export function BlueskyHeader({
-	                              post,
-	                              isOwnPost = false,
-	                              isPinned = false,
-	                              showReplyContext = true,
-	                              isFollowLoading = false,
-	                              onFollow = () => {},
-	                              onBookmark = () => {},
-	                              onCopyText = () => {},
-	                              onShare = () => {},
-	                              onOpenBluesky = () => {},
-	                              onPinToggle = () => {},
-	                              onHighlight = () => {},
-	                              onEdit = () => {},
-	                              onDelete = () => {},
-	                              onReport = () => {},
-	                              onFactCheck = () => {},
-	                              currentDepth = 0,
-                              }: BlueskyHeaderProps) {
+export function BlueskyPostCard({
+	                                post,
+	                                isReply = false,
+	                                isQuoted = false,
+	                                className = "",
+	                                depth = 0,
+                                }: BlueskyPostCardProps) {
+	if (!post) {
+		return (
+			<div className="p-4 text-sm italic text-muted-foreground bg-muted/30 rounded-xl">
+				Post not available
+			</div>
+		)
+	}
+
+	// Normalize shape (postView vs embedded record vs viewRecord)
+	const record = post.record ?? post.value
+	if (!record) {
+		return (
+			<div className="p-4 text-sm italic text-muted-foreground bg-muted/30 rounded-xl">
+				Missing record
+			</div>
+		)
+	}
+
 	const author = post.author
-	const createdAt = post.record?.createdAt ? new Date(post.record.createdAt) : new Date()
+	const uri = post.uri ?? ""
+	const createdAt = record.createdAt ? new Date(record.createdAt) : new Date()
 	const timeAgo = formatDistanceToNow(createdAt, { addSuffix: true })
 
-	const hasWebsite = author?.domain || author?.links?.website // adjust based on your author shape
+	const embed = post.embed ?? {}
+	const isRepost = record.$type === "app.bsky.feed.repost" || (!record.text?.trim() && embed.record)
+	const repostAuthor = isRepost ? author : null
+	const mainPost = isRepost && embed.record ? embed.record : post
 
-	const avatarSize = currentDepth > 0 ? 36 : 48
-	const textSize = currentDepth > 0 ? "text-sm" : "text-base"
+	const counts = {
+		replies: post.replyCount ?? mainPost.replyCount ?? 0,
+		reposts: post.repostCount ?? mainPost.repostCount ?? 0,
+		likes: post.likeCount ?? mainPost.likeCount ?? 0,
+	}
 
-	if (!author) return null
+	const showFooter = !isQuoted && (counts.replies > 0 || counts.reposts > 0 || counts.likes > 0)
 
 	return (
-		<header className={cn("flex items-start gap-3 px-4 pt-4 pb-2", currentDepth > 0 && "pt-3 pb-1")}>
-			<UserHoverCard handle={author.handle}>
-				<Avatar className={cn(`h-${avatarSize/4} w-${avatarSize/4}`)}>
-					<AvatarImage src={author.avatar} alt={author.displayName || author.handle} />
-					<AvatarFallback>{(author.displayName || author.handle).slice(0, 2).toUpperCase()}</AvatarFallback>
-				</Avatar>
-			</UserHoverCard>
-
-			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
-					<Link
-						href={`/profile/${author.handle}`}
-						className={cn("font-semibold hover:underline truncate", textSize)}
-					>
-						{author.displayName || author.handle || "Unknown"}
-					</Link>
-					{author.verified && <VerifiedBadge />}
-					<HandleLink handle={author.handle} className={cn("text-muted-foreground truncate", textSize)} />
+		<article
+			className={cn(
+				"bg-card border border-border rounded-xl overflow-hidden shadow-sm",
+				depth > 0 && "border-dashed bg-muted/30 text-[0.94rem]",
+				isQuoted && "bg-muted/50 border-muted-foreground/60",
+				isReply && "border-l-4 border-l-blue-500/70 pl-5 bg-blue-50/20 dark:bg-blue-950/10",
+				className
+			)}
+		>
+			{/* Repost banner or full header */}
+			{repostAuthor ? (
+				<div className="px-4 py-2.5 text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/50 border-b">
+					<span className="font-medium">Reposted</span>
+					<span>by {repostAuthor.displayName || `@${repostAuthor.handle}`}</span>
 				</div>
+			) : (
+				<BlueskyHeader
+					author={author}
+					createdAt={createdAt}
+					uri={uri}
+					timeAgo={timeAgo}
+				/>
+			)}
 
-				<div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-					{timeAgo}
-					{post.uri && (
-						<Link
-							href={`/profile/${author.handle}/post/${post.uri.split("/").pop()}`}
-							className="hover:text-foreground ml-1"
-						>
-							<ExternalLink className="h-3.5 w-3.5" />
-						</Link>
-					)}
-				</div>
-
-				{showReplyContext && post.record?.reply && (
-					<div className="text-xs text-muted-foreground mt-1">
-						Replying to @{post.record.reply.handle}
-					</div>
-				)}
-
-				{hasWebsite && (
-					<Button variant="ghost" size="sm" onClick={() => window.open(hasWebsite, "_blank")} className="mt-1 p-0 text-blue-500 hover:text-blue-600">
-						<ExternalLink className="h-4 w-4 mr-1" />
-						Visit website
-					</Button>
-				)}
-
-				{isPinned && (
-					<div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-						<Pin className="h-3 w-3" />
-						Pinned post
-					</div>
-				)}
+			{/* Main content */}
+			<div className="px-4 pb-3 pt-3">
+				<BlueskyContent
+					post={mainPost}
+					isQuoted={isQuoted}
+					currentDepth={depth}
+					maxDepth={6}
+				/>
 			</div>
 
-			{/* Follow button */}
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={onFollow}
-				disabled={isFollowLoading}
-				className="mt-1"
-			>
-				{isFollowLoading ? "Following..." : "Follow"}
-			</Button>
+			{/* Nested quote / reposted content as full card */}
+			{embed.record && (
+				<div className="px-4 pb-4">
+					<BlueskyPostCard
+						post={embed.record}
+						isQuoted
+						depth={depth + 1}
+					/>
+				</div>
+			)}
 
-			{/* Dropdown menu with all options */}
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon" className="mt-1">
-						<MoreHorizontal className="h-4 w-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					{isOwnPost && (
-						<>
-							<DropdownMenuItem onClick={onEdit}>
-								<Pencil className="h-4 w-4 mr-2" />
-								Edit post
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={onDelete} className="text-destructive">
-								<Trash2 className="h-4 w-4 mr-2" />
-								Delete post
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={onPinToggle}>
-								{isPinned ? (
-									<>
-										<PinOff className="h-4 w-4 mr-2" />
-										Unpin post
-									</>
-								) : (
-									<>
-										<Pin className="h-4 w-4 mr-2" />
-										Pin post
-									</>
-								)}
-							</DropdownMenuItem>
-						</>
-					)}
-					<DropdownMenuItem onClick={onHighlight}>
-						<Star className="h-4 w-4 mr-2" />
-						Highlight
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={onBookmark}>
-						<Bookmark className="h-4 w-4 mr-2" />
-						Bookmark
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={onCopyText}>
-						<Copy className="h-4 w-4 mr-2" />
-						Copy text
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={onShare}>
-						<Share className="h-4 w-4 mr-2" />
-						Share
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={onOpenBluesky}>
-						<ExternalLink className="h-4 w-4 mr-2" />
-						Open on Bluesky
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem onClick={onReport} className="text-destructive">
-						<Flag className="h-4 w-4 mr-2" />
-						Report post
-					</DropdownMenuItem>
-					<DropdownMenuItem onClick={onFactCheck}>
-						<Sparkles className="h-4 w-4 mr-2" />
-						Fact-check
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</header>
+			{/* Footer */}
+			{showFooter && (
+				<BlueskyFooter counts={counts} />
+			)}
+		</article>
 	)
 }
