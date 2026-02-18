@@ -155,7 +155,7 @@ export default function PostDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold">Post</h1>
+          <h1 className="text-xl font-bold">Post List</h1>
         </div>
       </header>
 
