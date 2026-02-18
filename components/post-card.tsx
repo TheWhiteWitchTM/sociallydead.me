@@ -174,7 +174,7 @@ export function PostCard({
       }
       setIsRepostDialogOpen(false)
     } catch (error) {
-      console.error("Failed to repost/unrepost:", error)
+      console.error("Repost/unrepost failed:", error)
     }
   }
 
@@ -190,7 +190,7 @@ export function PostCard({
       setIsReplyDialogOpen(false)
       onPostUpdated?.()
     } catch (error) {
-      console.error("Failed to reply:", error)
+      console.error("Reply failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -205,7 +205,7 @@ export function PostCard({
       setIsQuoteDialogOpen(false)
       onPostUpdated?.()
     } catch (error) {
-      console.error("Failed to quote post:", error)
+      console.error("Quote failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -220,7 +220,7 @@ export function PostCard({
       setReportDetails("")
       setIsReportDialogOpen(false)
     } catch (error) {
-      console.error("Failed to report:", error)
+      console.error("Report failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -302,8 +302,8 @@ export function PostCard({
     setIsFactCheckOpen(true)
     setFactCheckResult(null)
     try {
-      // await fetch('/api/fact-check', { ... })
-      setFactCheckResult("Fact-check placeholder - implement your API")
+      // await fetch('/api/fact-check', ...)
+      setFactCheckResult("Fact-check placeholder")
     } catch {
       setFactCheckResult("Unable to fact-check right now.")
     } finally {
@@ -343,7 +343,6 @@ export function PostCard({
   return (
     <div className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600">
       <div className="p-3">
-        {/* Header */}
         <BlueskyHeader
           post={post}
           isOwnPost={isOwnPost}
@@ -363,10 +362,8 @@ export function PostCard({
           onFactCheck={handleFactCheck}
         />
 
-        {/* Content */}
         <BlueskyContent post={post} className="mt-2" />
 
-        {/* Footer */}
         <BlueskyFooter
           replyCount={replyCount}
           repostCount={repostCount}
@@ -514,7 +511,7 @@ export function PostCard({
           </DialogHeader>
           <Textarea
             value={editText}
-            onChange={(e) => setEditText(e.target.value)}
+            onChange={e => setEditText(e.target.value)}
             className="min-h-32"
             placeholder="What's happening?"
           />
