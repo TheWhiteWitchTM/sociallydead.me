@@ -36,10 +36,33 @@ export function BlueskyContent({
 		)
 	}
 
-	if (!post || !post.record) {
+	if (!post) {
 		return (
 			<div className="p-3 text-sm italic text-muted-foreground">
 				Post content not available
+			</div>
+		)
+	}
+
+	// Normalize for top-level postView vs embedded viewRecord
+	const record = post.record || post.value
+	const embed = post.embed || (post.embeds && post.embeds.length > 0 ? post.embeds[0] : undefined)
+	const author = post.author
+	const uri = post.uri
+
+	if (!record) {
+		return (
+			<div className="p-3 text-sm italic text-muted-foreground">
+				Post content not available
+			</div>
+		)
+	}
+
+	// Special handling if this is a raw repost record (unlikely, but covers if passed directly)
+	if (record.$type === "app.bsky.feed.repost") {
+		return (
+			<div className="p-3 text-sm italic text-muted-foreground">
+				Repost content not loaded
 			</div>
 		)
 	}
@@ -49,13 +72,11 @@ export function BlueskyContent({
 		setExternalOpen(true)
 	}
 
-	const record = post.record
-	const embed = record.embed
 	const text = record.text ?? ""
 	const facets = record.facets ?? []
 
-	// Determine if this is a pure repost (no text + embed record)
-	const isPureRepost = !text.trim() && embed?.$type === "app.bsky.embed.record"
+	// Determine if this looks like a pure repost (no text + embed record) - for display purposes
+	const isPureRepost = !text.trim() && embed?.$type?.includes("record")
 
 	// The embedded post (quote or repost target)
 	const embeddedPost = embed?.record
@@ -71,7 +92,7 @@ export function BlueskyContent({
 		const segments: JSX.Element[] = []
 		let lastByteEnd = 0
 
-		// Sort facets by byteStart (should already be sorted, but safe)
+		// Sort facets by byteStart
 		const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
 
 		for (const facet of sortedFacets) {
@@ -148,14 +169,14 @@ export function BlueskyContent({
 
 	return (
 		<Link
-			href={`/profile/${post.author?.handle || "unknown"}/post/${post.uri?.split("/").pop() || ""}`}
+			href={`/profile/${author?.handle || "unknown"}/post/${uri?.split("/").pop() || ""}`}
 			className={cn(
 				"block cursor-pointer hover:bg-accent/30 transition-colors rounded-lg p-2 -m-2",
 				className
 			)}
 		>
 			<div className="space-y-3">
-				{/* Repost label if pure repost */}
+				{/* Repost label if pure repost-like */}
 				{isPureRepost && (
 					<div className="text-xs text-muted-foreground font-medium">
 						Reposted
@@ -165,7 +186,7 @@ export function BlueskyContent({
 				{/* Main text (with facets) */}
 				{renderRichText()}
 
-				{/* Images (top-level) */}
+				{/* Images */}
 				{embed?.images && (
 					<BlueskyImages
 						images={embed.images.map((img: any) => ({
@@ -177,12 +198,12 @@ export function BlueskyContent({
 				)}
 
 				{/* Video */}
-				{embed?.playlist && (
+				{embed?.video && (
 					<BlueskyVideo
-						playlist={embed.playlist}
-						thumbnail={embed.thumbnail}
-						alt={embed.alt}
-						aspectRatio={embed.aspectRatio}
+						playlist={embed.video.playlist}
+						thumbnail={embed.video.thumbnail}
+						alt={embed.video.alt}
+						aspectRatio={embed.video.aspectRatio}
 					/>
 				)}
 
@@ -196,7 +217,7 @@ export function BlueskyContent({
 					/>
 				)}
 
-				{/* Quoted / Reposted content */}
+				{/* Quoted / Embedded content */}
 				{embeddedPost && (
 					<div
 						className={cn(
@@ -205,7 +226,7 @@ export function BlueskyContent({
 						)}
 					>
 						<div className="p-3">
-							{/* If pure repost → no extra header; else show quote header if text exists */}
+							{/* Quote label if has text */}
 							{!isPureRepost && text.trim() && (
 								<div className="text-xs text-muted-foreground mb-2">Quote</div>
 							)}
@@ -231,12 +252,12 @@ export function BlueskyContent({
 									/>
 								)}
 
-								{embed.media.playlist && (
+								{embed.media.video && (
 									<BlueskyVideo
-										playlist={embed.media.playlist}
-										thumbnail={embed.media.thumbnail}
-										alt={embed.media.alt}
-										aspectRatio={embed.media.aspectRatio}
+										playlist={embed.media.video.playlist}
+										thumbnail={embed.media.video.thumbnail}
+										alt={embed.media.video.alt}
+										aspectRatio={embed.media.video.aspectRatio}
 									/>
 								)}
 
