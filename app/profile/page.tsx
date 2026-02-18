@@ -50,12 +50,14 @@ interface Post {
     avatar?: string
   }
   record: {
+    $type?: string
     text: string
     createdAt: string
     reply?: {
       root: { uri: string; cid: string }
       parent: { uri: string; cid: string }
     }
+    subject?: { uri: string; cid: string } // for reposts
   }
   embed?: {
     $type: string
@@ -89,6 +91,17 @@ interface Post {
     like?: string
     repost?: string
   }
+  reason?: {
+    $type: "app.bsky.feed.defs#reasonRepost"
+    by: {
+      did: string
+      handle: string
+      displayName?: string
+      avatar?: string
+    }
+    indexedAt: string
+  }
+  parent?: Post // Added for fetched parent
 }
 
 export default function ProfilePage() {
@@ -277,13 +290,29 @@ function ProfileContent() {
           fetchedPosts = await getUserPosts(user.did)
       }
 
+      // For replies, fetch parents
+      if (type === "replies") {
+        const parentPromises = fetchedPosts.map(post => {
+          if (post.record.reply) {
+            return getPost(post.record.reply.parent.uri).then(parent => {
+              post.parent = parent as Post
+              return post
+            })
+          }
+          return Promise.resolve(post)
+        })
+        fetchedPosts = await Promise.all(parentPromises)
+      }
+
+      // For posts, handle reposts if reason is present, but since post is the original, no fetch needed
+
       setPosts(fetchedPosts)
     } catch (err) {
       console.error("Failed to load posts:", err)
     } finally {
       setPostsLoading(false)
     }
-  }, [user, getUserPosts, getUserReplies, getUserMedia])
+  }, [user, getUserPosts, getUserReplies, getUserMedia, getPost])
 
   const loadVideos = useCallback(async () => {
     if (!user) return
@@ -670,15 +699,22 @@ function ProfileContent() {
             ) : (
               <div className="space-y-4">
                 {posts.filter(p => p.uri !== pinnedPostData?.uri).map((post) => (
-                  <PostCard
-                    key={post.uri}
-                    post={post}
-                    isOwnPost={true}
-                    onPostUpdated={() => {
-                      loadPosts("posts")
-                      loadPinnedPost()
-                    }}
-                  />
+                  <div key={post.uri}>
+                    {post.reason && (
+                      <div className="px-2 mb-2 text-sm text-muted-foreground flex items-center gap-2">
+                        <Rss className="h-4 w-4 rotate-180" />
+                        <span>Reposted</span>
+                      </div>
+                    )}
+                    <PostCard
+                      post={post}
+                      isOwnPost={true}
+                      onPostUpdated={() => {
+                        loadPosts("posts")
+                        loadPinnedPost()
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -694,14 +730,21 @@ function ProfileContent() {
                 <p className="text-muted-foreground">No replies yet</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {posts.map((post) => (
-                  <PostCard
-                    key={post.uri}
-                    post={post}
-                    isOwnPost={true}
-                    onPostUpdated={() => loadPosts("replies")}
-                  />
+                  <div key={post.uri} className="space-y-2">
+                    {post.parent && (
+                      <PostCard
+                        post={post.parent}
+                        isOwnPost={false}
+                      />
+                    )}
+                    <PostCard
+                      post={post}
+                      isOwnPost={true}
+                      onPostUpdated={() => loadPosts("replies")}
+                    />
+                  </div>
                 ))}
               </div>
             )}
