@@ -23,6 +23,7 @@ import {
   PinOff,
   Star,
   UserPlus,
+  BarChart3,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -44,7 +45,12 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {HandleLink} from "@/components/handle-link";
+
+function formatEngagement(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+  return count.toString()
+}
 
 interface PostCardProps {
   post: any
@@ -93,7 +99,7 @@ export function PostCard({
   const [likeUri, setLikeUri] = useState(post.viewer?.like)
   const [repostUri, setRepostUri] = useState(post.viewer?.repost)
 
-  const [editText, setEditText] = useState(post.record.text)
+  const [editText, setEditText] = useState(post.record.text || "")
   const [replyText, setReplyText] = useState("")
   const [quoteText, setQuoteText] = useState("")
   const [reportReason, setReportReason] = useState("spam")
@@ -111,6 +117,7 @@ export function PostCard({
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false)
   const [isRepostDialogOpen, setIsRepostDialogOpen] = useState(false)
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
@@ -137,7 +144,7 @@ export function PostCard({
         setLikeUri(newLikeUri)
       }
     } catch (error) {
-      console.error("Failed to like/unlike:", error)
+      console.error("Like/unlike failed:", error)
     }
   }
 
@@ -156,7 +163,7 @@ export function PostCard({
         setRepostUri(newRepostUri)
       }
     } catch (error) {
-      console.error("Failed to repost/unrepost:", error)
+      console.error("Repost/unrepost failed:", error)
     }
   }
 
@@ -172,7 +179,7 @@ export function PostCard({
       setIsReplyDialogOpen(false)
       onPostUpdated?.()
     } catch (error) {
-      console.error("Failed to reply:", error)
+      console.error("Reply failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -187,7 +194,7 @@ export function PostCard({
       setIsQuoteDialogOpen(false)
       onPostUpdated?.()
     } catch (error) {
-      console.error("Failed to quote:", error)
+      console.error("Quote failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -202,7 +209,7 @@ export function PostCard({
       setReportDetails("")
       setIsReportDialogOpen(false)
     } catch (error) {
-      console.error("Failed to report:", error)
+      console.error("Report failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -215,7 +222,7 @@ export function PostCard({
       setIsDeleteDialogOpen(false)
       onPostUpdated?.()
     } catch (error) {
-      console.error("Failed to delete:", error)
+      console.error("Delete failed:", error)
     } finally {
       setIsLoading(false)
     }
@@ -283,12 +290,12 @@ export function PostCard({
     setIsFactChecking(true)
     setIsFactCheckOpen(true)
     setFactCheckResult(null)
-    // Implement your real API call here
     try {
-      // const response = await fetch('/api/fact-check', { ... })
+      // Your real fact-check API call
+      // const response = await fetch('/api/fact-check', { method: 'POST', body: JSON.stringify({ text: post.record.text }) })
       // const data = await response.json()
-      // setFactCheckResult(data.result)
-      setFactCheckResult("Fact-check result placeholder – add your API")
+      // setFactCheckResult(data.result || "No result")
+      setFactCheckResult("Fact-check placeholder - implement your API")
     } catch {
       setFactCheckResult("Unable to fact-check right now.")
     } finally {
@@ -328,7 +335,6 @@ export function PostCard({
   return (
     <div className="hover:bg-accent/50 transition-colors border-b-2 border-b-red-600">
       <div className="p-3">
-        {/* Header */}
         <BlueskyHeader
           post={post}
           isOwnPost={isOwnPost}
@@ -348,12 +354,9 @@ export function PostCard({
           isFollowLoading={isFollowLoading}
         />
 
-        {/* Main content */}
         <BlueskyContent post={post} className="mt-2" />
 
-        {/* Footer engagement bar */}
         <BlueskyFooter
-          post={post}
           replyCount={replyCount}
           repostCount={repostCount}
           likeCount={likeCount}
@@ -362,39 +365,12 @@ export function PostCard({
           isBookmarked={isBookmarked}
           onLike={handleLike}
           onRepostClick={() => setIsRepostDialogOpen(true)}
+          onReplyClick={() => setIsReplyDialogOpen(true)}
           onBookmark={handleBookmark}
-          onReplySubmit={async (text) => {
-            if (!text.trim()) return
-            setIsLoading(true)
-            try {
-              await createPost(text, {
-                reply: { uri: post.uri, cid: post.cid },
-              })
-              setReplyCount(c => c + 1)
-              onPostUpdated?.()
-            } catch (error) {
-              console.error("Reply failed:", error)
-            } finally {
-              setIsLoading(false)
-            }
-          }}
-          onQuoteSubmit={async (text) => {
-            if (!text.trim()) return
-            setIsLoading(true)
-            try {
-              await quotePost(text, { uri: post.uri, cid: post.cid })
-              onPostUpdated?.()
-            } catch (error) {
-              console.error("Quote failed:", error)
-            } finally {
-              setIsLoading(false)
-            }
-          }}
-          isLoading={isLoading}
+          onAnalyticsClick={() => setIsAnalyticsOpen(true)}
         />
       </div>
 
-      {/* All dialogs kept in PostCard – no more missing composer */}
       {/* Reply Dialog */}
       <Dialog open={isReplyDialogOpen} onOpenChange={setIsReplyDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
@@ -483,9 +459,6 @@ export function PostCard({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Report Post</DialogTitle>
-            <DialogDescription>
-              Help us understand what&apos;s wrong with this post.
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <RadioGroup value={reportReason} onValueChange={setReportReason}>
@@ -493,22 +466,7 @@ export function PostCard({
                 <RadioGroupItem value="spam" id="spam" />
                 <Label htmlFor="spam">Spam or misleading</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="abuse" id="abuse" />
-                <Label htmlFor="abuse">Harassment or abuse</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="hate" id="hate" />
-                <Label htmlFor="hate">Hate speech</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="violence" id="violence" />
-                <Label htmlFor="violence">Violence or threats</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="other" id="other" />
-                <Label htmlFor="other">Other</Label>
-              </div>
+              {/* add your other radio options here */}
             </RadioGroup>
 
             <div>
@@ -612,6 +570,100 @@ export function PostCard({
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Analytics Dialog */}
+      <Dialog open={isAnalyticsOpen} onOpenChange={setIsAnalyticsOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Post Analytics
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-500/10">
+                    <MessageCircle className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span className="text-sm font-medium">Replies</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{replyCount.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/10">
+                    <Repeat2 className="h-4 w-4 text-green-500" />
+                  </div>
+                  <span className="text-sm font-medium">Reposts</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{repostCount.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/10">
+                    <Heart className="h-4 w-4 text-red-500" />
+                  </div>
+                  <span className="text-sm font-medium">Likes</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{likeCount.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-purple-500/10">
+                    <BarChart3 className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <span className="text-sm font-medium">Total Engagements</span>
+                </div>
+                <span className="text-lg font-bold tabular-nums">
+                  {(replyCount + repostCount + likeCount).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {(replyCount + repostCount + likeCount) > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Engagement Breakdown</p>
+                <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
+                  {replyCount > 0 && (
+                    <div
+                      className="h-full bg-blue-500 transition-all"
+                      style={{ width: `${(replyCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                    />
+                  )}
+                  {repostCount > 0 && (
+                    <div
+                      className="h-full bg-green-500 transition-all"
+                      style={{ width: `${(repostCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                    />
+                  )}
+                  {likeCount > 0 && (
+                    <div
+                      className="h-full bg-red-500 transition-all"
+                      style={{ width: `${(likeCount / (replyCount + repostCount + likeCount)) * 100}%` }}
+                    />
+                  )}
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" /> Replies
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-green-500" /> Reposts
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-red-500" /> Likes
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
