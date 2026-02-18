@@ -3,7 +3,10 @@
 
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { MoreHorizontal, Repeat2, UserPlus, Loader2 } from "lucide-react"
+import {
+	MoreHorizontal, Repeat2, UserPlus, Loader2, Flag, Trash2, Pencil, Star, Pin, PinOff, Sparkles, BookmarkPlus,
+	ExternalLink, Share, Copy
+} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
