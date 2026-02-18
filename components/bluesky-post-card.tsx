@@ -70,7 +70,7 @@ interface PostCardProps {
 	showReplyContext?: boolean
 }
 
-export function PostCard({
+export function BlueskyPostCard({
 	                         post,
 	                         isOwnPost = false,
 	                         isPinned = false,
