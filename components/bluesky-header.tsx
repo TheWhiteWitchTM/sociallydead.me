@@ -2,7 +2,10 @@
 
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { MoreHorizontal, Repeat2, UserPlus, Loader2, Copy, Share, ExternalLink, Sparkles, BookmarkPlus, Pin, PinOff, Star, Trash2, Pencil, Flag } from "lucide-react"
+import {
+	MoreHorizontal, Repeat2, UserPlus, Loader2, Flag, Trash2, Pencil, Star, Pin, PinOff, Sparkles, BookmarkPlus,
+	ExternalLink, Share, Copy
+} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +18,6 @@ import {
 import { UserHoverCard } from "@/components/user-hover-card"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
-import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
 
 interface BlueskyHeaderProps {
@@ -23,18 +25,18 @@ interface BlueskyHeaderProps {
 	isOwnPost: boolean
 	isPinned?: boolean
 	showReplyContext?: boolean
-	onCopyText: () => void
-	onShare: () => void
-	onOpenBluesky: () => void
-	onFollow?: () => void
 	isFollowLoading?: boolean
+	onFollow?: () => void
 	onBookmark?: () => void
-	onFactCheck?: () => void
+	onCopyText?: () => void
+	onShare?: () => void
+	onOpenBluesky?: () => void
 	onPinToggle?: () => void
 	onHighlight?: () => void
 	onEdit?: () => void
 	onDelete?: () => void
 	onReport?: () => void
+	onFactCheck?: () => void
 }
 
 export function BlueskyHeader({
@@ -42,23 +44,22 @@ export function BlueskyHeader({
 	                              isOwnPost,
 	                              isPinned = false,
 	                              showReplyContext = true,
+	                              isFollowLoading = false,
+	                              onFollow,
+	                              onBookmark,
 	                              onCopyText,
 	                              onShare,
 	                              onOpenBluesky,
-	                              onFollow,
-	                              isFollowLoading = false,
-	                              onBookmark,
-	                              onFactCheck,
 	                              onPinToggle,
 	                              onHighlight,
 	                              onEdit,
 	                              onDelete,
 	                              onReport,
+	                              onFactCheck,
                               }: BlueskyHeaderProps) {
-	const { isAuthenticated } = useBluesky()
 	const isRepostReason = post.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
 
-	// Guard against missing/incomplete post data
+	// Guard against missing data
 	if (!post || !post.author || !post.record) {
 		return (
 			<div className="p-4 text-center text-muted-foreground">
@@ -66,6 +67,8 @@ export function BlueskyHeader({
 			</div>
 		)
 	}
+
+	const domain = post.embed?.external?.uri ? new URL(post.embed.external.uri).hostname.replace(/^www\./, "") : null
 
 	return (
 		<div className="grid grid-cols-[auto_1fr_auto] gap-2">
@@ -81,20 +84,29 @@ export function BlueskyHeader({
 						</Avatar>
 						<VerifiedBadge
 							handle={post.author.handle}
-							did={post.author.ddid}
+							did={post.author.did}
 							className="absolute left-5 top-7 rounded-full"
 						/>
 					</Link>
 				</UserHoverCard>
 			</div>
 
-			{/* Name, handle, meta */}
+			{/* Name, handle + domain on same line, meta */}
 			<div className="flex flex-col gap-0">
 				<div className="flex items-center gap-1.5">
 					<span className="font-medium">{post.author.displayName || post.author.handle}</span>
 					<VerifiedBadge handle={post.author.handle} did={post.author.did} className="pt-1" />
 				</div>
-				<HandleLink handle={post.author.handle} className="text-sm truncate max-w-[120px] sm:max-w-none" />
+
+				<div className="flex items-center gap-2 text-sm text-muted-foreground">
+					<HandleLink handle={post.author.handle} />
+					{domain && (
+						<>
+							<span className="text-muted-foreground">·</span>
+							<span className="truncate">{domain}</span>
+						</>
+					)}
+				</div>
 
 				<div className="flex flex-row gap-2 text-xs text-muted-foreground mt-0.5">
 					<Link
@@ -119,10 +131,10 @@ export function BlueskyHeader({
 				</div>
 			</div>
 
-			{/* Menu */}
+			{/* Menu + Follow button */}
 			<div className="flex items-start gap-1">
 				{/* Follow button - only for authenticated, not own post */}
-				{isAuthenticated && !isOwnPost && (
+				{!isOwnPost && (
 					<Button
 						variant="outline"
 						size="sm"
@@ -164,80 +176,78 @@ export function BlueskyHeader({
 							Open on Bluesky
 						</DropdownMenuItem>
 
-						{/* Authenticated-only features */}
-						{isAuthenticated && (
+						{/* Authenticated-only */}
+						{onFollow && (
+							<DropdownMenuItem onClick={onFollow} disabled={isFollowLoading}>
+								{isFollowLoading ? (
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								) : (
+									<UserPlus className="mr-2 h-4 w-4" />
+								)}
+								Follow
+							</DropdownMenuItem>
+						)}
+
+						{onBookmark && (
+							<DropdownMenuItem onClick={onBookmark}>
+								<BookmarkPlus className="mr-2 h-4 w-4" />
+								Bookmark
+							</DropdownMenuItem>
+						)}
+
+						{onFactCheck && (
+							<DropdownMenuItem onClick={onFactCheck}>
+								<Sparkles className="mr-2 h-4 w-4" />
+								AI Fact-Check
+							</DropdownMenuItem>
+						)}
+
+						{isOwnPost && (
 							<>
-								{!isOwnPost && onFollow && (
-									<DropdownMenuItem onClick={onFollow} disabled={isFollowLoading}>
-										{isFollowLoading ? (
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-										) : (
-											<UserPlus className="mr-2 h-4 w-4" />
-										)}
-										Follow
+								<DropdownMenuSeparator />
+
+								{isPinned ? (
+									<DropdownMenuItem onClick={onPinToggle}>
+										<PinOff className="mr-2 h-4 w-4" />
+										Unpin from Profile
+									</DropdownMenuItem>
+								) : (
+									<DropdownMenuItem onClick={onPinToggle}>
+										<Pin className="mr-2 h-4 w-4" />
+										Pin to Profile
 									</DropdownMenuItem>
 								)}
 
-								<DropdownMenuItem onClick={onBookmark}>
-									<BookmarkPlus className="mr-2 h-4 w-4" />
-									Bookmark
+								{onHighlight && (
+									<DropdownMenuItem onClick={onHighlight}>
+										<Star className="mr-2 h-4 w-4 text-yellow-500" />
+										Add to Highlights
+									</DropdownMenuItem>
+								)}
+
+								{onEdit && (
+									<DropdownMenuItem onClick={onEdit}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Edit (Pseudo)
+									</DropdownMenuItem>
+								)}
+
+								{onDelete && (
+									<DropdownMenuItem className="text-destructive" onClick={onDelete}>
+										<Trash2 className="mr-2 h-4 w-4" />
+										Delete
+									</DropdownMenuItem>
+								)}
+							</>
+						)}
+
+						{!isOwnPost && onReport && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem className="text-destructive" onClick={onReport}>
+									<Flag className="mr-2 h-4 w-4" />
+									Report Post
 								</DropdownMenuItem>
-
-								{onFactCheck && (
-									<DropdownMenuItem onClick={onFactCheck}>
-										<Sparkles className="mr-2 h-4 w-4" />
-										AI Fact-Check
-									</DropdownMenuItem>
-								)}
-
-								{isOwnPost && (
-									<>
-										<DropdownMenuSeparator />
-
-										{isPinned ? (
-											<DropdownMenuItem onClick={onPinToggle}>
-												<PinOff className="mr-2 h-4 w-4" />
-												Unpin from Profile
-											</DropdownMenuItem>
-										) : (
-											<DropdownMenuItem onClick={onPinToggle}>
-												<Pin className="mr-2 h-4 w-4" />
-												Pin to Profile
-											</DropdownMenuItem>
-										)}
-
-										{onHighlight && (
-											<DropdownMenuItem onClick={onHighlight}>
-												<Star className="mr-2 h-4 w-4 text-yellow-500" />
-												Add to Highlights
-											</DropdownMenuItem>
-										)}
-
-										{onEdit && (
-											<DropdownMenuItem onClick={onEdit}>
-												<Pencil className="mr-2 h-4 w-4" />
-												Edit (Pseudo)
-											</DropdownMenuItem>
-										)}
-
-										{onDelete && (
-											<DropdownMenuItem className="text-destructive" onClick={onDelete}>
-												<Trash2 className="mr-2 h-4 w-4" />
-												Delete
-											</DropdownMenuItem>
-										)}
-									</>
-								)}
-
-								{!isOwnPost && onReport && (
-									<>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem className="text-destructive" onClick={onReport}>
-											<Flag className="mr-2 h-4 w-4" />
-											Report Post
-										</DropdownMenuItem>
-									</>
-								)}
 							</>
 						)}
 					</DropdownMenuContent>
