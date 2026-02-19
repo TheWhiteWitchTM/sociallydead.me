@@ -199,28 +199,15 @@ export function BlueskyContent({
 					/>
 				)}
 
-				{/* Video — detects BOTH raw blob AND hydrated #view (like your original did) */}
-				{embed?.video && (
-					<BlueskyVideo
-						playlist={
-							embed.$type === "app.bsky.embed.video#view" && embed.video.playlist
-								? embed.video.playlist
-								: undefined  // fallback: no HLS playlist available (raw case)
-						}
-						thumbnail={
-							embed.$type === "app.bsky.embed.video#view" && embed.video.thumbnail
-								? embed.video.thumbnail
-								: undefined  // raw usually has none
-						}
-						alt={embed.video.alt ?? ""}
-						aspectRatio={embed.video.aspectRatio ?? undefined}
-						// If your BlueskyVideo component can handle direct MP4 fallback for raw blobs, add:
-						// directSrc={
-						//   embed.$type === "app.bsky.embed.video" && embed.video.ref?.$link
-						//     ? `https://cdn.bsky.app/img/feed_fullsize/plain/${author.did}/${embed.video.ref.$link}`
-						//     : undefined
-						// }
-					/>
+				{/* Video — updated for app.bsky.embed.video#view */}
+				{embed?.$type === "app.bsky.embed.video#view" && (
+					<>
+						<div>VIDEO</div>
+						<div>
+							{embed.playlist}
+							{embed.thumbnail}
+						</div>
+					</>
 				)}
 
 				{/* External card */}
