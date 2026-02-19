@@ -1,28 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import {
-  Loader2,
-  ImagePlus,
-  X,
-  Hash,
-  Video,
-  ExternalLink,
-  Bold,
-  Italic,
-  Heading1,
-  Heading2,
-  List,
-  ListOrdered,
-  Code,
-  Link2,
-  Strikethrough,
-  Quote,
-  SmilePlus,
-  AtSign,
-  Send,
-  PenSquare,
-} from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -49,11 +28,13 @@ import {
 } from "@/components/ui/alert-dialog"
 
 const EMOJI_CATEGORIES = {
-  Smileys: ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
-  Gestures: ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
-  Hearts: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
-  Animals: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
-  // ... (you can keep the rest of your categories)
+  "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
+  "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
+  "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
+  "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
+  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
+  "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
+  "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
 
 const POPULAR_HASHTAGS = [
@@ -191,10 +172,18 @@ export function ComposeInput({
   const simulateEscape = useCallback(() => {
     const escEvent = new KeyboardEvent("keydown", {
       key: "Escape",
+      code: "Escape",
+      keyCode: 27,
+      which: 27,
       bubbles: true,
       cancelable: true,
+      composed: true,
     })
+
     document.dispatchEvent(escEvent)
+    document.body.dispatchEvent(escEvent)
+    window.dispatchEvent(escEvent)
+    if (document.activeElement) document.activeElement.dispatchEvent(escEvent)
   }, [])
 
   const forceClose = useCallback(() => {
@@ -207,6 +196,7 @@ export function ComposeInput({
       setShowHashtagSuggestions(false)
       return
     }
+
     if (text.trim() || mediaFiles.length > 0 || linkCard) {
       setShowDiscardDialog(true)
     } else {
@@ -228,23 +218,27 @@ export function ComposeInput({
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
-      setTimeout(() => textareaRef.current.focus(), 50)
+      setTimeout(() => textareaRef.current?.focus(), 100)
     }
   }, [autoFocus])
 
   const playWarningSound = useCallback(() => {
     if (hasPlayedWarning) return
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = 440
-      gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
-      osc.start()
-      osc.stop(ctx.currentTime + 0.2)
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext()
+      }
+      const ctx = audioContextRef.current
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+      oscillator.frequency.value = 440
+      oscillator.type = 'sine'
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+      oscillator.start(ctx.currentTime)
+      oscillator.stop(ctx.currentTime + 0.2)
       setHasPlayedWarning(true)
     } catch {}
   }, [hasPlayedWarning])
@@ -268,16 +262,18 @@ export function ComposeInput({
   }, [linkCardDismissed, onLinkCardChange])
 
   const searchMentions = useCallback(async (query: string) => {
-    if (!query.trim()) return
     setIsSearchingMentions(true)
     try {
-      let actors = (await searchActorsTypeahead(query)).actors || []
-      if (actors.length === 0) {
-        actors = (await searchActors(query)).actors || []
+      const typeahead = await searchActorsTypeahead(query)
+      let actors = typeahead.actors
+      if ((!actors || actors.length === 0) && query.length > 0) {
+        const result = await searchActors(query)
+        actors = result.actors
       }
-      setMentionSuggestions(actors.slice(0, 6))
-    } catch (err) {
-      console.error("Mention search failed", err)
+      const suggestions = (actors || []).slice(0, 5)
+      setMentionSuggestions(suggestions)
+    } catch (error) {
+      console.error('Error searching mentions:', error)
       setMentionSuggestions([])
     } finally {
       setIsSearchingMentions(false)
@@ -285,10 +281,13 @@ export function ComposeInput({
   }, [searchActors, searchActorsTypeahead])
 
   const searchHashtags = useCallback((query: string) => {
-    const q = query.toLowerCase()
-    const matches = q
-      ? POPULAR_HASHTAGS.filter(t => t.toLowerCase().startsWith(q)).slice(0, 8)
-      : POPULAR_HASHTAGS.slice(0, 8)
+    if (query.length < 1) {
+      setHashtagSuggestions([])
+      return
+    }
+    const matches = POPULAR_HASHTAGS.filter(tag =>
+      tag.toLowerCase().startsWith(query.toLowerCase())
+    ).slice(0, 5)
     setHashtagSuggestions(matches)
   }, [])
 
@@ -296,10 +295,13 @@ export function ComposeInput({
     onTextChange(newText)
 
     const warningThreshold = effectiveMaxChars * 0.9
-    if (newText.length < warningThreshold) setHasPlayedWarning(false)
-    if (newText.length >= warningThreshold && text.length < warningThreshold) playWarningSound()
+    if (newText.length < warningThreshold) {
+      setHasPlayedWarning(false)
+    }
+    if (newText.length >= warningThreshold && text.length < warningThreshold) {
+      playWarningSound()
+    }
 
-    // link card
     if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
     linkCardDebounceRef.current = setTimeout(() => {
       const url = extractUrl(newText)
@@ -310,144 +312,138 @@ export function ComposeInput({
         setLinkCardUrl(null)
         setLinkCardDismissed(false)
       }
-    }, 700)
+    }, 800)
 
-    // Autocomplete triggers
-    const cursor = textareaRef.current?.selectionStart ?? newText.length
-    const beforeCursor = newText.slice(0, cursor)
+    const cursorPos = textareaRef.current?.selectionStart || newText.length
+    const textBeforeCursor = newText.slice(0, cursorPos)
 
-    // Mention
-    const mentionMatch = beforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
-      const query = mentionMatch[1]
-      setAutocompletePosition(beforeCursor.lastIndexOf("@"))
+      const matchText = mentionMatch[1]
+      const triggerIndex = textBeforeCursor.lastIndexOf('@')
+      setAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
-      searchMentions(query)
-    } else {
-      setShowMentionSuggestions(false)
+      searchMentions(matchText)
+      return
     }
 
-    // Hashtag
-    const hashtagMatch = beforeCursor.match(/#(\w*)$/)
+    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
     if (hashtagMatch) {
-      const query = hashtagMatch[1]
-      setAutocompletePosition(beforeCursor.lastIndexOf("#"))
+      const matchText = hashtagMatch[1]
+      const triggerIndex = textBeforeCursor.lastIndexOf('#')
+      setAutocompletePosition(triggerIndex)
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
-      searchHashtags(query)
-    } else {
-      setShowHashtagSuggestions(false)
+      if (matchText.length === 0) {
+        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
+      } else {
+        searchHashtags(matchText)
+      }
+      return
     }
+
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
   }
 
-  const insertSuggestion = (value: string, type: "mention" | "hashtag") => {
-    const prefix = type === "mention" ? "@" : "#"
-    const before = text.slice(0, autocompletePosition)
-    const after = text.slice(textareaRef.current?.selectionEnd ?? text.length)
-    const insert = prefix + value + " "
-    const newText = before + insert + after
+  const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
+    const prefix = type === 'mention' ? '@' : '#'
+    const beforeTrigger = text.slice(0, autocompletePosition)
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const afterCursor = text.slice(cursorPos)
+    const newText = beforeTrigger + prefix + suggestion + ' ' + afterCursor
     onTextChange(newText)
-
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
 
     setTimeout(() => {
       if (textareaRef.current) {
-        const pos = before.length + insert.length
+        const newCursorPos = beforeTrigger.length + prefix.length + suggestion.length + 1
         textareaRef.current.focus()
-        textareaRef.current.setSelectionRange(pos, pos)
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
-    }, 10)
+    }, 0)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && onSubmit && !isSubmitting) {
-      if (!showMentionSuggestions && !showHashtagSuggestions) {
-        e.preventDefault()
-        if (text.trim() || mediaFiles.length > 0) onSubmit()
-      }
-    }
-
-    if (e.key === "Escape") {
+    if (e.key === 'Enter' && e.shiftKey && onSubmit && !isSubmitting) {
       e.preventDefault()
-      if (showMentionSuggestions || showHashtagSuggestions) {
-        setShowMentionSuggestions(false)
-        setShowHashtagSuggestions(false)
-      } else {
-        handleCancelOrEscape()
+      if (text.trim()) {
+        onSubmit()
       }
       return
     }
 
-    let suggestions: any[] = []
-    let isMentionMode = false
-
-    if (showMentionSuggestions) {
-      suggestions = mentionSuggestions
-      isMentionMode = true
-    } else if (showHashtagSuggestions) {
-      suggestions = hashtagSuggestions
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancelOrEscape()
+      return
     }
 
-    if (suggestions.length > 0) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault()
-        setSelectedSuggestionIndex(i => (i + 1) % suggestions.length)
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault()
-        setSelectedSuggestionIndex(i => (i - 1 + suggestions.length) % suggestions.length)
-      } else if (e.key === "Enter" || e.key === "Tab") {
-        e.preventDefault()
-        const selected = suggestions[selectedSuggestionIndex]
-        if (selected) {
-          insertSuggestion(
-            isMentionMode ? (selected as MentionSuggestion).handle : selected,
-            isMentionMode ? "mention" : "hashtag"
-          )
-        }
+    if (!showMentionSuggestions && !showHashtagSuggestions) return
+    const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
+    } else if (e.key === 'Enter' && suggestions.length > 0) {
+      e.preventDefault()
+      if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
+      } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
       }
     }
   }
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    const files = Array.from(e.target.files)
+    const files = e.target.files
+    if (!files) return
 
-    for (const file of files) {
+    const newFiles = Array.from(files)
+    for (const file of newFiles) {
       const isImage = IMAGE_TYPES.includes(file.type)
       const isVideo = VIDEO_TYPES.includes(file.type)
       if (!isImage && !isVideo) continue
 
       if (isVideo) {
-        if (hasImages || hasVideo || file.size > MAX_VIDEO_SIZE) continue
+        if (hasImages || hasVideo) continue
+        if (file.size > MAX_VIDEO_SIZE) continue
         const preview = URL.createObjectURL(file)
         onMediaFilesChange?.([{ file, preview, type: "video" }])
         break
       }
 
       if (isImage) {
-        if (hasVideo || imageCount >= MAX_IMAGES) continue
+        if (hasVideo) continue
+        if (imageCount >= MAX_IMAGES) continue
         const reader = new FileReader()
-        reader.onload = ev => {
-          const preview = ev.target?.result as string
-          onMediaFilesChange?.([
-            ...mediaFiles.filter(f => f.type !== "video"),
-            { file, preview, type: "image" },
+        reader.onload = (ev) => {
+          onMediaFilesChange?.([...mediaFiles.filter(f => f.type !== "video"),
+            ...(mediaFiles.filter(f => f.type === "image").length < MAX_IMAGES
+              ? [{ file, preview: ev.target?.result as string, type: "image" as const }]
+              : [])
           ].slice(0, MAX_IMAGES))
         }
         reader.readAsDataURL(file)
       }
     }
-    if (fileInputRef.current) fileInputRef.current.value = ""
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeMedia = (index: number) => {
-    const item = mediaFiles[index]
-    if (item.type === "video") URL.revokeObjectURL(item.preview)
-    onMediaFilesChange?.(mediaFiles.filter((_, i) => i !== index))
+    const updated = mediaFiles.filter((_, i) => i !== index)
+    if (mediaFiles[index]?.type === "video") {
+      URL.revokeObjectURL(mediaFiles[index].preview)
+    }
+    onMediaFilesChange?.(updated)
   }
 
   const dismissLinkCard = () => {
@@ -456,45 +452,54 @@ export function ComposeInput({
   }
 
   const insertEmoji = (emoji: string) => {
-    const pos = textareaRef.current?.selectionStart ?? text.length
-    const newText = text.slice(0, pos) + emoji + text.slice(pos)
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const before = text.slice(0, cursorPos)
+    const after = text.slice(cursorPos)
+    const newText = before + emoji + after
     onTextChange(newText)
     setTimeout(() => {
-      textareaRef.current?.focus()
-      textareaRef.current?.setSelectionRange(pos + emoji.length, pos + emoji.length)
+      if (textareaRef.current) {
+        const newPos = cursorPos + emoji.length
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newPos, newPos)
+      }
     }, 0)
   }
 
   const wrapSelection = (prefix: string, suffix: string) => {
-    const ta = textareaRef.current
-    if (!ta) return
-    const start = ta.selectionStart
-    const end = ta.selectionEnd
-    const selected = text.slice(start, end)
-    const newText = selected
-      ? text.slice(0, start) + prefix + selected + suffix + text.slice(end)
-      : text.slice(0, start) + prefix + "text" + suffix + text.slice(end)
-    onTextChange(newText)
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = text.slice(start, end)
+    const before = text.slice(0, start)
+    const after = text.slice(end)
+    const wrapped = selectedText
+      ? `${before}${prefix}${selectedText}${suffix}${after}`
+      : `${before}${prefix}text${suffix}${after}`
+    onTextChange(wrapped)
     setTimeout(() => {
-      ta.focus()
-      if (selected) {
-        ta.setSelectionRange(start + prefix.length, end + prefix.length)
+      textarea.focus()
+      if (selectedText) {
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length)
       } else {
-        ta.setSelectionRange(start + prefix.length, start + prefix.length + 4)
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4)
       }
     }, 0)
   }
 
   const insertAtLineStart = (prefix: string) => {
-    const ta = textareaRef.current
-    if (!ta) return
-    const start = ta.selectionStart
-    const lineStart = text.lastIndexOf("\n", start - 1) + 1
-    const newText = text.slice(0, lineStart) + prefix + text.slice(lineStart)
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1
+    const before = text.slice(0, lineStart)
+    const after = text.slice(lineStart)
+    const newText = `${before}${prefix}${after}`
     onTextChange(newText)
     setTimeout(() => {
-      ta.focus()
-      ta.setSelectionRange(start + prefix.length, start + prefix.length)
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
     }, 0)
   }
 
@@ -511,22 +516,167 @@ export function ComposeInput({
     { icon: Link2, label: "Link", action: () => wrapSelection("[", "](url)") },
   ]
 
-  // You can keep / improve your renderHighlightedText function here
-  // (the version from your previous message should work if caret sync was fixed)
   const renderHighlightedText = () => {
-    // Placeholder – insert your actual highlighting logic here
-    // Make sure it produces the same number of characters as text
-    return text.split("\n").map((line, i) => (
-      <div key={i}>{line || <br />}</div>
+    const boldRegex = /(\*\*)(.*?)(\*\*)/g
+    const italicRegex = /(\*)([^*]+?)(\*)/g
+    const strikethroughRegex = /(~~)(.*?)(~~)/g
+    const codeRegex = /(`)(.*?)(`)/g
+    const linkRegex = /(\[)(.*?)(\]\()(.*?)(\))/g
+    const headingRegex = /^(#{1,6})\s+(.+)$/gm
+
+    const mentionRegex = /@([a-zA-Z0-9.-]+)/g
+    const hashtagRegex = /#(\w+)/g
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})(?:\/[^\s<]*)?)/g
+
+    let processedText = text
+    let keyCounter = 0
+
+    const lines = processedText.split('\n')
+    const processedLines = lines.map((line, lineIdx) => {
+      const lineParts: React.ReactNode[] = []
+      let currentText = line
+      const lineKey = `line-${lineIdx}`
+
+      const headingMatch = currentText.match(headingRegex)
+      if (headingMatch) {
+        const [, hashes, content] = headingMatch
+        lineParts.push(
+          <span key={`${lineKey}-heading`} className="text-primary font-bold text-lg">
+            <span className="text-muted-foreground">{hashes} </span>
+            {content}
+          </span>
+        )
+        return <span key={lineKey}>{lineParts}</span>
+      }
+
+      let lastIndex = 0
+      const patterns = [
+        { regex: boldRegex, type: 'bold' },
+        { regex: italicRegex, type: 'italic' },
+        { regex: strikethroughRegex, type: 'strikethrough' },
+        { regex: codeRegex, type: 'code' },
+        { regex: linkRegex, type: 'link' },
+        { regex: mentionRegex, type: 'mention' },
+        { regex: hashtagRegex, type: 'hashtag' },
+        { regex: urlRegex, type: 'url' },
+      ]
+
+      const allMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
+
+      patterns.forEach(({ regex, type }) => {
+        let match
+        regex.lastIndex = 0
+        while ((match = regex.exec(currentText)) !== null) {
+          const index = match.index
+          const fullMatch = match[0]
+          let element: React.ReactNode
+
+          switch (type) {
+            case 'bold':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'italic':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="italic">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'strikethrough':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'code':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="bg-muted text-primary px-1 rounded font-mono text-xs">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  {match[2]}
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                </span>
+              )
+              break
+            case 'link':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  <span className="underline">{match[2]}</span>
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                  <span className="text-blue-400 text-xs">{match[4]}</span>
+                  <span className="text-muted-foreground/60">{match[5]}</span>
+                </span>
+              )
+              break
+            case 'mention':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                  @{match[1]}
+                </span>
+              )
+              break
+            case 'hashtag':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                  #{match[1]}
+                </span>
+              )
+              break
+            case 'url':
+              element = (
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
+                  {match[0]}
+                </span>
+              )
+              break
+          }
+
+          allMatches.push({ index, length: fullMatch.length, element })
+        }
+      })
+
+      allMatches.sort((a, b) => a.index - b.index)
+
+      lastIndex = 0
+      allMatches.forEach((match) => {
+        if (match.index > lastIndex) {
+          lineParts.push(currentText.slice(lastIndex, match.index))
+        }
+        lineParts.push(match.element)
+        lastIndex = match.index + match.length
+      })
+
+      if (lastIndex < currentText.length) {
+        lineParts.push(currentText.slice(lastIndex))
+      }
+
+      return <span key={lineKey}>{lineParts.length > 0 ? lineParts : <br />}</span>
+    })
+
+    return processedLines.map((line, idx) => (
+      <span key={idx}>
+        {line}
+        {idx < processedLines.length - 1 && '\n'}
+      </span>
     ))
   }
 
-  const composeType =
-    postType === "reply" ? "Replying" :
-      postType === "quote" ? "Quoting" :
-        postType === "dm" ? "Direct Message" :
-          postType === "article" ? "Writing Article" :
-            "New Post"
+  const composeType = postType === "reply" ? "Replying" :
+    postType === "quote" ? "Quoting" :
+      postType === "dm" ? "Direct Message" :
+        postType === "article" ? "Writing Article" :
+          "New Post"
 
   return (
     <div className="space-y-2">
@@ -542,7 +692,14 @@ export function ComposeInput({
               {effectiveMaxChars !== Infinity && (
                 <div className="relative h-7 w-7 flex items-center justify-center">
                   <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-muted/30" strokeWidth="3" />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      className="stroke-muted/30"
+                      strokeWidth="3"
+                    />
                     <circle
                       cx="18"
                       cy="18"
@@ -560,18 +717,21 @@ export function ComposeInput({
                       strokeLinecap="round"
                     />
                   </svg>
-                  <span className={cn(
-                    "absolute text-xs font-medium tabular-nums",
-                    isWarning ? "text-red-600 font-bold" :
-                      isNearLimit ? "text-orange-500" :
-                        "text-muted-foreground"
-                  )}>
+                  <span
+                    className={cn(
+                      "absolute text-xs font-medium tabular-nums",
+                      isWarning ? "text-red-600 font-bold" :
+                        isNearLimit ? "text-orange-500" :
+                          "text-muted-foreground"
+                    )}
+                  >
                     {charCount}
                   </span>
                 </div>
               )}
 
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="h-7 px-3 text-xs"
@@ -584,7 +744,11 @@ export function ComposeInput({
               {onSubmit && (
                 <Button
                   onClick={onSubmit}
-                  disabled={isSubmitting || (!text.trim() && !mediaFiles.length) || isOverLimit}
+                  disabled={
+                    isSubmitting ||
+                    (!text.trim() && mediaFiles.length === 0) ||
+                    isOverLimit
+                  }
                   size="sm"
                   className="h-7 px-3 text-xs font-bold"
                 >
@@ -593,7 +757,7 @@ export function ComposeInput({
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5 mr-1.5" />
-                      {postType === "reply" ? "Reply" : "Post"}
+                      {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
                     </>
                   )}
                 </Button>
@@ -610,7 +774,11 @@ export function ComposeInput({
               minHeight
             )}
             aria-hidden="true"
-            style={{ fontFamily: "inherit", lineHeight: "1.5", fontSize: "0.875rem" }}
+            style={{
+              fontFamily: 'inherit',
+              lineHeight: '1.5',
+              fontSize: '0.875rem',
+            }}
           >
             {renderHighlightedText()}
           </div>
@@ -619,21 +787,25 @@ export function ComposeInput({
             ref={textareaRef}
             placeholder={placeholder}
             value={text}
-            onChange={e => handleTextChange(e.target.value)}
+            onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
               "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
-            style={{ color: "transparent", caretColor: "var(--foreground)", lineHeight: "1.5" }}
+            style={{
+              color: 'transparent',
+              caretColor: 'var(--foreground)',
+              lineHeight: '1.5',
+            }}
           />
 
-          {showMentionSuggestions && mentionSuggestions.length > 0 && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20">
-              <CardContent className="p-1 max-h-64 overflow-y-auto">
+          {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
+            <Card className="absolute left-4 w-80 sm:w-96 z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardContent className="p-1 max-h-60 overflow-y-auto">
                 {isSearchingMentions ? (
-                  <div className="flex justify-center p-4">
+                  <div className="flex items-center justify-center p-4">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : (
@@ -641,19 +813,30 @@ export function ComposeInput({
                     <div
                       key={user.did}
                       className={cn(
-                        "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
+                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
                         idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       )}
-                      onClick={() => insertSuggestion(user.handle, "mention")}
+                      onClick={() => insertSuggestion(user.handle, 'mention')}
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
+                      <Avatar className="h-8 w-8 border border-background/10">
+                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
+                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{user.displayName || user.handle}</p>
-                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                        <p className="text-sm font-semibold truncate flex items-center gap-1">
+                          {user.displayName || user.handle}
+                          <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
+                        </p>
+                        <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                          @{user.handle}
+                        </p>
                       </div>
+                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
+                        Add
+                      </Button>
                     </div>
                   ))
                 )}
@@ -662,21 +845,25 @@ export function ComposeInput({
           )}
 
           {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20">
-              <CardContent className="p-1 max-h-64 overflow-y-auto">
+            <Card className="absolute left-4 w-80 sm:w-96 z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardContent className="p-1 max-h-60 overflow-y-auto">
                 {hashtagSuggestions.map((tag, idx) => (
                   <div
                     key={tag}
                     className={cn(
-                      "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
+                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
                       idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                     )}
-                    onClick={() => insertSuggestion(tag, "hashtag")}
+                    onClick={() => insertSuggestion(tag, 'hashtag')}
                   >
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
                       <Hash className="h-4 w-4" />
                     </div>
-                    <span className="font-medium">#{tag}</span>
+                    <span className="text-sm font-medium flex-1">#{tag}</span>
+                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
+                      Add
+                    </Button>
                   </div>
                 ))}
               </CardContent>
@@ -685,97 +872,257 @@ export function ComposeInput({
         </div>
       </Card>
 
-      <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
-        <div className="flex items-center gap-0.5 flex-wrap">
-          {formatActions.map(a => (
-            <Tooltip key={a.label}>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={a.action}>
-                  <a.icon className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{a.label}</TooltipContent>
-            </Tooltip>
-          ))}
-
-          <Separator orientation="vertical" className="h-5 mx-1" />
-
-          <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <SmilePlus className="h-3.5 w-3.5" />
+      <TooltipProvider delayDuration={300}>
+        <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
+          <div className="flex items-center gap-0.5">
+            {formatActions.map(({ icon: Icon, label, action }) => (
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={action}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="sr-only">{label}</span>
                   </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Emoji</TooltipContent>
-            </Tooltip>
-            {/* ← your emoji picker content here */}
-          </Popover>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
 
-          {!isDM && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!canAddMedia}
-                >
-                  <ImagePlus className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Add media</TooltipContent>
-            </Tooltip>
-          )}
+            <Separator orientation="vertical" className="h-5 mx-1" />
+
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                    >
+                      <SmilePlus className="h-3.5 w-3.5" />
+                      <span className="sr-only">Emoji</span>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Emoji</p>
+                </TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-72 p-0" align="start" side="top">
+                <div className="p-2">
+                  <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
+                    {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
+                      <Button
+                        key={cat}
+                        variant={emojiCategory === cat ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => setEmojiCategory(cat)}
+                      >
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                    {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
+                        onClick={() => insertEmoji(emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {!isDM && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!canAddMedia}
+                  >
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    <span className="sr-only">Add Media</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Add Media</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {isDM && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={handleCancelOrEscape}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            )}
+
+            {onSubmit && (
+              <Button
+                onClick={onSubmit}
+                disabled={
+                  isSubmitting ||
+                  (!text.trim() && mediaFiles.length === 0) ||
+                  isOverLimit
+                }
+                size="sm"
+                className="h-7 px-3 text-xs font-bold"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5 mr-1.5" />
+                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
+      </TooltipProvider>
 
-        <div className="flex items-center gap-2">
-          {isDM && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={handleCancelOrEscape}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-          )}
-
-          {onSubmit && (
-            <Button
-              onClick={onSubmit}
-              disabled={isSubmitting || (!text.trim() && !mediaFiles.length) || isOverLimit}
-              size="sm"
-              className="h-7 px-4 text-xs font-bold"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      {mediaFiles.length > 0 && (
+        <div className={cn(
+          "gap-2",
+          hasVideo ? "flex" : "grid grid-cols-2"
+        )}>
+          {mediaFiles.map((media, index) => (
+            <div key={index} className="relative group">
+              {media.type === "image" ? (
+                <img
+                  src={media.preview}
+                  alt={`Upload ${index + 1}`}
+                  className="w-full h-32 object-cover rounded-lg border"
+                />
               ) : (
-                <>
-                  <Send className="h-3.5 w-3.5 mr-1.5" />
-                  {isDM ? "Send" : postType === "reply" ? "Reply" : "Post"}
-                </>
+                <div className="relative w-full rounded-lg border overflow-hidden bg-muted">
+                  <video
+                    src={media.preview}
+                    className="w-full max-h-64 object-contain"
+                    controls
+                    preload="metadata"
+                  />
+                  <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Video className="h-3 w-3" />
+                    Video
+                  </div>
+                </div>
               )}
-            </Button>
-          )}
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => removeMedia(index)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
-      {/* Media previews, link card preview, dialogs, file input input */}
-      {/* ... keep your existing media / link card / alert dialog code here ... */}
+      {linkCardLoading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 border rounded-lg">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading link preview...
+        </div>
+      )}
+      {linkCard && !linkCardLoading && (
+        <div className="relative">
+          <Card className="overflow-hidden">
+            {linkCard.image && (
+              <div className={cn("relative bg-muted", compact ? "aspect-[2/1]" : "aspect-video")}>
+                <img
+                  src={linkCard.image}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
+            <CardContent className="p-3">
+              <div className="flex items-start gap-2">
+                <ExternalLink className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium line-clamp-2 text-sm">{linkCard.title}</p>
+                  {linkCard.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{linkCard.description}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{linkCard.url}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 rounded-full bg-background/80 hover:bg-background"
+            onClick={dismissLinkCard}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard {isDM ? "message" : "post"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your {isDM ? "message" : "post"} will be permanently discarded.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDiscard}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <input
         type="file"
         ref={fileInputRef}
-        accept={ALL_MEDIA_TYPES.join(",")}
-        multiple
-        hidden
         onChange={handleMediaSelect}
+        multiple
+        accept={ALL_MEDIA_TYPES.join(',')}
+        className="hidden"
       />
+
     </div>
   )
 }
