@@ -328,11 +328,9 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
-    // Reset flags
     let keepMentionOpen = false
     let keepHashtagOpen = false
 
-    // Mention detection
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
@@ -344,7 +342,6 @@ export function ComposeInput({
       keepMentionOpen = true
     }
 
-    // Hashtag detection – only at end, preceded by space or start
     const hashtagMatch = textBeforeCursor.match(/#([a-zA-Z0-9_]*)$/);
     if (hashtagMatch) {
       const matchIndex = hashtagMatch.index
@@ -370,7 +367,6 @@ export function ComposeInput({
       }
     }
 
-    // Force close anything not kept open
     if (!keepMentionOpen) {
       setShowMentionSuggestions(false)
       setMentionSuggestions([])
@@ -672,7 +668,7 @@ export function ComposeInput({
           switch (type) {
             case 'bold':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
+                <span key={`${lineKey}-${keyCounter++}`} className="font-bold text-foreground">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -681,7 +677,7 @@ export function ComposeInput({
               break
             case 'italic':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="italic">
+                <span key={`${lineKey}-${keyCounter++}`} className="italic text-foreground">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -690,7 +686,7 @@ export function ComposeInput({
               break
             case 'strikethrough':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
+                <span key={`${lineKey}-${keyCounter++}`} className="line-through text-foreground">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -708,28 +704,28 @@ export function ComposeInput({
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-400/60">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-500/50">
                   {match[0]}
                 </span>
               )
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/10 rounded-sm">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-700 font-medium bg-blue-500/15 rounded px-0.5">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/10 rounded-sm">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-700 font-medium bg-blue-500/15 rounded px-0.5">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-400/60">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-500/50">
                   {match[0]}
                 </span>
               )
@@ -873,10 +869,11 @@ export function ComposeInput({
         </div>
 
         <div className="relative">
+          {/* Highlighter – background layer */}
           <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none whitespace-pre-wrap break-words text-sm overflow-auto select-none z-0",
+              "absolute inset-0 pointer-events-none whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0",
               minHeight
             )}
             aria-hidden="true"
@@ -888,6 +885,7 @@ export function ComposeInput({
             {renderHighlightedText()}
           </div>
 
+          {/* Textarea – caret and input layer – HIGHER z-index */}
           <Textarea
             ref={textareaRef}
             placeholder={placeholder}
@@ -896,13 +894,14 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent relative z-10 caret-foreground",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent relative z-10 caret-blue-600 caret-thick",
               minHeight
             )}
             style={{
               ...sharedTextStyles,
               color: "transparent",
-              caretColor: "var(--foreground)",
+              caretColor: "#2563eb",  // bright blue for visibility
+              WebkitTextFillColor: "transparent", // force caret visible in some browsers
             }}
           />
 
