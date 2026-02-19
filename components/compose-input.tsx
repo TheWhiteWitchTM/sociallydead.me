@@ -191,6 +191,18 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
+  // Lock body scroll + dim background when popup open
+  useEffect(() => {
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [showMentionSuggestions, showHashtagSuggestions])
+
   const simulateEscape = useCallback(() => {
     const escEvent = new KeyboardEvent("keydown", {
       key: "Escape",
@@ -367,6 +379,7 @@ export function ComposeInput({
       }
     }, 800)
 
+    // No auto-popup — only on Tab
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
   }
@@ -839,9 +852,15 @@ export function ComposeInput({
             )}
             aria-hidden="true"
             style={{
-              fontFamily: 'inherit',
-              lineHeight: '1.5',
-              fontSize: '0.875rem',
+              fontFamily: window.getComputedStyle(textareaRef.current || document.body).fontFamily,
+              fontSize: 'inherit',
+              lineHeight: 'inherit',
+              letterSpacing: 'inherit',
+              padding: 'inherit',
+              wordWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
+              overflow: 'hidden',
+              color: 'var(--foreground)',
             }}
           >
             {renderHighlightedText()}
@@ -866,89 +885,91 @@ export function ComposeInput({
           />
 
           {(showMentionSuggestions || showHashtagSuggestions) && createPortal(
-            <Card
-              className="fixed z-[9999] shadow-xl border border-primary/30 rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-              style={{
-                top: `${autocompleteCoords.top}px`,
-                left: `${autocompleteCoords.left}px`,
-                minWidth: '280px',
-                maxWidth: '340px',
-              }}
-            >
-              <CardContent className="p-1 max-h-48 overflow-y-auto">
-                {showMentionSuggestions && (
-                  <>
-                    {isSearchingMentions ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      </div>
-                    ) : mentionSuggestions.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground text-sm">
-                        No users found
-                      </div>
-                    ) : (
-                      mentionSuggestions.map((user, idx) => (
-                        <div
-                          key={user.did}
-                          tabIndex={0}
-                          autoFocus={idx === 0}
-                          className={cn(
-                            "flex items-center gap-3 p-2.5 cursor-pointer transition-colors outline-none",
-                            idx === selectedSuggestionIndex
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
-                          )}
-                          onClick={() => insertSuggestion(user.handle, 'mention')}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              insertSuggestion(user.handle, 'mention')
-                            }
-                          }}
-                        >
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate text-sm">{user.displayName || user.handle}</p>
-                            <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
-                          </div>
+            <div className="fixed inset-0 z-[9998] bg-black/30 pointer-events-none">
+              <Card
+                className="absolute z-[9999] shadow-xl border border-primary/30 rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-auto"
+                style={{
+                  top: `${autocompleteCoords.top}px`,
+                  left: `${autocompleteCoords.left}px`,
+                  minWidth: '280px',
+                  maxWidth: '340px',
+                }}
+              >
+                <CardContent className="p-1 max-h-48 overflow-y-auto">
+                  {showMentionSuggestions && (
+                    <>
+                      {isSearchingMentions ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
-                      ))
-                    )}
-                  </>
-                )}
-
-                {showHashtagSuggestions && (
-                  hashtagSuggestions.map((tag, idx) => (
-                    <div
-                      key={tag}
-                      tabIndex={0}
-                      autoFocus={idx === 0}
-                      className={cn(
-                        "flex items-center gap-3 p-2.5 cursor-pointer transition-colors outline-none",
-                        idx === selectedSuggestionIndex
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
+                      ) : mentionSuggestions.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground text-sm">
+                          No users found
+                        </div>
+                      ) : (
+                        mentionSuggestions.map((user, idx) => (
+                          <div
+                            key={user.did}
+                            tabIndex={0}
+                            autoFocus={idx === 0}
+                            className={cn(
+                              "flex items-center gap-3 p-2.5 cursor-pointer transition-colors outline-none",
+                              idx === selectedSuggestionIndex
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
+                            )}
+                            onClick={() => insertSuggestion(user.handle, 'mention')}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                insertSuggestion(user.handle, 'mention')
+                              }
+                            }}
+                          >
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-sm">{user.displayName || user.handle}</p>
+                              <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                            </div>
+                          </div>
+                        ))
                       )}
-                      onClick={() => insertSuggestion(tag, 'hashtag')}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          insertSuggestion(tag, 'hashtag')
-                        }
-                      }}
-                    >
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                        <Hash className="h-4 w-4" />
+                    </>
+                  )}
+
+                  {showHashtagSuggestions && (
+                    hashtagSuggestions.map((tag, idx) => (
+                      <div
+                        key={tag}
+                        tabIndex={0}
+                        autoFocus={idx === 0}
+                        className={cn(
+                          "flex items-center gap-3 p-2.5 cursor-pointer transition-colors outline-none",
+                          idx === selectedSuggestionIndex
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
+                        )}
+                        onClick={() => insertSuggestion(tag, 'hashtag')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            insertSuggestion(tag, 'hashtag')
+                          }
+                        }}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                          <Hash className="h-4 w-4" />
+                        </div>
+                        <span className="font-medium text-sm">#{tag}</span>
                       </div>
-                      <span className="font-medium text-sm">#{tag}</span>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>,
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>,
             document.body
           )}
         </div>
