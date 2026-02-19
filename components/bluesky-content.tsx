@@ -203,12 +203,9 @@ export function BlueskyContent({
 				{embed?.$type === "app.bsky.embed.video#view" && (
 					<>
 						<div>VIDEO</div>
-					<BlueskyVideo
-						playlist={embed.video.playlist}
-						thumbnail={embed.video.thumbnail}
-						alt={embed.video.alt}           // may not always exist — your component should handle undefined
-						aspectRatio={embed.video.aspectRatio}
-					/>
+						<code>
+							{JSON.stringify(embed)}
+						</code>
 					</>
 				)}
 
@@ -261,12 +258,15 @@ export function BlueskyContent({
 								)}
 
 								{embed.media.video && (
+									<>
+										<div>Video MEDIA</div>
 									<BlueskyVideo
 										playlist={embed.media.video.playlist}
 										thumbnail={embed.media.video.thumbnail}
 										alt={embed.media.video.alt}
 										aspectRatio={embed.media.video.aspectRatio}
 									/>
+									</>
 								)}
 
 								{embed.media.external && (
