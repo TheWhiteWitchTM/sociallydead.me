@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, Smile, PenSquare } from "lucide-react"
+import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -174,7 +174,7 @@ export function ComposeInput({
   const canAddMedia = !hasVideo && imageCount < MAX_IMAGES
 
   const charCount = text.length
-  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars   // ← THE ONLY NEW LINE
+  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
 
   const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
   const isNearLimit = progress >= 70
@@ -247,7 +247,7 @@ export function ComposeInput({
       oscillator.frequency.value = 440
       oscillator.type = 'sine'
       gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+      gainNode.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
       oscillator.start(ctx.currentTime)
       oscillator.stop(ctx.currentTime + 0.2)
       setHasPlayedWarning(true)
@@ -340,7 +340,8 @@ export function ComposeInput({
       return
     }
 
-    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
+    // Improved: only trigger after space or at beginning of line
+    const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
       const matchText = hashtagMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('#')
@@ -598,7 +599,7 @@ export function ComposeInput({
     const headingRegex = /^(#{1,6})\s+(.+)$/gm
 
     const mentionRegex = /@([a-zA-Z0-9.-]+)/g
-    const hashtagRegex = /#(\w+)/g
+    const hashtagRegex = /#([a-zA-Z0-9_]+)/g
     const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})(?:\/[^\s<]*)?)/g
 
     let processedText = text
@@ -694,21 +695,21 @@ export function ComposeInput({
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 px-0.5 rounded">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 px-0.5 rounded">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline bg-blue-500/5 px-0.5 rounded">
                   {match[0]}
                 </span>
               )
@@ -800,39 +801,6 @@ export function ComposeInput({
                   {charCount}
                 </span>
               </div>
-            )}
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={handleCancelOrEscape}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-
-            {onSubmit && (
-              <Button
-                onClick={onSubmit}
-                disabled={
-                  isSubmitting ||
-                  (!text.trim() && mediaFiles.length === 0) ||
-                  isOverLimit   // ← THE ONLY CHANGE THAT WAS ACTUALLY REQUESTED
-                }
-                size="sm"
-                className="h-7 px-3 text-xs font-bold"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="h-3.5 w-3.5 mr-1.5" />
-                    {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
-                  </>
-                )}
-              </Button>
             )}
           </div>
         </div>
@@ -944,30 +912,29 @@ export function ComposeInput({
       </Card>
 
       <TooltipProvider delayDuration={300}>
-        <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
-          <div className="flex items-center gap-0.5">
-            {formatActions.map(({ icon: Icon, label, action }) => (
-              <Tooltip key={label}>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={action}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="sr-only">{label}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">{label}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
+        <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
+          <div className="flex items-center gap-0.5 flex-wrap">
+            {/* Media upload – first button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!canAddMedia || isSubmitting}
+                >
+                  <ImagePlus className="h-3.5 w-3.5" />
+                  <span className="sr-only">Add media</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">Add image/video</p>
+              </TooltipContent>
+            </Tooltip>
 
-            <Separator orientation="vertical" className="h-5 mx-1" />
-
+            {/* Emoji right after upload */}
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1018,6 +985,28 @@ export function ComposeInput({
               </PopoverContent>
             </Popover>
 
+            <div className="w-2" /> {/* small spacer after emoji */}
+
+            {formatActions.map(({ icon: Icon, label, action }) => (
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={action}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="sr-only">{label}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+
             <Separator orientation="vertical" className="h-5 mx-1" />
 
             <Tooltip>
@@ -1055,9 +1044,137 @@ export function ComposeInput({
                 <p className="text-xs">Add Hashtags</p>
               </TooltipContent>
             </Tooltip>
+
+            {/* DM mode: Cancel + Send at the end of toolbar */}
+            {isDM && (
+              <>
+                <Separator orientation="vertical" className="h-5 mx-2" />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                  onClick={handleCancelOrEscape}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+
+                {onSubmit && (
+                  <Button
+                    onClick={onSubmit}
+                    disabled={
+                      isSubmitting ||
+                      (!text.trim() && mediaFiles.length === 0) ||
+                      isOverLimit
+                    }
+                    size="sm"
+                    className="h-7 px-4 text-xs font-bold"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        Send
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
+
+          {/* Non-DM: keep char counter + Cancel/Post in top-right style area */}
+          {!isDM && (
+            <div className="flex items-center gap-2 shrink-0">
+              {effectiveMaxChars !== Infinity && (
+                <div className="relative h-7 w-7 flex items-center justify-center">
+                  <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      className="stroke-muted/30"
+                      strokeWidth="3"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      strokeWidth="3"
+                      strokeDasharray="100"
+                      strokeDashoffset={100 - progress}
+                      className={cn(
+                        "transition-all duration-300",
+                        progress < 70 ? "stroke-green-500" :
+                          progress < 90 ? "stroke-orange-500" :
+                            "stroke-red-600"
+                      )}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span
+                    className={cn(
+                      "absolute text-xs font-medium tabular-nums",
+                      isWarning ? "text-red-600 font-bold" :
+                        isNearLimit ? "text-orange-500" :
+                          "text-muted-foreground"
+                    )}
+                  >
+                    {charCount}
+                  </span>
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={handleCancelOrEscape}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+
+              {onSubmit && (
+                <Button
+                  onClick={onSubmit}
+                  disabled={
+                    isSubmitting ||
+                    (!text.trim() && mediaFiles.length === 0) ||
+                    isOverLimit
+                  }
+                  size="sm"
+                  className="h-7 px-3 text-xs font-bold"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5 mr-1.5" />
+                      {postType === "reply" ? "Reply" : "Post"}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </TooltipProvider>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ALL_MEDIA_TYPES.join(",")}
+        multiple
+        hidden
+        onChange={handleMediaSelect}
+      />
 
       {mediaFiles.length > 0 && (
         <div className={cn(
