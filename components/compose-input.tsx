@@ -141,6 +141,7 @@ export function ComposeInput({
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
   const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState(0)
+  const [autocompleteCoords, setAutocompleteCoords] = useState({ top: 0, left: 0 })
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
@@ -291,6 +292,54 @@ export function ComposeInput({
     setHashtagSuggestions(matches)
   }, [])
 
+  const updateAutocompletePosition = useCallback((type: 'mention' | 'hashtag') => {
+    if (!textareaRef.current) return
+
+    const ta = textareaRef.current
+    const cursorPos = ta.selectionStart
+    const textBefore = text.slice(0, cursorPos)
+    const prefix = type === 'mention' ? '@' : '#'
+
+    const mirror = document.createElement('div')
+    mirror.style.position = 'absolute'
+    mirror.style.top = '-9999px'
+    mirror.style.left = '-9999px'
+    mirror.style.whiteSpace = 'pre-wrap'
+    mirror.style.wordWrap = 'break-word'
+    mirror.style.font = window.getComputedStyle(ta).font
+    mirror.style.padding = window.getComputedStyle(ta).padding
+    mirror.style.width = ta.clientWidth + 'px'
+    mirror.style.lineHeight = window.getComputedStyle(ta).lineHeight
+    mirror.style.letterSpacing = window.getComputedStyle(ta).letterSpacing
+    mirror.style.border = window.getComputedStyle(ta).border
+
+    mirror.textContent = textBefore
+
+    document.body.appendChild(mirror)
+
+    const span = document.createElement('span')
+    span.textContent = ' '
+    mirror.appendChild(span)
+
+    const taRect = ta.getBoundingClientRect()
+    const spanRect = span.getBoundingClientRect()
+
+    setAutocompleteCoords({
+      top: spanRect.top - taRect.top + ta.scrollTop + spanRect.height,
+      left: spanRect.left - taRect.left + ta.scrollLeft
+    })
+
+    document.body.removeChild(mirror)
+  }, [text])
+
+  useEffect(() => {
+    if (showMentionSuggestions) {
+      updateAutocompletePosition('mention')
+    } else if (showHashtagSuggestions) {
+      updateAutocompletePosition('hashtag')
+    }
+  }, [showMentionSuggestions, showHashtagSuggestions, text, updateAutocompletePosition])
+
   const handleTextChange = (newText: string) => {
     onTextChange(newText)
 
@@ -326,6 +375,7 @@ export function ComposeInput({
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
       searchMentions(matchText)
+      updateAutocompletePosition('mention')
       return
     }
 
@@ -342,6 +392,7 @@ export function ComposeInput({
       } else {
         searchHashtags(matchText)
       }
+      updateAutocompletePosition('hashtag')
       return
     }
 
@@ -541,10 +592,10 @@ export function ComposeInput({
       if (headingMatch) {
         const [, hashes, content] = headingMatch
         lineParts.push(
-          <span key={`${lineKey}-heading`} className="text-primary font-bold text-lg">
+          <>
             <span className="text-muted-foreground">{hashes} </span>
-            {content}
-          </span>
+            <span className="text-primary">{content}</span>
+          </>
         )
         return <span key={lineKey}>{lineParts}</span>
       }
@@ -574,68 +625,68 @@ export function ComposeInput({
           switch (type) {
             case 'bold':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
+                <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
+                  <span className="text-primary">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                </>
               )
               break
             case 'italic':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="italic">
+                <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
+                  <span className="text-primary">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                </>
               )
               break
             case 'strikethrough':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
+                <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
+                  <span className="line-through">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                </>
               )
               break
             case 'code':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="bg-muted text-primary px-1 rounded font-mono text-xs">
+                <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
+                  <span className="bg-muted text-primary">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                </span>
+                </>
               )
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
+                <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="underline">{match[2]}</span>
+                  <span className="text-blue-500 underline">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                  <span className="text-blue-400 text-xs">{match[4]}</span>
+                  <span className="text-blue-400">{match[4]}</span>
                   <span className="text-muted-foreground/60">{match[5]}</span>
-                </span>
+                </>
               )
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                <span className="text-blue-500">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
+                <span className="text-blue-500">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
+                <span className="text-blue-500 underline">
                   {match[0]}
                 </span>
               )
@@ -802,8 +853,8 @@ export function ComposeInput({
           />
 
           {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-              <CardContent className="p-1 max-h-60 overflow-y-auto">
+            <Card className="absolute z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200" style={{ top: autocompleteCoords.top, left: autocompleteCoords.left }}>
+              <CardContent className="p-1 max-h-60 overflow-y-auto w-80 sm:w-96">
                 {isSearchingMentions ? (
                   <div className="flex items-center justify-center p-4">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -845,8 +896,8 @@ export function ComposeInput({
           )}
 
           {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-              <CardContent className="p-1 max-h-60 overflow-y-auto">
+            <Card className="absolute z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200" style={{ top: autocompleteCoords.top, left: autocompleteCoords.left }}>
+              <CardContent className="p-1 max-h-60 overflow-y-auto w-80 sm:w-96">
                 {hashtagSuggestions.map((tag, idx) => (
                   <div
                     key={tag}
