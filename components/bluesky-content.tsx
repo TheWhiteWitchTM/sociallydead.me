@@ -199,14 +199,23 @@ export function BlueskyContent({
 					/>
 				)}
 
-				{/* Video — updated for app.bsky.embed.video#view */}
-				{embed?.$type === "app.bsky.embed.video#view" && (
-					<>
-						<div>VIDEO</div>
-						<div>
-							{JSON.stringify(post)}
+				{/* Video — prioritizes hydrated #view, falls back to raw blob info */}
+				{embed && (
+					embed.$type === "app.bsky.embed.video#view" && embed.video?.playlist ? (
+						<BlueskyVideo
+							playlist={embed.video.playlist}
+							thumbnail={embed.video.thumbnail}
+							alt={embed.video.alt ?? ""}
+							aspectRatio={embed.video.aspectRatio}
+						/>
+					) : embed.$type === "app.bsky.embed.video" && embed.video ? (
+						// Raw blob fallback: show placeholder or construct direct playback if possible
+						<div className="bg-muted p-4 rounded text-center text-sm">
+							Video processing / loading... (raw blob detected)
+							{/* Optional: direct blob URL for fallback playback if your player supports mp4 */}
+							{/* src={`https://cdn.bsky.app/img/feed_fullsize/plain/${author.did}/${embed.video.ref.$link}@mp4`} */}
 						</div>
-					</>
+					) : null
 				)}
 
 				{/* External card */}
