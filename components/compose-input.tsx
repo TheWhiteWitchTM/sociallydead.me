@@ -149,7 +149,7 @@ export function ComposeInput({
                              }: ComposeInputProps) {
   const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
-  const { searchActors } = useBluesky()
+  const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const highlighterRef = useRef<HTMLDivElement>(null)
