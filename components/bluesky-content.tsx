@@ -204,7 +204,7 @@ export function BlueskyContent({
 					<>
 						<div>VIDEO</div>
 						<div>
-							{JSON.stringify(embed)}
+							{JSON.stringify(post)}
 						</div>
 					</>
 				)}
