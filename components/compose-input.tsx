@@ -141,7 +141,6 @@ export function ComposeInput({
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
   const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState(0)
-  const [autocompleteCoords, setAutocompleteCoords] = useState({ top: 0, left: 0 })
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
@@ -171,7 +170,7 @@ export function ComposeInput({
   const hasVideo = mediaFiles.some(f => f.type === "video")
   const hasImages = mediaFiles.some(f => f.type === "image")
   const imageCount = mediaFiles.filter(f => f.type === "image").length
-  const canAddMedia = !hasVideo && imageCount < MAX_IMAGES
+  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES   // ← disabled in DM
 
   const charCount = text.length
   const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
@@ -255,7 +254,7 @@ export function ComposeInput({
   }, [hasPlayedWarning])
 
   const fetchLinkCard = useCallback(async (url: string) => {
-    if (linkCardDismissed) return
+    if (linkCardDismissed || isDM) return   // no link cards in DM
     setLinkCardLoading(true)
     try {
       const res = await fetch(`/api/og?url=${encodeURIComponent(url)}`)
@@ -270,7 +269,7 @@ export function ComposeInput({
     finally {
       setLinkCardLoading(false)
     }
-  }, [linkCardDismissed, onLinkCardChange])
+  }, [linkCardDismissed, onLinkCardChange, isDM])
 
   const searchMentions = useCallback(async (query: string) => {
     setIsSearchingMentions(true)
@@ -316,9 +315,9 @@ export function ComposeInput({
     if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
     linkCardDebounceRef.current = setTimeout(() => {
       const url = extractUrl(newText)
-      if (url && url !== linkCardUrl && !linkCardDismissed) {
+      if (url && url !== linkCardUrl && !linkCardDismissed && !isDM) {
         fetchLinkCard(url)
-      } else if (!url) {
+      } else if (!url || isDM) {
         onLinkCardChange?.(null)
         setLinkCardUrl(null)
         setLinkCardDismissed(false)
@@ -340,7 +339,6 @@ export function ComposeInput({
       return
     }
 
-    // Improved: only trigger after space or at beginning of line
     const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
       const matchText = hashtagMatch[1]
@@ -415,6 +413,7 @@ export function ComposeInput({
   }
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isDM) return   // safety
     const files = e.target.files
     if (!files) return
 
@@ -802,6 +801,43 @@ export function ComposeInput({
                 </span>
               </div>
             )}
+
+            {!isDM && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                  onClick={handleCancelOrEscape}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+
+                {onSubmit && (
+                  <Button
+                    onClick={onSubmit}
+                    disabled={
+                      isSubmitting ||
+                      (!text.trim() && mediaFiles.length === 0) ||
+                      isOverLimit
+                    }
+                    size="sm"
+                    className="h-7 px-3 text-xs font-bold"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -914,27 +950,29 @@ export function ComposeInput({
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
-            {/* Media upload – first button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!canAddMedia || isSubmitting}
-                >
-                  <ImagePlus className="h-3.5 w-3.5" />
-                  <span className="sr-only">Add media</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Add image/video</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Media upload – only shown/enabled outside DM */}
+            {!isDM && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!canAddMedia || isSubmitting}
+                  >
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    <span className="sr-only">Add media</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Add image/video</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
-            {/* Emoji right after upload */}
+            {/* Emoji – available everywhere including DM */}
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -985,7 +1023,7 @@ export function ComposeInput({
               </PopoverContent>
             </Popover>
 
-            <div className="w-2" /> {/* small spacer after emoji */}
+            <div className="w-2" /> {/* spacer */}
 
             {formatActions.map(({ icon: Icon, label, action }) => (
               <Tooltip key={label}>
@@ -1045,7 +1083,7 @@ export function ComposeInput({
               </TooltipContent>
             </Tooltip>
 
-            {/* DM mode: Cancel + Send at the end of toolbar */}
+            {/* DM mode only: action buttons at bottom right */}
             {isDM && (
               <>
                 <Separator orientation="vertical" className="h-5 mx-2" />
@@ -1066,8 +1104,7 @@ export function ComposeInput({
                     onClick={onSubmit}
                     disabled={
                       isSubmitting ||
-                      (!text.trim() && mediaFiles.length === 0) ||
-                      isOverLimit
+                      !text.trim()   // DM usually requires text
                     }
                     size="sm"
                     className="h-7 px-4 text-xs font-bold"
@@ -1086,97 +1123,25 @@ export function ComposeInput({
             )}
           </div>
 
-          {/* Non-DM: keep char counter + Cancel/Post in top-right style area */}
+          {/* Non-DM bottom right area – empty now, actions moved up */}
           {!isDM && (
-            <div className="flex items-center gap-2 shrink-0">
-              {effectiveMaxChars !== Infinity && (
-                <div className="relative h-7 w-7 flex items-center justify-center">
-                  <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      fill="none"
-                      className="stroke-muted/30"
-                      strokeWidth="3"
-                    />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      fill="none"
-                      strokeWidth="3"
-                      strokeDasharray="100"
-                      strokeDashoffset={100 - progress}
-                      className={cn(
-                        "transition-all duration-300",
-                        progress < 70 ? "stroke-green-500" :
-                          progress < 90 ? "stroke-orange-500" :
-                            "stroke-red-600"
-                      )}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span
-                    className={cn(
-                      "absolute text-xs font-medium tabular-nums",
-                      isWarning ? "text-red-600 font-bold" :
-                        isNearLimit ? "text-orange-500" :
-                          "text-muted-foreground"
-                    )}
-                  >
-                    {charCount}
-                  </span>
-                </div>
-              )}
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={handleCancelOrEscape}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-
-              {onSubmit && (
-                <Button
-                  onClick={onSubmit}
-                  disabled={
-                    isSubmitting ||
-                    (!text.trim() && mediaFiles.length === 0) ||
-                    isOverLimit
-                  }
-                  size="sm"
-                  className="h-7 px-3 text-xs font-bold"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <Send className="h-3.5 w-3.5 mr-1.5" />
-                      {postType === "reply" ? "Reply" : "Post"}
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
+            <div className="flex items-center gap-2 shrink-0 opacity-0 pointer-events-none w-0 h-0" />
           )}
         </div>
       </TooltipProvider>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={ALL_MEDIA_TYPES.join(",")}
-        multiple
-        hidden
-        onChange={handleMediaSelect}
-      />
+      {!isDM && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ALL_MEDIA_TYPES.join(",")}
+          multiple
+          hidden
+          onChange={handleMediaSelect}
+        />
+      )}
 
-      {mediaFiles.length > 0 && (
+      {mediaFiles.length > 0 && !isDM && (
         <div className={cn(
           "gap-2",
           hasVideo ? "flex" : "grid grid-cols-2"
@@ -1216,13 +1181,13 @@ export function ComposeInput({
         </div>
       )}
 
-      {linkCardLoading && (
+      {linkCardLoading && !isDM && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 border rounded-lg">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading link preview...
         </div>
       )}
-      {linkCard && !linkCardLoading && (
+      {linkCard && !linkCardLoading && !isDM && (
         <div className="relative">
           <Card className="overflow-hidden">
             {linkCard.image && (
