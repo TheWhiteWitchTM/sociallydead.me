@@ -868,8 +868,8 @@ export function ComposeInput({
           </div>
         </div>
 
-        <div className="relative">
-          {/* Highlighter – background layer */}
+        <div className="relative isolation-isolate">
+          {/* Highlighter – always behind */}
           <div
             ref={highlighterRef}
             className={cn(
@@ -885,7 +885,7 @@ export function ComposeInput({
             {renderHighlightedText()}
           </div>
 
-          {/* Textarea – caret and input layer – HIGHER z-index */}
+          {/* Textarea – on top, caret forced visible */}
           <Textarea
             ref={textareaRef}
             placeholder={placeholder}
@@ -894,14 +894,15 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent relative z-10 caret-blue-600 caret-thick",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent relative z-10 caret-[#2563eb] caret-w-2",
               minHeight
             )}
             style={{
               ...sharedTextStyles,
               color: "transparent",
-              caretColor: "#2563eb",  // bright blue for visibility
-              WebkitTextFillColor: "transparent", // force caret visible in some browsers
+              caretColor: "#2563eb !important",
+              WebkitTextFillColor: "transparent",
+              caretWidth: "2px",
             }}
           />
 
