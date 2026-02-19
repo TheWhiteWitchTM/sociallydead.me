@@ -199,14 +199,17 @@ export function BlueskyContent({
 					/>
 				)}
 
-				{/* Video */}
-				{embed?.video && (
+				{/* Video — updated for app.bsky.embed.video#view */}
+				{embed?.$type === "app.bsky.embed.video#view" && embed.video && (
+					<>
+						<div>VIDEO</div>
 					<BlueskyVideo
 						playlist={embed.video.playlist}
 						thumbnail={embed.video.thumbnail}
-						alt={embed.video.alt}
+						alt={embed.video.alt}           // may not always exist — your component should handle undefined
 						aspectRatio={embed.video.aspectRatio}
 					/>
+					</>
 				)}
 
 				{/* External card */}
