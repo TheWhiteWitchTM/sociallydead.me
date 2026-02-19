@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { createPortal } from "react-dom"
 import {
   Loader2,
   ImagePlus,
@@ -324,7 +323,6 @@ export function ComposeInput({
     document.body.appendChild(mirror)
 
     const span = document.createElement('span')
-    span.style.visibility = 'hidden'
     span.textContent = textBefore.slice(-1) || ' '
     mirror.appendChild(span)
 
@@ -364,7 +362,6 @@ export function ComposeInput({
       }
     }, 800)
 
-    // No auto-popup on typing — only on Tab
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
   }
@@ -426,7 +423,7 @@ export function ComposeInput({
         if (isMention) {
           setShowMentionSuggestions(true)
           setShowHashtagSuggestions(false)
-          searchMentions(query || 'a') // 'a' to get some results if empty
+          searchMentions(query || 'a')
         } else {
           setShowHashtagSuggestions(true)
           setShowMentionSuggestions(false)
@@ -437,7 +434,6 @@ export function ComposeInput({
         return
       }
 
-      // Normal tab insert
       const newText = text.slice(0, cursor) + '\t' + text.slice(cursor)
       onTextChange(newText)
       setTimeout(() => textareaRef.current?.setSelectionRange(cursor + 1, cursor + 1), 0)
@@ -871,7 +867,7 @@ export function ComposeInput({
                 top: `${autocompleteCoords.top}px`,
                 left: `${autocompleteCoords.left}px`,
                 minWidth: '280px',
-                maxWidth: '360px',
+                maxWidth: '340px',
               }}
             >
               <CardContent className="p-1 max-h-48 overflow-y-auto">
