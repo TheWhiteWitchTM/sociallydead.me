@@ -811,7 +811,14 @@ export function ComposeInput({
               {effectiveMaxChars !== Infinity && (
                 <div className="relative h-7 w-7 flex items-center justify-center">
                   <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-muted/30" strokeWidth="3" />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      className="stroke-muted/30"
+                      strokeWidth="3"
+                    />
                     <circle
                       cx="18"
                       cy="18"
@@ -829,18 +836,21 @@ export function ComposeInput({
                       strokeLinecap="round"
                     />
                   </svg>
-                  <span className={cn(
-                    "absolute text-xs font-medium tabular-nums",
-                    isWarning ? "text-red-600 font-bold" :
-                      isNearLimit ? "text-orange-500" :
-                        "text-muted-foreground"
-                  )}>
+                  <span
+                    className={cn(
+                      "absolute text-xs font-medium tabular-nums",
+                      isWarning ? "text-red-600 font-bold" :
+                        isNearLimit ? "text-orange-500" :
+                          "text-muted-foreground"
+                    )}
+                  >
                     {charCount}
                   </span>
                 </div>
               )}
 
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="h-7 px-3 text-xs"
@@ -853,14 +863,20 @@ export function ComposeInput({
               {onSubmit && (
                 <Button
                   onClick={onSubmit}
-                  disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
+                  disabled={
+                    isSubmitting ||
+                    (!text.trim() && mediaFiles.length === 0) ||
+                    isOverLimit
+                  }
                   size="sm"
                   className="h-7 px-3 text-xs font-bold"
                 >
-                  {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
+                  {isSubmitting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
                     <>
                       <Send className="h-3.5 w-3.5 mr-1.5" />
-                      {postType === "reply" ? "Reply" : "Post"}
+                      {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
                     </>
                   )}
                 </Button>
@@ -877,7 +893,11 @@ export function ComposeInput({
               minHeight
             )}
             aria-hidden="true"
-            style={{ fontFamily: 'inherit', lineHeight: '1.5', fontSize: '0.875rem' }}
+            style={{
+              fontFamily: 'inherit',
+              lineHeight: '1.5',
+              fontSize: '0.875rem',
+            }}
           >
             {renderHighlightedText()}
           </div>
@@ -893,7 +913,11 @@ export function ComposeInput({
               "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
-            style={{ color: 'transparent', caretColor: 'var(--foreground)', lineHeight: '1.5' }}
+            style={{
+              color: 'transparent',
+              caretColor: 'var(--foreground)',
+              lineHeight: '1.5',
+            }}
           />
 
           {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
@@ -961,7 +985,6 @@ export function ComposeInput({
       <TooltipProvider delayDuration={300}>
         <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
-            {/* Help button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -1080,7 +1103,11 @@ export function ComposeInput({
             {onSubmit && (
               <Button
                 onClick={onSubmit}
-                disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
+                disabled={
+                  isSubmitting ||
+                  (!text.trim() && mediaFiles.length === 0) ||
+                  isOverLimit
+                }
                 size="sm"
                 className="h-7 px-3 text-xs font-bold"
               >
@@ -1199,7 +1226,6 @@ export function ComposeInput({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1279,7 +1305,7 @@ export function ComposeInput({
                     <ul className="list-disc pl-5 mt-1 space-y-1">
                       <li><code># Heading 1</code> (line start) → large heading</li>
                       <li><code>## Heading 2</code> → smaller heading</li>
-                      <li><code>> Quote</code> (line start) → quoted block</li>
+                      <li><code>&gt; Quote</code> (line start) → quoted block</li>
                       <li><code>- bullet</code> or <code>* bullet</code> → bullet list</li>
                       <li><code>1. numbered</code> → numbered list</li>
                     </ul>
