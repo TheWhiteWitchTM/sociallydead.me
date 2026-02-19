@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import {JSX, useState} from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { X } from "lucide-react"
@@ -11,6 +11,7 @@ import { BlueskyVideo } from "@/components/bluesky-video"
 import { BlueskyExternal } from "@/components/bluesky-external"
 import {BlueskyHeader} from "@/components/bluesky-header";
 import {BlueskyEmbedHeader} from "@/components/bluesky-embed-header";
+import {MarkdownRenderer} from "@/components/markdown-renderer";
 
 interface BlueskyContentProps {
 	post: any
@@ -88,7 +89,11 @@ export function BlueskyContent({
 		if (!text) return null
 
 		if (!facets.length) {
-			return <div className="whitespace-pre-wrap break-words">{text}</div>
+			return(
+				<div className="whitespace-pre-wrap break-words">
+					<MarkdownRenderer content={text}/>
+				</div>
+			)
 		}
 
 		const segments: JSX.Element[] = []
@@ -105,7 +110,7 @@ export function BlueskyContent({
 			if (byteStart > lastByteEnd) {
 				segments.push(
 					<span key={lastByteEnd} className="whitespace-pre-wrap">
-            {text.slice(lastByteEnd, byteStart)}
+            <MarkdownRenderer content={text.slice(lastByteEnd, byteStart)}/>
           </span>
 				)
 			}
@@ -135,7 +140,7 @@ export function BlueskyContent({
 						}}
 						className="text-blue-600 hover:underline"
 					>
-						{slice}
+						<MarkdownRenderer content={slice}/>
 					</a>
 				)
 			} else if (feature?.$type === "app.bsky.richtext.facet#tag") {
@@ -151,7 +156,10 @@ export function BlueskyContent({
 				)
 			} else {
 				// fallback
-				segments.push(<span key={byteStart}>{slice}</span>)
+				segments.push(
+					<span key={byteStart}>
+						<MarkdownRenderer content={slice}/>
+					</span>)
 			}
 
 			lastByteEnd = byteEnd
@@ -258,15 +266,12 @@ export function BlueskyContent({
 								)}
 
 								{embed.media.video && (
-									<>
-										<div>Video MEDIA</div>
 									<BlueskyVideo
 										playlist={embed.media.video.playlist}
 										thumbnail={embed.media.video.thumbnail}
 										alt={embed.media.video.alt}
 										aspectRatio={embed.media.video.aspectRatio}
 									/>
-									</>
 								)}
 
 								{embed.media.external && (
