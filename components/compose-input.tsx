@@ -340,24 +340,34 @@ export function ComposeInput({
       return
     }
 
-    const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
+    // Fixed hashtag detection: only trigger if # is at end or preceded by space, and no extra chars after tag
+    const hashtagMatch = textBeforeCursor.match(/#([a-zA-Z0-9_]*)$/);
     if (hashtagMatch) {
-      const matchText = hashtagMatch[1]
-      const triggerIndex = textBeforeCursor.lastIndexOf('#')
-      setAutocompletePosition(triggerIndex)
-      setShowHashtagSuggestions(true)
-      setShowMentionSuggestions(false)
-      setSelectedSuggestionIndex(0)
-      if (matchText.length === 0) {
-        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
-      } else {
-        searchHashtags(matchText)
+      const matchIndex = hashtagMatch.index;
+      const charBefore = matchIndex > 0 ? textBeforeCursor[matchIndex - 1] : null;
+      const isValidStart = matchIndex === 0 || /\s/.test(charBefore!);
+
+      if (isValidStart) {
+        const matchText = hashtagMatch[1];
+        const triggerIndex = matchIndex;
+
+        setAutocompletePosition(triggerIndex);
+        setShowHashtagSuggestions(true);
+        setShowMentionSuggestions(false);
+        setSelectedSuggestionIndex(0);
+
+        if (matchText.length === 0) {
+          setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5));
+        } else {
+          searchHashtags(matchText);
+        }
+        return;
       }
-      return
     }
 
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
+    // Close if no valid trigger
+    setShowMentionSuggestions(false);
+    setShowHashtagSuggestions(false);
   }
 
   const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
@@ -376,7 +386,7 @@ export function ComposeInput({
         textareaRef.current.focus()
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
-    }, 0)
+    }, 50)  // small delay helps cursor stability after re-render
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -695,30 +705,21 @@ export function ComposeInput({
               break
             case 'mention':
               element = (
-                <span
-                  key={`${lineKey}-${keyCounter++}`}
-                  className="text-blue-600 font-medium bg-blue-500/5 rounded"
-                >
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 rounded">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span
-                  key={`${lineKey}-${keyCounter++}`}
-                  className="text-blue-600 font-medium bg-blue-500/5 rounded"
-                >
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 rounded">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span
-                  key={`${lineKey}-${keyCounter++}`}
-                  className="text-blue-600 underline bg-blue-500/5 rounded"
-                >
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline bg-blue-500/5 rounded">
                   {match[0]}
                 </span>
               )
@@ -767,7 +768,7 @@ export function ComposeInput({
     lineHeight: "1.5",
     letterSpacing: "0",
     fontKerning: "normal" as const,
-    padding: "0.75rem 1rem", // must match Textarea padding (py-3 px-4)
+    padding: "0.75rem 1rem",
     boxSizing: "border-box" as const,
   }
 
@@ -871,7 +872,7 @@ export function ComposeInput({
             aria-hidden="true"
             style={{
               ...sharedTextStyles,
-              color: "transparent", // important – we only want the background/color from spans
+              color: "transparent",
             }}
           >
             {renderHighlightedText()}
@@ -966,7 +967,6 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* The rest of the component remains unchanged – toolbar, dialogs, etc. */}
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
@@ -1237,17 +1237,173 @@ export function ComposeInput({
         </div>
       )}
 
-      {/* Dialogs remain unchanged */}
       <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
-        {/* ... unchanged ... */}
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Mentions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Search for people..."
+              value={mentionSearch}
+              onChange={(e) => setMentionSearch(e.target.value)}
+              autoFocus
+              className="h-10 text-base"
+            />
+            <ScrollArea className="h-72 border rounded-lg">
+              {isSearchingPicker ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : mentionPickerResults.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  {mentionSearch ? "No users found" : "Type to search for people"}
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {mentionPickerResults.map((user) => (
+                    <div
+                      key={user.did}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        const newSelected = new Set(selectedMentions)
+                        if (newSelected.has(user.handle)) {
+                          newSelected.delete(user.handle)
+                        } else {
+                          newSelected.add(user.handle)
+                        }
+                        setSelectedMentions(newSelected)
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedMentions.has(user.handle)}
+                        onCheckedChange={() => {}}
+                      />
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback>
+                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate flex items-center gap-1">
+                          {user.displayName || user.handle}
+                          <VerifiedBadge handle={user.handle} />
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedMentions.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setMentionPickerOpen(false)
+                  setSelectedMentions(new Set())
+                  setMentionSearch("")
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={insertSelectedMentions} disabled={selectedMentions.size === 0}>
+                  Add {selectedMentions.size > 0 && `(${selectedMentions.size})`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={hashtagPickerOpen} onOpenChange={setHashtagPickerOpen}>
-        {/* ... unchanged ... */}
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Hashtags</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Search hashtags..."
+              value={hashtagSearch}
+              onChange={(e) => setHashtagSearch(e.target.value)}
+              autoFocus
+              className="h-10 text-base"
+            />
+            <ScrollArea className="h-72 border rounded-lg">
+              {filteredHashtags.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  No hashtags found
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {filteredHashtags.map((tag) => (
+                    <div
+                      key={tag}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        const newSelected = new Set(selectedHashtags)
+                        if (newSelected.has(tag)) {
+                          newSelected.delete(tag)
+                        } else {
+                          newSelected.add(tag)
+                        }
+                        setSelectedHashtags(newSelected)
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedHashtags.has(tag)}
+                        onCheckedChange={() => {}}
+                      />
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <Hash className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm font-medium">#{tag}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedHashtags.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setHashtagPickerOpen(false)
+                  setSelectedHashtags(new Set())
+                  setHashtagSearch("")
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={insertSelectedHashtags} disabled={selectedHashtags.size === 0}>
+                  Add {selectedHashtags.size > 0 && `(${selectedHashtags.size})`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
       </Dialog>
 
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        {/* ... unchanged ... */}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard {isDM ? "message" : "post"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your {isDM ? "message" : "post"} will be permanently discarded.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDiscard}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   )
