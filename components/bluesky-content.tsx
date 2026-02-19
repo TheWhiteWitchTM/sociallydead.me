@@ -203,9 +203,9 @@ export function BlueskyContent({
 				{embed?.$type === "app.bsky.embed.video#view" && (
 					<>
 						<div>VIDEO</div>
-						<code>
+						<div>
 							{JSON.stringify(embed)}
-						</code>
+						</div>
 					</>
 				)}
 
