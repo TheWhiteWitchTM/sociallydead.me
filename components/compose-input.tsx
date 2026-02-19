@@ -328,11 +328,11 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
-    // Reset suggestions unless we find a valid trigger
+    // Reset flags
     let keepMentionOpen = false
     let keepHashtagOpen = false
 
-    // Mention check
+    // Mention detection
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
@@ -344,11 +344,11 @@ export function ComposeInput({
       keepMentionOpen = true
     }
 
-    // Hashtag check – strict version
+    // Hashtag detection – only at end, preceded by space or start
     const hashtagMatch = textBeforeCursor.match(/#([a-zA-Z0-9_]*)$/);
     if (hashtagMatch) {
       const matchIndex = hashtagMatch.index
-      const charBefore = matchIndex > 0 ? textBeforeCursor[matchIndex - 1] : null
+      const charBefore = matchIndex > 0 ? textBeforeCursor.charAt(matchIndex - 1) : null
       const isValidTrigger =
         (matchIndex === 0 || /\s/.test(charBefore ?? '')) &&
         textBeforeCursor.endsWith(hashtagMatch[0])
@@ -370,12 +370,12 @@ export function ComposeInput({
       }
     }
 
-    // Force close anything that's not supposed to be open
-    if (!keepMentionOpen && showMentionSuggestions) {
+    // Force close anything not kept open
+    if (!keepMentionOpen) {
       setShowMentionSuggestions(false)
       setMentionSuggestions([])
     }
-    if (!keepHashtagOpen && showHashtagSuggestions) {
+    if (!keepHashtagOpen) {
       setShowHashtagSuggestions(false)
       setHashtagSuggestions([])
       setAutocompletePosition(0)
@@ -708,32 +708,28 @@ export function ComposeInput({
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="underline">{match[2]}</span>
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                  <span className="text-blue-400 text-xs">{match[4]}</span>
-                  <span className="text-muted-foreground/60">{match[5]}</span>
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-400/60">
+                  {match[0]}
                 </span>
               )
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/10 rounded-sm">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/10 rounded-sm">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline bg-blue-500/5 rounded">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-400/60">
                   {match[0]}
                 </span>
               )
