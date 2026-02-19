@@ -170,7 +170,7 @@ export function ComposeInput({
   const hasVideo = mediaFiles.some(f => f.type === "video")
   const hasImages = mediaFiles.some(f => f.type === "image")
   const imageCount = mediaFiles.filter(f => f.type === "image").length
-  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES
+  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES   // ← disabled in DM
 
   const charCount = text.length
   const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
@@ -219,13 +219,12 @@ export function ComposeInput({
     setShowDiscardDialog(false)
   }, [forceClose])
 
-  const syncScroll = useCallback(() => {
-    if (!textareaRef.current || !highlighterRef.current) return
-    requestAnimationFrame(() => {
-      highlighterRef.current!.scrollTop = textareaRef.current!.scrollTop
-      highlighterRef.current!.scrollLeft = textareaRef.current!.scrollLeft
-    })
-  }, [])
+  const syncScroll = () => {
+    if (textareaRef.current && highlighterRef.current) {
+      highlighterRef.current.scrollTop = textareaRef.current.scrollTop
+      highlighterRef.current.scrollLeft = textareaRef.current.scrollLeft
+    }
+  }
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
@@ -255,7 +254,7 @@ export function ComposeInput({
   }, [hasPlayedWarning])
 
   const fetchLinkCard = useCallback(async (url: string) => {
-    if (linkCardDismissed || isDM) return
+    if (linkCardDismissed || isDM) return   // no link cards in DM
     setLinkCardLoading(true)
     try {
       const res = await fetch(`/api/og?url=${encodeURIComponent(url)}`)
@@ -328,54 +327,36 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
-    let keepMentionOpen = false
-    let keepHashtagOpen = false
-
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('@')
       setAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
+      setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
       searchMentions(matchText)
-      keepMentionOpen = true
+      return
     }
 
-    const hashtagMatch = textBeforeCursor.match(/#([a-zA-Z0-9_]*)$/);
+    const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
-      const matchIndex = hashtagMatch.index
-      const charBefore = matchIndex > 0 ? textBeforeCursor.charAt(matchIndex - 1) : null
-      const isValidTrigger =
-        (matchIndex === 0 || /\s/.test(charBefore ?? '')) &&
-        textBeforeCursor.endsWith(hashtagMatch[0])
-
-      if (isValidTrigger) {
-        const matchText = hashtagMatch[1] || ''
-        const triggerIndex = matchIndex
-
-        setAutocompletePosition(triggerIndex)
-        setShowHashtagSuggestions(true)
-        setSelectedSuggestionIndex(0)
-
-        if (matchText.length === 0) {
-          setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
-        } else {
-          searchHashtags(matchText)
-        }
-        keepHashtagOpen = true
-      }
-    }
-
-    if (!keepMentionOpen) {
+      const matchText = hashtagMatch[1]
+      const triggerIndex = textBeforeCursor.lastIndexOf('#')
+      setAutocompletePosition(triggerIndex)
+      setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
-      setMentionSuggestions([])
+      setSelectedSuggestionIndex(0)
+      if (matchText.length === 0) {
+        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
+      } else {
+        searchHashtags(matchText)
+      }
+      return
     }
-    if (!keepHashtagOpen) {
-      setShowHashtagSuggestions(false)
-      setHashtagSuggestions([])
-      setAutocompletePosition(0)
-    }
+
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
   }
 
   const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
@@ -385,10 +366,8 @@ export function ComposeInput({
     const afterCursor = text.slice(cursorPos)
     const newText = beforeTrigger + prefix + suggestion + ' ' + afterCursor
     onTextChange(newText)
-
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
-    setAutocompletePosition(0)
 
     setTimeout(() => {
       if (textareaRef.current) {
@@ -396,7 +375,7 @@ export function ComposeInput({
         textareaRef.current.focus()
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
-    }, 50)
+    }, 0)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -434,7 +413,7 @@ export function ComposeInput({
   }
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isDM) return
+    if (isDM) return   // safety
     const files = e.target.files
     if (!files) return
 
@@ -668,7 +647,7 @@ export function ComposeInput({
           switch (type) {
             case 'bold':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="font-bold text-foreground">
+                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -677,7 +656,7 @@ export function ComposeInput({
               break
             case 'italic':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="italic text-foreground">
+                <span key={`${lineKey}-${keyCounter++}`} className="italic">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -686,7 +665,7 @@ export function ComposeInput({
               break
             case 'strikethrough':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="line-through text-foreground">
+                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -704,28 +683,32 @@ export function ComposeInput({
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-500/50">
-                  {match[0]}
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
+                  <span className="text-muted-foreground/60">{match[1]}</span>
+                  <span className="underline">{match[2]}</span>
+                  <span className="text-muted-foreground/60">{match[3]}</span>
+                  <span className="text-blue-400 text-xs">{match[4]}</span>
+                  <span className="text-muted-foreground/60">{match[5]}</span>
                 </span>
               )
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-700 font-medium bg-blue-500/15 rounded px-0.5">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 px-0.5 rounded">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-700 font-medium bg-blue-500/15 rounded px-0.5">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 px-0.5 rounded">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline decoration-blue-500/50">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline bg-blue-500/5 px-0.5 rounded">
                   {match[0]}
                 </span>
               )
@@ -767,16 +750,6 @@ export function ComposeInput({
       postType === "dm" ? "Direct Message" :
         postType === "article" ? "Writing Article" :
           "New Post"
-
-  const sharedTextStyles = {
-    fontFamily: "inherit",
-    fontSize: "0.875rem",
-    lineHeight: "1.5",
-    letterSpacing: "0",
-    fontKerning: "normal" as const,
-    padding: "0.75rem 1rem",
-    boxSizing: "border-box" as const,
-  }
 
   return (
     <div className="space-y-2">
@@ -858,7 +831,7 @@ export function ComposeInput({
                     ) : (
                       <>
                         <Send className="h-3.5 w-3.5 mr-1.5" />
-                        {postType === "reply" ? "Reply" : "Post"}
+                        {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
                       </>
                     )}
                   </Button>
@@ -868,24 +841,23 @@ export function ComposeInput({
           </div>
         </div>
 
-        <div className="relative isolation-isolate">
-          {/* Highlighter – always behind */}
+        <div className="relative">
           <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0",
+              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-auto select-none z-0",
               minHeight
             )}
             aria-hidden="true"
             style={{
-              ...sharedTextStyles,
-              color: "transparent",
+              fontFamily: 'inherit',
+              lineHeight: '1.5',
+              fontSize: '0.875rem',
             }}
           >
             {renderHighlightedText()}
           </div>
 
-          {/* Textarea – on top, caret forced visible */}
           <Textarea
             ref={textareaRef}
             placeholder={placeholder}
@@ -894,15 +866,13 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent relative z-10 caret-[#2563eb] caret-w-2",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
             style={{
-              ...sharedTextStyles,
-              color: "transparent",
-              caretColor: "#2563eb !important",
-              WebkitTextFillColor: "transparent",
-              caretWidth: "2px",
+              color: 'transparent',
+              caretColor: 'var(--foreground)',
+              lineHeight: '1.5',
             }}
           />
 
@@ -980,6 +950,7 @@ export function ComposeInput({
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
+            {/* Media upload – only shown/enabled outside DM */}
             {!isDM && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1001,6 +972,7 @@ export function ComposeInput({
               </Tooltip>
             )}
 
+            {/* Emoji – available everywhere including DM */}
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1051,7 +1023,7 @@ export function ComposeInput({
               </PopoverContent>
             </Popover>
 
-            <div className="w-2" />
+            <div className="w-2" /> {/* spacer */}
 
             {formatActions.map(({ icon: Icon, label, action }) => (
               <Tooltip key={label}>
@@ -1111,6 +1083,7 @@ export function ComposeInput({
               </TooltipContent>
             </Tooltip>
 
+            {/* DM mode only: action buttons at bottom right */}
             {isDM && (
               <>
                 <Separator orientation="vertical" className="h-5 mx-2" />
@@ -1129,7 +1102,10 @@ export function ComposeInput({
                 {onSubmit && (
                   <Button
                     onClick={onSubmit}
-                    disabled={isSubmitting || !text.trim()}
+                    disabled={
+                      isSubmitting ||
+                      !text.trim()   // DM usually requires text
+                    }
                     size="sm"
                     className="h-7 px-4 text-xs font-bold"
                   >
@@ -1147,6 +1123,7 @@ export function ComposeInput({
             )}
           </div>
 
+          {/* Non-DM bottom right area – empty now, actions moved up */}
           {!isDM && (
             <div className="flex items-center gap-2 shrink-0 opacity-0 pointer-events-none w-0 h-0" />
           )}
@@ -1165,7 +1142,10 @@ export function ComposeInput({
       )}
 
       {mediaFiles.length > 0 && !isDM && (
-        <div className={cn("gap-2", hasVideo ? "flex" : "grid grid-cols-2")}>
+        <div className={cn(
+          "gap-2",
+          hasVideo ? "flex" : "grid grid-cols-2"
+        )}>
           {mediaFiles.map((media, index) => (
             <div key={index} className="relative group">
               {media.type === "image" ? (
@@ -1415,6 +1395,7 @@ export function ComposeInput({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   )
 }
