@@ -328,46 +328,58 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart || newText.length
     const textBeforeCursor = newText.slice(0, cursorPos)
 
+    // Reset suggestions unless we find a valid trigger
+    let keepMentionOpen = false
+    let keepHashtagOpen = false
+
+    // Mention check
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('@')
       setAutocompletePosition(triggerIndex)
       setShowMentionSuggestions(true)
-      setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
       searchMentions(matchText)
-      return
+      keepMentionOpen = true
     }
 
-    // Fixed hashtag detection: only trigger if # is at end or preceded by space, and no extra chars after tag
+    // Hashtag check – strict version
     const hashtagMatch = textBeforeCursor.match(/#([a-zA-Z0-9_]*)$/);
     if (hashtagMatch) {
-      const matchIndex = hashtagMatch.index;
-      const charBefore = matchIndex > 0 ? textBeforeCursor[matchIndex - 1] : null;
-      const isValidStart = matchIndex === 0 || /\s/.test(charBefore!);
+      const matchIndex = hashtagMatch.index
+      const charBefore = matchIndex > 0 ? textBeforeCursor[matchIndex - 1] : null
+      const isValidTrigger =
+        (matchIndex === 0 || /\s/.test(charBefore ?? '')) &&
+        textBeforeCursor.endsWith(hashtagMatch[0])
 
-      if (isValidStart) {
-        const matchText = hashtagMatch[1];
-        const triggerIndex = matchIndex;
+      if (isValidTrigger) {
+        const matchText = hashtagMatch[1] || ''
+        const triggerIndex = matchIndex
 
-        setAutocompletePosition(triggerIndex);
-        setShowHashtagSuggestions(true);
-        setShowMentionSuggestions(false);
-        setSelectedSuggestionIndex(0);
+        setAutocompletePosition(triggerIndex)
+        setShowHashtagSuggestions(true)
+        setSelectedSuggestionIndex(0)
 
         if (matchText.length === 0) {
-          setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5));
+          setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
         } else {
-          searchHashtags(matchText);
+          searchHashtags(matchText)
         }
-        return;
+        keepHashtagOpen = true
       }
     }
 
-    // Close if no valid trigger
-    setShowMentionSuggestions(false);
-    setShowHashtagSuggestions(false);
+    // Force close anything that's not supposed to be open
+    if (!keepMentionOpen && showMentionSuggestions) {
+      setShowMentionSuggestions(false)
+      setMentionSuggestions([])
+    }
+    if (!keepHashtagOpen && showHashtagSuggestions) {
+      setShowHashtagSuggestions(false)
+      setHashtagSuggestions([])
+      setAutocompletePosition(0)
+    }
   }
 
   const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
@@ -377,8 +389,10 @@ export function ComposeInput({
     const afterCursor = text.slice(cursorPos)
     const newText = beforeTrigger + prefix + suggestion + ' ' + afterCursor
     onTextChange(newText)
+
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
+    setAutocompletePosition(0)
 
     setTimeout(() => {
       if (textareaRef.current) {
@@ -386,7 +400,7 @@ export function ComposeInput({
         textareaRef.current.focus()
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
-    }, 50)  // small delay helps cursor stability after re-render
+    }, 50)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
