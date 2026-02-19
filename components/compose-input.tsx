@@ -30,7 +30,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useBluesky } from "@/lib/bluesky-context"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { cn } from "@/lib/utils"
@@ -306,19 +305,45 @@ export function ComposeInput({
     if (!textareaRef.current) return
 
     const ta = textareaRef.current
-    const rect = ta.getBoundingClientRect()
+    const cursorPos = ta.selectionStart
+    const textBefore = text.slice(0, cursorPos)
+
+    const mirror = document.createElement('div')
+    mirror.style.position = 'absolute'
+    mirror.style.visibility = 'hidden'
+    mirror.style.whiteSpace = 'pre-wrap'
+    mirror.style.wordWrap = 'break-word'
+    mirror.style.font = window.getComputedStyle(ta).font
+    mirror.style.padding = window.getComputedStyle(ta).padding
+    mirror.style.width = ta.clientWidth + 'px'
+    mirror.style.lineHeight = window.getComputedStyle(ta).lineHeight
+    mirror.style.letterSpacing = window.getComputedStyle(ta).letterSpacing
+    mirror.style.border = window.getComputedStyle(ta).border
+    mirror.textContent = textBefore
+
+    document.body.appendChild(mirror)
+
+    const span = document.createElement('span')
+    span.style.visibility = 'hidden'
+    span.textContent = textBefore.slice(-1) || ' '
+    mirror.appendChild(span)
+
+    const rect = span.getBoundingClientRect()
+    const taRect = ta.getBoundingClientRect()
 
     setAutocompleteCoords({
-      top: rect.bottom - rect.top + ta.scrollTop + 8,
-      left: rect.left - rect.left + ta.scrollLeft + 16,
+      top: rect.top - taRect.top + ta.scrollTop + rect.height + 4,
+      left: rect.left - taRect.left + ta.scrollLeft
     })
-  }, [])
+
+    document.body.removeChild(mirror)
+  }, [text])
 
   useEffect(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
       updateAutocompletePosition()
     }
-  }, [showMentionSuggestions, showHashtagSuggestions, updateAutocompletePosition])
+  }, [showMentionSuggestions, showHashtagSuggestions, text, updateAutocompletePosition])
 
   const handleTextChange = (newText: string) => {
     onTextChange(newText)
@@ -339,7 +364,7 @@ export function ComposeInput({
       }
     }, 800)
 
-    // No auto-open — only on Tab
+    // No auto-popup on typing — only on Tab
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
   }
@@ -412,7 +437,7 @@ export function ComposeInput({
         return
       }
 
-      // Normal tab
+      // Normal tab insert
       const newText = text.slice(0, cursor) + '\t' + text.slice(cursor)
       onTextChange(newText)
       setTimeout(() => textareaRef.current?.setSelectionRange(cursor + 1, cursor + 1), 0)
@@ -841,23 +866,23 @@ export function ComposeInput({
 
           {(showMentionSuggestions || showHashtagSuggestions) && createPortal(
             <Card
-              className="fixed z-[9999] shadow-2xl border border-primary/30 rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+              className="fixed z-[9999] shadow-xl border border-primary/30 rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: `${autocompleteCoords.top}px`,
                 left: `${autocompleteCoords.left}px`,
-                minWidth: '320px',
-                maxWidth: '400px',
+                minWidth: '280px',
+                maxWidth: '360px',
               }}
             >
-              <CardContent className="p-1 max-h-64 overflow-y-auto">
+              <CardContent className="p-1 max-h-48 overflow-y-auto">
                 {showMentionSuggestions && (
                   <>
                     {isSearchingMentions ? (
-                      <div className="flex items-center justify-center p-6">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
                       </div>
                     ) : mentionSuggestions.length === 0 ? (
-                      <div className="p-6 text-center text-muted-foreground text-sm">
+                      <div className="p-4 text-center text-muted-foreground text-sm">
                         No users found
                       </div>
                     ) : (
@@ -867,7 +892,7 @@ export function ComposeInput({
                           tabIndex={0}
                           autoFocus={idx === 0}
                           className={cn(
-                            "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                            "flex items-center gap-3 p-2.5 cursor-pointer transition-colors outline-none",
                             idx === selectedSuggestionIndex
                               ? "bg-primary text-primary-foreground"
                               : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
@@ -880,13 +905,13 @@ export function ComposeInput({
                             }
                           }}
                         >
-                          <Avatar className="h-9 w-9">
+                          <Avatar className="h-8 w-8">
                             <AvatarImage src={user.avatar || "/placeholder.svg"} />
                             <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{user.displayName || user.handle}</p>
-                            <p className="text-sm text-muted-foreground truncate">@{user.handle}</p>
+                            <p className="font-medium truncate text-sm">{user.displayName || user.handle}</p>
+                            <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
                           </div>
                         </div>
                       ))
@@ -901,7 +926,7 @@ export function ComposeInput({
                       tabIndex={0}
                       autoFocus={idx === 0}
                       className={cn(
-                        "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                        "flex items-center gap-3 p-2.5 cursor-pointer transition-colors outline-none",
                         idx === selectedSuggestionIndex
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
@@ -914,10 +939,10 @@ export function ComposeInput({
                         }
                       }}
                     >
-                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
-                        <Hash className="h-5 w-5" />
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <Hash className="h-4 w-4" />
                       </div>
-                      <span className="font-medium">#{tag}</span>
+                      <span className="font-medium text-sm">#{tag}</span>
                     </div>
                   ))
                 )}
