@@ -199,23 +199,28 @@ export function BlueskyContent({
 					/>
 				)}
 
-				{/* Video — prioritizes hydrated #view, falls back to raw blob info */}
-				{embed && (
-					embed.$type === "app.bsky.embed.video#view" && embed.video?.playlist ? (
-						<BlueskyVideo
-							playlist={embed.video.playlist}
-							thumbnail={embed.video.thumbnail}
-							alt={embed.video.alt ?? ""}
-							aspectRatio={embed.video.aspectRatio}
-						/>
-					) : embed.$type === "app.bsky.embed.video" && embed.video ? (
-						// Raw blob fallback: show placeholder or construct direct playback if possible
-						<div className="bg-muted p-4 rounded text-center text-sm">
-							Video processing / loading... (raw blob detected)
-							{/* Optional: direct blob URL for fallback playback if your player supports mp4 */}
-							{/* src={`https://cdn.bsky.app/img/feed_fullsize/plain/${author.did}/${embed.video.ref.$link}@mp4`} */}
-						</div>
-					) : null
+				{/* Video — detects BOTH raw blob AND hydrated #view (like your original did) */}
+				{embed?.video && (
+					<BlueskyVideo
+						playlist={
+							embed.$type === "app.bsky.embed.video#view" && embed.video.playlist
+								? embed.video.playlist
+								: undefined  // fallback: no HLS playlist available (raw case)
+						}
+						thumbnail={
+							embed.$type === "app.bsky.embed.video#view" && embed.video.thumbnail
+								? embed.video.thumbnail
+								: undefined  // raw usually has none
+						}
+						alt={embed.video.alt ?? ""}
+						aspectRatio={embed.video.aspectRatio ?? undefined}
+						// If your BlueskyVideo component can handle direct MP4 fallback for raw blobs, add:
+						// directSrc={
+						//   embed.$type === "app.bsky.embed.video" && embed.video.ref?.$link
+						//     ? `https://cdn.bsky.app/img/feed_fullsize/plain/${author.did}/${embed.video.ref.$link}`
+						//     : undefined
+						// }
+					/>
 				)}
 
 				{/* External card */}
