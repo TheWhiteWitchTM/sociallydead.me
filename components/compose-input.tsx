@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { createPortal } from "react-dom"
 import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -9,13 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useBluesky } from "@/lib/bluesky-context"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -139,11 +133,9 @@ export function ComposeInput({
 
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
   const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
-  const [popupLocked, setPopupLocked] = useState(false)
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
   const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState(0)
-  const [autocompleteCoords, setAutocompleteCoords] = useState({ top: 0, left: 0 })
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
@@ -172,21 +164,25 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
+  // Lock body scroll when popup is open
+  useEffect(() => {
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [showMentionSuggestions, showHashtagSuggestions])
+
   const simulateEscape = useCallback(() => {
     const escEvent = new KeyboardEvent("keydown", {
       key: "Escape",
-      code: "Escape",
-      keyCode: 27,
-      which: 27,
       bubbles: true,
       cancelable: true,
-      composed: true,
     })
-
     document.dispatchEvent(escEvent)
-    document.body.dispatchEvent(escEvent)
-    window.dispatchEvent(escEvent)
-    if (document.activeElement) document.activeElement.dispatchEvent(escEvent)
   }, [])
 
   const forceClose = useCallback(() => {
@@ -197,7 +193,6 @@ export function ComposeInput({
     if (showMentionSuggestions || showHashtagSuggestions) {
       setShowMentionSuggestions(false)
       setShowHashtagSuggestions(false)
-      setPopupLocked(false)
       return
     }
 
@@ -383,7 +378,12 @@ export function ComposeInput({
 
     if (e.key === 'Escape') {
       e.preventDefault()
-      handleCancelOrEscape()
+      if (showMentionSuggestions || showHashtagSuggestions) {
+        setShowMentionSuggestions(false)
+        setShowHashtagSuggestions(false)
+      } else {
+        handleCancelOrEscape()
+      }
       return
     }
 
@@ -805,73 +805,84 @@ export function ComposeInput({
             }}
           />
 
-          {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-[9999] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-              <CardContent className="p-1 max-h-60 overflow-y-auto">
-                {isSearchingMentions ? (
-                  <div className="flex items-center justify-center p-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  mentionSuggestions.map((user, idx) => (
-                    <div
-                      key={user.did}
-                      className={cn(
-                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
-                        idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+          {(showMentionSuggestions || showHashtagSuggestions) && createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-20 bg-black/30 backdrop-blur-sm">
+              <Card className="w-full max-w-md mx-4 mt-4 shadow-2xl border-primary/30 animate-in fade-in zoom-in-95 duration-200">
+                <CardContent className="p-0 max-h-[60vh] overflow-y-auto">
+                  {showMentionSuggestions && (
+                    <>
+                      {isSearchingMentions ? (
+                        <div className="flex items-center justify-center p-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      ) : (
+                        mentionSuggestions.map((user, idx) => (
+                          <div
+                            key={user.did}
+                            ref={idx === 0 ? (el) => el?.focus() : null}
+                            tabIndex={0}
+                            className={cn(
+                              "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                              idx === selectedSuggestionIndex
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-accent focus:bg-accent"
+                            )}
+                            onClick={() => insertSuggestion(user.handle, 'mention')}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                insertSuggestion(user.handle, 'mention')
+                              }
+                            }}
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                              <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate flex items-center gap-1">
+                                {user.displayName || user.handle}
+                                <VerifiedBadge handle={user.handle} />
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate">@{user.handle}</p>
+                            </div>
+                          </div>
+                        ))
                       )}
-                      onClick={() => insertSuggestion(user.handle, 'mention')}
-                    >
-                      <Avatar className="h-8 w-8 border border-background/10">
-                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                        <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
-                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate flex items-center gap-1">
-                          {user.displayName || user.handle}
-                          <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
-                        </p>
-                        <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                          @{user.handle}
-                        </p>
-                      </div>
-                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
-                        Add
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          )}
+                    </>
+                  )}
 
-          {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-[9999] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-              <CardContent className="p-1 max-h-60 overflow-y-auto">
-                {hashtagSuggestions.map((tag, idx) => (
-                  <div
-                    key={tag}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
-                      idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-                    )}
-                    onClick={() => insertSuggestion(tag, 'hashtag')}
-                  >
-                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
-                      <Hash className="h-4 w-4" />
-                    </div>
-                    <span className="text-sm font-medium flex-1">#{tag}</span>
-                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
-                      Add
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                  {showHashtagSuggestions && (
+                    hashtagSuggestions.map((tag, idx) => (
+                      <div
+                        key={tag}
+                        ref={idx === 0 ? (el) => el?.focus() : null}
+                        tabIndex={0}
+                        className={cn(
+                          "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                          idx === selectedSuggestionIndex
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-accent focus:bg-accent"
+                        )}
+                        onClick={() => insertSuggestion(tag, 'hashtag')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            insertSuggestion(tag, 'hashtag')
+                          }
+                        }}
+                      >
+                        <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center">
+                          <Hash className="h-5 w-5" />
+                        </div>
+                        <span className="font-medium">#{tag}</span>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>,
+            document.body
           )}
         </div>
       </Card>
@@ -1013,7 +1024,10 @@ export function ComposeInput({
       </TooltipProvider>
 
       {mediaFiles.length > 0 && (
-        <div className={cn("gap-2", hasVideo ? "flex" : "grid grid-cols-2")}>
+        <div className={cn(
+          "gap-2",
+          hasVideo ? "flex" : "grid grid-cols-2"
+        )}>
           {mediaFiles.map((media, index) => (
             <div key={index} className="relative group">
               {media.type === "image" ? (
