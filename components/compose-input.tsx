@@ -1,15 +1,40 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
+import { createPortal } from "react-dom"
+import {
+  Loader2,
+  ImagePlus,
+  X,
+  Hash,
+  Video,
+  ExternalLink,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  ListOrdered,
+  Code,
+  Link2,
+  Strikethrough,
+  Quote,
+  SmilePlus,
+  AtSign,
+  Send,
+  PenSquare,
+} from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useBluesky } from "@/lib/bluesky-context"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -21,7 +46,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -165,7 +189,7 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
-  // Lock body scroll when popup is open
+  // Prevent body scroll when popup is open
   useEffect(() => {
     if (showMentionSuggestions || showHashtagSuggestions) {
       document.body.style.overflow = 'hidden'
@@ -807,26 +831,30 @@ export function ComposeInput({
           />
 
           {(showMentionSuggestions || showHashtagSuggestions) && createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-20 bg-black/30 backdrop-blur-sm">
-              <Card className="w-full max-w-md mx-4 mt-4 shadow-2xl border-primary/30 animate-in fade-in zoom-in-95 duration-200">
-                <CardContent className="p-0 max-h-[60vh] overflow-y-auto">
+            <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-start justify-center pt-32 pointer-events-auto">
+              <Card className="w-full max-w-md mx-4 shadow-2xl border-primary/30 rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <CardContent className="p-0 max-h-[70vh] overflow-y-auto focus:outline-none">
                   {showMentionSuggestions && (
                     <>
                       {isSearchingMentions ? (
-                        <div className="flex items-center justify-center p-8">
+                        <div className="flex items-center justify-center p-12">
                           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      ) : mentionSuggestions.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                          No matching users found
                         </div>
                       ) : (
                         mentionSuggestions.map((user, idx) => (
                           <div
                             key={user.did}
-                            ref={idx === 0 ? (el) => el?.focus() : null}
                             tabIndex={0}
+                            autoFocus={idx === 0}
                             className={cn(
-                              "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                              "flex items-center gap-4 p-4 cursor-pointer transition-all outline-none border-b last:border-b-0",
                               idx === selectedSuggestionIndex
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-accent focus:bg-accent"
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary/50"
                             )}
                             onClick={() => insertSuggestion(user.handle, 'mention')}
                             onKeyDown={(e) => {
@@ -836,16 +864,20 @@ export function ComposeInput({
                               }
                             }}
                           >
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-12 w-12 ring-1 ring-border/50">
                               <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                              <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
+                              <AvatarFallback className="text-lg">
+                                {(user.displayName || user.handle).slice(0,2).toUpperCase()}
+                              </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate flex items-center gap-1">
+                              <p className="font-medium truncate text-base">
                                 {user.displayName || user.handle}
-                                <VerifiedBadge handle={user.handle} />
+                                <VerifiedBadge handle={user.handle} className="ml-1 inline" />
                               </p>
-                              <p className="text-sm text-muted-foreground truncate">@{user.handle}</p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                @{user.handle}
+                              </p>
                             </div>
                           </div>
                         ))
@@ -857,13 +889,13 @@ export function ComposeInput({
                     hashtagSuggestions.map((tag, idx) => (
                       <div
                         key={tag}
-                        ref={idx === 0 ? (el) => el?.focus() : null}
                         tabIndex={0}
+                        autoFocus={idx === 0}
                         className={cn(
-                          "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                          "flex items-center gap-4 p-4 cursor-pointer transition-all outline-none border-b last:border-b-0",
                           idx === selectedSuggestionIndex
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-accent focus:bg-accent"
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary/50"
                         )}
                         onClick={() => insertSuggestion(tag, 'hashtag')}
                         onKeyDown={(e) => {
@@ -873,10 +905,12 @@ export function ComposeInput({
                           }
                         }}
                       >
-                        <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center">
-                          <Hash className="h-5 w-5" />
+                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                          <Hash className="h-6 w-6" />
                         </div>
-                        <span className="font-medium">#{tag}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-base">#{tag}</p>
+                        </div>
                       </div>
                     ))
                   )}
@@ -1025,10 +1059,7 @@ export function ComposeInput({
       </TooltipProvider>
 
       {mediaFiles.length > 0 && (
-        <div className={cn(
-          "gap-2",
-          hasVideo ? "flex" : "grid grid-cols-2"
-        )}>
+        <div className={cn("gap-2", hasVideo ? "flex" : "grid grid-cols-2")}>
           {mediaFiles.map((media, index) => (
             <div key={index} className="relative group">
               {media.type === "image" ? (
