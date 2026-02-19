@@ -33,8 +33,6 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -151,7 +149,7 @@ export function ComposeInput({
                              }: ComposeInputProps) {
   const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
-  const { searchActors, searchActorsTypeahead } = useBluesky()
+  const { searchActors } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const highlighterRef = useRef<HTMLDivElement>(null)
@@ -161,6 +159,7 @@ export function ComposeInput({
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
   const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState(0)
+  const [autocompleteCoords, setAutocompleteCoords] = useState({ top: 0, left: 0 })
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
@@ -188,18 +187,6 @@ export function ComposeInput({
   const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
-
-  // Prevent body scroll when popup is open
-  useEffect(() => {
-    if (showMentionSuggestions || showHashtagSuggestions) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [showMentionSuggestions, showHashtagSuggestions])
 
   const simulateEscape = useCallback(() => {
     const escEvent = new KeyboardEvent("keydown", {
@@ -315,16 +302,30 @@ export function ComposeInput({
     setHashtagSuggestions(matches)
   }, [])
 
+  const updateAutocompletePosition = useCallback(() => {
+    if (!textareaRef.current) return
+
+    const ta = textareaRef.current
+    const rect = ta.getBoundingClientRect()
+
+    setAutocompleteCoords({
+      top: rect.bottom - rect.top + ta.scrollTop + 8,
+      left: rect.left - rect.left + ta.scrollLeft + 16,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      updateAutocompletePosition()
+    }
+  }, [showMentionSuggestions, showHashtagSuggestions, updateAutocompletePosition])
+
   const handleTextChange = (newText: string) => {
     onTextChange(newText)
 
     const warningThreshold = effectiveMaxChars * 0.9
-    if (newText.length < warningThreshold) {
-      setHasPlayedWarning(false)
-    }
-    if (newText.length >= warningThreshold && text.length < warningThreshold) {
-      playWarningSound()
-    }
+    if (newText.length < warningThreshold) setHasPlayedWarning(false)
+    if (newText.length >= warningThreshold && text.length < warningThreshold) playWarningSound()
 
     if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
     linkCardDebounceRef.current = setTimeout(() => {
@@ -338,37 +339,7 @@ export function ComposeInput({
       }
     }, 800)
 
-    const cursorPos = textareaRef.current?.selectionStart || newText.length
-    const textBeforeCursor = newText.slice(0, cursorPos)
-
-    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
-    if (mentionMatch) {
-      const matchText = mentionMatch[1]
-      const triggerIndex = textBeforeCursor.lastIndexOf('@')
-      setAutocompletePosition(triggerIndex)
-      setShowMentionSuggestions(true)
-      setShowHashtagSuggestions(false)
-      setSelectedSuggestionIndex(0)
-      searchMentions(matchText)
-      return
-    }
-
-    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
-    if (hashtagMatch) {
-      const matchText = hashtagMatch[1]
-      const triggerIndex = textBeforeCursor.lastIndexOf('#')
-      setAutocompletePosition(triggerIndex)
-      setShowHashtagSuggestions(true)
-      setShowMentionSuggestions(false)
-      setSelectedSuggestionIndex(0)
-      if (matchText.length === 0) {
-        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
-      } else {
-        searchHashtags(matchText)
-      }
-      return
-    }
-
+    // No auto-open — only on Tab
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
   }
@@ -395,9 +366,7 @@ export function ComposeInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.shiftKey && onSubmit && !isSubmitting) {
       e.preventDefault()
-      if (text.trim()) {
-        onSubmit()
-      }
+      if (text.trim()) onSubmit()
       return
     }
 
@@ -412,21 +381,61 @@ export function ComposeInput({
       return
     }
 
-    if (!showMentionSuggestions && !showHashtagSuggestions) return
-    const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+    if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault()
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
-    } else if (e.key === 'Enter' && suggestions.length > 0) {
-      e.preventDefault()
-      if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
-        insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
-      } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
-        insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
+      const cursor = textareaRef.current?.selectionStart ?? text.length
+      const before = text.slice(0, cursor)
+
+      const atMatch = before.match(/@([a-zA-Z0-9.-]*)$/)
+      const hashMatch = before.match(/#(\w*)$/)
+
+      if (atMatch || hashMatch) {
+        const isMention = !!atMatch
+        const query = (atMatch?.[1] ?? hashMatch?.[1] ?? '').trim()
+        const triggerPos = before.lastIndexOf(isMention ? '@' : '#')
+
+        setAutocompletePosition(triggerPos)
+        setSelectedSuggestionIndex(0)
+
+        if (isMention) {
+          setShowMentionSuggestions(true)
+          setShowHashtagSuggestions(false)
+          searchMentions(query || 'a') // 'a' to get some results if empty
+        } else {
+          setShowHashtagSuggestions(true)
+          setShowMentionSuggestions(false)
+          searchHashtags(query)
+        }
+
+        updateAutocompletePosition()
+        return
+      }
+
+      // Normal tab
+      const newText = text.slice(0, cursor) + '\t' + text.slice(cursor)
+      onTextChange(newText)
+      setTimeout(() => textareaRef.current?.setSelectionRange(cursor + 1, cursor + 1), 0)
+      return
+    }
+
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(i => (i + 1) % suggestions.length)
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(i => (i - 1 + suggestions.length) % suggestions.length)
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        const sel = suggestions[selectedSuggestionIndex]
+        if (sel) {
+          insertSuggestion(
+            showMentionSuggestions ? (sel as MentionSuggestion).handle : sel as string,
+            showMentionSuggestions ? 'mention' : 'hashtag'
+          )
+        }
       }
     }
   }
@@ -831,92 +840,89 @@ export function ComposeInput({
           />
 
           {(showMentionSuggestions || showHashtagSuggestions) && createPortal(
-            <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-start justify-center pt-32 pointer-events-auto">
-              <Card className="w-full max-w-md mx-4 shadow-2xl border-primary/30 rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <CardContent className="p-0 max-h-[70vh] overflow-y-auto focus:outline-none">
-                  {showMentionSuggestions && (
-                    <>
-                      {isSearchingMentions ? (
-                        <div className="flex items-center justify-center p-12">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                      ) : mentionSuggestions.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground">
-                          No matching users found
-                        </div>
-                      ) : (
-                        mentionSuggestions.map((user, idx) => (
-                          <div
-                            key={user.did}
-                            tabIndex={0}
-                            autoFocus={idx === 0}
-                            className={cn(
-                              "flex items-center gap-4 p-4 cursor-pointer transition-all outline-none border-b last:border-b-0",
-                              idx === selectedSuggestionIndex
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary/50"
-                            )}
-                            onClick={() => insertSuggestion(user.handle, 'mention')}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                insertSuggestion(user.handle, 'mention')
-                              }
-                            }}
-                          >
-                            <Avatar className="h-12 w-12 ring-1 ring-border/50">
-                              <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                              <AvatarFallback className="text-lg">
-                                {(user.displayName || user.handle).slice(0,2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate text-base">
-                                {user.displayName || user.handle}
-                                <VerifiedBadge handle={user.handle} className="ml-1 inline" />
-                              </p>
-                              <p className="text-sm text-muted-foreground truncate">
-                                @{user.handle}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </>
-                  )}
-
-                  {showHashtagSuggestions && (
-                    hashtagSuggestions.map((tag, idx) => (
-                      <div
-                        key={tag}
-                        tabIndex={0}
-                        autoFocus={idx === 0}
-                        className={cn(
-                          "flex items-center gap-4 p-4 cursor-pointer transition-all outline-none border-b last:border-b-0",
-                          idx === selectedSuggestionIndex
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary/50"
-                        )}
-                        onClick={() => insertSuggestion(tag, 'hashtag')}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            insertSuggestion(tag, 'hashtag')
-                          }
-                        }}
-                      >
-                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                          <Hash className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-base">#{tag}</p>
-                        </div>
+            <Card
+              className="fixed z-[9999] shadow-2xl border border-primary/30 rounded-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+              style={{
+                top: `${autocompleteCoords.top}px`,
+                left: `${autocompleteCoords.left}px`,
+                minWidth: '320px',
+                maxWidth: '400px',
+              }}
+            >
+              <CardContent className="p-1 max-h-64 overflow-y-auto">
+                {showMentionSuggestions && (
+                  <>
+                    {isSearchingMentions ? (
+                      <div className="flex items-center justify-center p-6">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </div>,
+                    ) : mentionSuggestions.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground text-sm">
+                        No users found
+                      </div>
+                    ) : (
+                      mentionSuggestions.map((user, idx) => (
+                        <div
+                          key={user.did}
+                          tabIndex={0}
+                          autoFocus={idx === 0}
+                          className={cn(
+                            "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                            idx === selectedSuggestionIndex
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
+                          )}
+                          onClick={() => insertSuggestion(user.handle, 'mention')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              insertSuggestion(user.handle, 'mention')
+                            }
+                          }}
+                        >
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                            <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{user.displayName || user.handle}</p>
+                            <p className="text-sm text-muted-foreground truncate">@{user.handle}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </>
+                )}
+
+                {showHashtagSuggestions && (
+                  hashtagSuggestions.map((tag, idx) => (
+                    <div
+                      key={tag}
+                      tabIndex={0}
+                      autoFocus={idx === 0}
+                      className={cn(
+                        "flex items-center gap-3 p-3 cursor-pointer transition-colors outline-none",
+                        idx === selectedSuggestionIndex
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-accent focus:bg-accent/80 focus:ring-2 focus:ring-primary"
+                      )}
+                      onClick={() => insertSuggestion(tag, 'hashtag')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          insertSuggestion(tag, 'hashtag')
+                        }
+                      }}
+                    >
+                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
+                        <Hash className="h-5 w-5" />
+                      </div>
+                      <span className="font-medium">#{tag}</span>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>,
             document.body
           )}
         </div>
