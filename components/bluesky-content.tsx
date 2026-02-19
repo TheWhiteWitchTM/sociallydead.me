@@ -200,7 +200,7 @@ export function BlueskyContent({
 				)}
 
 				{/* Video — updated for app.bsky.embed.video#view */}
-				{embed?.$type === "app.bsky.embed.video#view" && embed.video && (
+				{embed?.$type === "app.bsky.embed.video#view" && (
 					<>
 						<div>VIDEO</div>
 					<BlueskyVideo
