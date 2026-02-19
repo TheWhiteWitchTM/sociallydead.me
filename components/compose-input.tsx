@@ -146,7 +146,7 @@ export function ComposeInput({
                                submitButtonText = "Send",
                                isSubmitting = false,
                              }: ComposeInputProps) {
-  const isDM = postType === "dm"   // <--- THIS LINE WAS MISSING OR LOST
+  const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
   const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
