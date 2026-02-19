@@ -1,7 +1,29 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
+import {
+  Loader2,
+  ImagePlus,
+  X,
+  Hash,
+  Video,
+  ExternalLink,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  ListOrdered,
+  Code,
+  Link2,
+  Strikethrough,
+  Quote,
+  SmilePlus,
+  AtSign,
+  Send,
+  PenSquare,
+  HelpCircle,
+} from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -11,10 +33,8 @@ import { useBluesky } from "@/lib/bluesky-context"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -154,6 +174,7 @@ export function ComposeInput({
   const audioContextRef = useRef<AudioContext | null>(null)
 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false)
+  const [showHelpDialog, setShowHelpDialog] = useState(false)
 
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
@@ -283,7 +304,7 @@ export function ComposeInput({
 
   const searchHashtags = useCallback((query: string) => {
     if (query.length < 1) {
-      setHashtagSuggestions([])
+      setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
       return
     }
     const matches = POPULAR_HASHTAGS.filter(tag =>
@@ -302,8 +323,7 @@ export function ComposeInput({
 
     const mirror = document.createElement('div')
     mirror.style.position = 'absolute'
-    mirror.style.top = '-9999px'
-    mirror.style.left = '-9999px'
+    mirror.style.visibility = 'hidden'
     mirror.style.whiteSpace = 'pre-wrap'
     mirror.style.wordWrap = 'break-word'
     mirror.style.font = window.getComputedStyle(ta).font
@@ -312,44 +332,36 @@ export function ComposeInput({
     mirror.style.lineHeight = window.getComputedStyle(ta).lineHeight
     mirror.style.letterSpacing = window.getComputedStyle(ta).letterSpacing
     mirror.style.border = window.getComputedStyle(ta).border
-
     mirror.textContent = textBefore
 
     document.body.appendChild(mirror)
 
     const span = document.createElement('span')
-    span.textContent = ' '
+    span.textContent = prefix + (textBefore.match(/[@#]([^@\s#]*)$/)?.[1] || '')
     mirror.appendChild(span)
 
+    const rect = span.getBoundingClientRect()
     const taRect = ta.getBoundingClientRect()
-    const spanRect = span.getBoundingClientRect()
 
     setAutocompleteCoords({
-      top: spanRect.top - taRect.top + ta.scrollTop + spanRect.height,
-      left: spanRect.left - taRect.left + ta.scrollLeft
+      top: rect.bottom - taRect.top + ta.scrollTop + 4,
+      left: rect.left - taRect.left + ta.scrollLeft
     })
 
     document.body.removeChild(mirror)
   }, [text])
 
   useEffect(() => {
-    if (showMentionSuggestions) {
-      updateAutocompletePosition('mention')
-    } else if (showHashtagSuggestions) {
-      updateAutocompletePosition('hashtag')
-    }
+    if (showMentionSuggestions) updateAutocompletePosition('mention')
+    if (showHashtagSuggestions) updateAutocompletePosition('hashtag')
   }, [showMentionSuggestions, showHashtagSuggestions, text, updateAutocompletePosition])
 
   const handleTextChange = (newText: string) => {
     onTextChange(newText)
 
     const warningThreshold = effectiveMaxChars * 0.9
-    if (newText.length < warningThreshold) {
-      setHasPlayedWarning(false)
-    }
-    if (newText.length >= warningThreshold && text.length < warningThreshold) {
-      playWarningSound()
-    }
+    if (newText.length < warningThreshold) setHasPlayedWarning(false)
+    if (newText.length >= warningThreshold && text.length < warningThreshold) playWarningSound()
 
     if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
     linkCardDebounceRef.current = setTimeout(() => {
@@ -376,7 +388,8 @@ export function ComposeInput({
       setSelectedSuggestionIndex(0)
       searchMentions(matchText)
       updateAutocompletePosition('mention')
-      return
+    } else {
+      setShowMentionSuggestions(false)
     }
 
     const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
@@ -393,11 +406,9 @@ export function ComposeInput({
         searchHashtags(matchText)
       }
       updateAutocompletePosition('hashtag')
-      return
+    } else {
+      setShowHashtagSuggestions(false)
     }
-
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
   }
 
   const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
@@ -434,21 +445,78 @@ export function ComposeInput({
       return
     }
 
-    if (!showMentionSuggestions && !showHashtagSuggestions) return
-    const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+    // Tab: trigger or confirm suggestions
+    if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault()
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
-    } else if (e.key === 'Enter' && suggestions.length > 0) {
-      e.preventDefault()
-      if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
-        insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
-      } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
-        insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
+      const cursor = textareaRef.current?.selectionStart ?? text.length
+      const before = text.slice(0, cursor)
+
+      // If popup already open → confirm selected
+      if (showMentionSuggestions || showHashtagSuggestions) {
+        const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+        const idx = selectedSuggestionIndex
+        if (suggestions[idx]) {
+          insertSuggestion(
+            showMentionSuggestions ? (suggestions[idx] as MentionSuggestion).handle : suggestions[idx] as string,
+            showMentionSuggestions ? 'mention' : 'hashtag'
+          )
+        }
+        return
+      }
+
+      // If not open → check if at trigger
+      const atMatch = before.match(/@([a-zA-Z0-9.-]*)$/)
+      const hashMatch = before.match(/#(\w*)$/)
+
+      if (atMatch || hashMatch) {
+        const isMention = !!atMatch
+        const query = (atMatch?.[1] ?? hashMatch?.[1] ?? '').trim()
+        const triggerPos = before.lastIndexOf(isMention ? '@' : '#')
+
+        setAutocompletePosition(triggerPos)
+        setSelectedSuggestionIndex(0)
+
+        if (isMention) {
+          setShowMentionSuggestions(true)
+          setShowHashtagSuggestions(false)
+          searchMentions(query)
+        } else {
+          setShowHashtagSuggestions(true)
+          setShowMentionSuggestions(false)
+          searchHashtags(query)
+        }
+        updateAutocompletePosition(isMention ? 'mention' : 'hashtag')
+        return
+      }
+
+      // Normal tab (insert tab character)
+      const newText = text.slice(0, cursor) + '\t' + text.slice(cursor)
+      onTextChange(newText)
+      setTimeout(() => {
+        textareaRef.current?.setSelectionRange(cursor + 1, cursor + 1)
+      }, 0)
+      return
+    }
+
+    // Arrow navigation in popup
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(i => (i + 1) % suggestions.length)
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(i => (i - 1 + suggestions.length) % suggestions.length)
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        const sel = suggestions[selectedSuggestionIndex]
+        if (sel) {
+          insertSuggestion(
+            showMentionSuggestions ? (sel as MentionSuggestion).handle : sel as string,
+            showMentionSuggestions ? 'mention' : 'hashtag'
+          )
+        }
       }
     }
   }
@@ -594,7 +662,7 @@ export function ComposeInput({
         lineParts.push(
           <>
             <span className="text-muted-foreground">{hashes} </span>
-            <span className="text-primary">{content}</span>
+            <span className="text-primary font-bold">{content}</span>
           </>
         )
         return <span key={lineKey}>{lineParts}</span>
@@ -627,7 +695,7 @@ export function ComposeInput({
               element = (
                 <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="text-primary">{match[2]}</span>
+                  <span className="font-bold">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
                 </>
               )
@@ -636,7 +704,7 @@ export function ComposeInput({
               element = (
                 <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="text-primary">{match[2]}</span>
+                  <span className="italic">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
                 </>
               )
@@ -654,7 +722,7 @@ export function ComposeInput({
               element = (
                 <>
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="bg-muted text-primary">{match[2]}</span>
+                  <span className="bg-muted text-primary px-1 rounded font-mono text-xs">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
                 </>
               )
@@ -665,28 +733,28 @@ export function ComposeInput({
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   <span className="text-blue-500 underline">{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                  <span className="text-blue-400">{match[4]}</span>
+                  <span className="text-blue-400 text-xs">{match[4]}</span>
                   <span className="text-muted-foreground/60">{match[5]}</span>
                 </>
               )
               break
             case 'mention':
               element = (
-                <span className="text-blue-500">
+                <span className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span className="text-blue-500">
+                <span className="text-blue-500 font-medium bg-blue-500/10 px-0.5 rounded">
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span className="text-blue-500 underline">
+                <span className="text-blue-500 underline bg-blue-500/10 px-0.5 rounded">
                   {match[0]}
                 </span>
               )
@@ -743,14 +811,7 @@ export function ComposeInput({
               {effectiveMaxChars !== Infinity && (
                 <div className="relative h-7 w-7 flex items-center justify-center">
                   <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      fill="none"
-                      className="stroke-muted/30"
-                      strokeWidth="3"
-                    />
+                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-muted/30" strokeWidth="3" />
                     <circle
                       cx="18"
                       cy="18"
@@ -768,21 +829,18 @@ export function ComposeInput({
                       strokeLinecap="round"
                     />
                   </svg>
-                  <span
-                    className={cn(
-                      "absolute text-xs font-medium tabular-nums",
-                      isWarning ? "text-red-600 font-bold" :
-                        isNearLimit ? "text-orange-500" :
-                          "text-muted-foreground"
-                    )}
-                  >
+                  <span className={cn(
+                    "absolute text-xs font-medium tabular-nums",
+                    isWarning ? "text-red-600 font-bold" :
+                      isNearLimit ? "text-orange-500" :
+                        "text-muted-foreground"
+                  )}>
                     {charCount}
                   </span>
                 </div>
               )}
 
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
                 className="h-7 px-3 text-xs"
@@ -795,20 +853,14 @@ export function ComposeInput({
               {onSubmit && (
                 <Button
                   onClick={onSubmit}
-                  disabled={
-                    isSubmitting ||
-                    (!text.trim() && mediaFiles.length === 0) ||
-                    isOverLimit
-                  }
+                  disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
                   size="sm"
                   className="h-7 px-3 text-xs font-bold"
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
+                  {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
                     <>
                       <Send className="h-3.5 w-3.5 mr-1.5" />
-                      {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
+                      {postType === "reply" ? "Reply" : "Post"}
                     </>
                   )}
                 </Button>
@@ -825,11 +877,7 @@ export function ComposeInput({
               minHeight
             )}
             aria-hidden="true"
-            style={{
-              fontFamily: 'inherit',
-              lineHeight: '1.5',
-              fontSize: '0.875rem',
-            }}
+            style={{ fontFamily: 'inherit', lineHeight: '1.5', fontSize: '0.875rem' }}
           >
             {renderHighlightedText()}
           </div>
@@ -845,15 +893,14 @@ export function ComposeInput({
               "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
-            style={{
-              color: 'transparent',
-              caretColor: 'var(--foreground)',
-              lineHeight: '1.5',
-            }}
+            style={{ color: 'transparent', caretColor: 'var(--foreground)', lineHeight: '1.5' }}
           />
 
           {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-            <Card className="absolute z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200" style={{ top: autocompleteCoords.top, left: autocompleteCoords.left }}>
+            <Card
+              className="absolute shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200 z-50"
+              style={{ top: `${autocompleteCoords.top}px`, left: `${autocompleteCoords.left}px` }}
+            >
               <CardContent className="p-1 max-h-60 overflow-y-auto w-80 sm:w-96">
                 {isSearchingMentions ? (
                   <div className="flex items-center justify-center p-4">
@@ -864,30 +911,19 @@ export function ComposeInput({
                     <div
                       key={user.did}
                       className={cn(
-                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                        "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
                         idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       )}
                       onClick={() => insertSuggestion(user.handle, 'mention')}
                     >
-                      <Avatar className="h-8 w-8 border border-background/10">
-                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                        <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
-                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>{(user.displayName || user.handle).slice(0,2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate flex items-center gap-1">
-                          {user.displayName || user.handle}
-                          <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
-                        </p>
-                        <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                          @{user.handle}
-                        </p>
+                        <p className="font-medium truncate">{user.displayName || user.handle}</p>
+                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
                       </div>
-                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
-                        Add
-                      </Button>
                     </div>
                   ))
                 )}
@@ -896,25 +932,24 @@ export function ComposeInput({
           )}
 
           {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-            <Card className="absolute z-50 mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200" style={{ top: autocompleteCoords.top, left: autocompleteCoords.left }}>
+            <Card
+              className="absolute shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200 z-50"
+              style={{ top: `${autocompleteCoords.top}px`, left: `${autocompleteCoords.left}px` }}
+            >
               <CardContent className="p-1 max-h-60 overflow-y-auto w-80 sm:w-96">
                 {hashtagSuggestions.map((tag, idx) => (
                   <div
                     key={tag}
                     className={cn(
-                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                      "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
                       idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                     )}
                     onClick={() => insertSuggestion(tag, 'hashtag')}
                   >
-                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                       <Hash className="h-4 w-4" />
                     </div>
-                    <span className="text-sm font-medium flex-1">#{tag}</span>
-                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
-                      Add
-                    </Button>
+                    <span className="font-medium">#{tag}</span>
                   </div>
                 ))}
               </CardContent>
@@ -925,7 +960,26 @@ export function ComposeInput({
 
       <TooltipProvider delayDuration={300}>
         <div className="flex items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 flex-wrap">
+            {/* Help button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShowHelpDialog(true)}
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                  <span className="sr-only">Help & Shortcuts</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Help, shortcuts & formatting</TooltipContent>
+            </Tooltip>
+
+            <Separator orientation="vertical" className="h-5 mx-1" />
+
             {formatActions.map(({ icon: Icon, label, action }) => (
               <Tooltip key={label}>
                 <TooltipTrigger asChild>
@@ -940,9 +994,7 @@ export function ComposeInput({
                     <span className="sr-only">{label}</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">{label}</p>
-                </TooltipContent>
+                <TooltipContent side="top">{label}</TooltipContent>
               </Tooltip>
             ))}
 
@@ -952,20 +1004,13 @@ export function ComposeInput({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                    >
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7">
                       <SmilePlus className="h-3.5 w-3.5" />
                       <span className="sr-only">Emoji</span>
                     </Button>
                   </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">Emoji</p>
-                </TooltipContent>
+                <TooltipContent side="top">Emoji</TooltipContent>
               </Tooltip>
               <PopoverContent className="w-72 p-0" align="start" side="top">
                 <div className="p-2">
@@ -1013,9 +1058,7 @@ export function ComposeInput({
                     <span className="sr-only">Add Media</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">Add Media</p>
-                </TooltipContent>
+                <TooltipContent side="top">Add Media</TooltipContent>
               </Tooltip>
             )}
           </div>
@@ -1037,11 +1080,7 @@ export function ComposeInput({
             {onSubmit && (
               <Button
                 onClick={onSubmit}
-                disabled={
-                  isSubmitting ||
-                  (!text.trim() && mediaFiles.length === 0) ||
-                  isOverLimit
-                }
+                disabled={isSubmitting || (!text.trim() && mediaFiles.length === 0) || isOverLimit}
                 size="sm"
                 className="h-7 px-3 text-xs font-bold"
               >
@@ -1060,10 +1099,7 @@ export function ComposeInput({
       </TooltipProvider>
 
       {mediaFiles.length > 0 && (
-        <div className={cn(
-          "gap-2",
-          hasVideo ? "flex" : "grid grid-cols-2"
-        )}>
+        <div className={cn("gap-2", hasVideo ? "flex" : "grid grid-cols-2")}>
           {mediaFiles.map((media, index) => (
             <div key={index} className="relative group">
               {media.type === "image" ? (
@@ -1115,9 +1151,7 @@ export function ComposeInput({
                   alt=""
                   className="w-full h-full object-cover"
                   crossOrigin="anonymous"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
+                  onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
                 />
               </div>
             )}
@@ -1165,6 +1199,116 @@ export function ComposeInput({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Help & Shortcuts</DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="shortcuts" className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="shortcuts">Keyboard shortcuts</TabsTrigger>
+              <TabsTrigger value="formatting">Formatting</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="shortcuts" className="pt-4 space-y-6">
+              <div className="space-y-4 text-sm">
+                <div>
+                  <div className="font-medium mb-1">Sending / Posting</div>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border">Shift + Enter</kbd>
+                    <span>Send / Post immediately</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="font-medium mb-1">Mentions & Hashtags</div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border">Tab</kbd>
+                      <span>
+                        When cursor is after @ or # → open suggestions<br />
+                        When suggestions open → confirm selected item
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border">Arrow Up / Down</kbd>
+                      <span>Navigate suggestions</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border">Enter</kbd>
+                      <span>Confirm selected suggestion</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="font-medium mb-1">Other</div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border">Escape</kbd>
+                      <span>Close suggestions or cancel compose</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border whitespace-nowrap">URL on first or last line</kbd>
+                      <span>If the entire first or last line is a URL, it is automatically attached as link preview</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="formatting" className="pt-4 space-y-6">
+              <div className="space-y-4 text-sm">
+                <p>This editor highlights formatting as you type. Everything is sent exactly as written (Bluesky supports rich text via markdown-like syntax).</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <strong>Text styles</strong>
+                    <ul className="list-disc pl-5 mt-1 space-y-1">
+                      <li><strong>**bold**</strong> → bold</li>
+                      <li><em>*italic*</em> → italic</li>
+                      <li><s>~~strikethrough~~</s> → strikethrough</li>
+                      <li><code>`code`</code> → code</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <strong>Structure</strong>
+                    <ul className="list-disc pl-5 mt-1 space-y-1">
+                      <li><code># Heading 1</code> (line start) → large heading</li>
+                      <li><code>## Heading 2</code> → smaller heading</li>
+                      <li><code>> Quote</code> (line start) → quoted block</li>
+                      <li><code>- bullet</code> or <code>* bullet</code> → bullet list</li>
+                      <li><code>1. numbered</code> → numbered list</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <strong>Links & Mentions</strong>
+                    <ul className="list-disc pl-5 mt-1 space-y-1">
+                      <li><code>[text](url)</code> → clickable link</li>
+                      <li><code>@handle</code> → mention (highlighted)</li>
+                      <li><code>#hashtag</code> → hashtag (highlighted)</li>
+                      <li>Plain http/https URLs → auto-linked + preview if on first/last line</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground text-xs">
+                  All formatting is preserved in the final post — no conversion happens.
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end mt-6">
+            <Button onClick={() => setShowHelpDialog(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <input
         type="file"
         ref={fileInputRef}
@@ -1173,7 +1317,6 @@ export function ComposeInput({
         accept={ALL_MEDIA_TYPES.join(',')}
         className="hidden"
       />
-
     </div>
   )
 }
