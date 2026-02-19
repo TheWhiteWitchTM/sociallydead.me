@@ -201,13 +201,12 @@ export function BlueskyContent({
 
 				{/* Video — updated for app.bsky.embed.video#view */}
 				{embed?.$type === "app.bsky.embed.video#view" && (
-					<>
-						<div>VIDEO</div>
-						<div>
-							{embed.playlist}
-							{embed.thumbnail}
-						</div>
-					</>
+					<BlueskyVideo
+						playlist={embed.playlist}
+						thumbnail={embed.thumbnail}
+						alt={embed.alt}
+						aspectRatio={embed.aspectRatio}
+					/>
 				)}
 
 				{/* External card */}
