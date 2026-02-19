@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -321,7 +322,7 @@ export function ComposeInput({
     const textBeforeCursor = newText.slice(0, cursorPos)
 
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
-    if (mentionMatch && !popupLocked) {
+    if (mentionMatch) {
       const matchText = mentionMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('@')
       setAutocompletePosition(triggerIndex)
@@ -333,7 +334,7 @@ export function ComposeInput({
     }
 
     const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
-    if (hashtagMatch && !popupLocked) {
+    if (hashtagMatch) {
       const matchText = hashtagMatch[1]
       const triggerIndex = textBeforeCursor.lastIndexOf('#')
       setAutocompletePosition(triggerIndex)
@@ -348,10 +349,8 @@ export function ComposeInput({
       return
     }
 
-    if (!popupLocked) {
-      setShowMentionSuggestions(false)
-      setShowHashtagSuggestions(false)
-    }
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
   }
 
   const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
@@ -363,7 +362,6 @@ export function ComposeInput({
     onTextChange(newText)
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
-    setPopupLocked(false)
 
     setTimeout(() => {
       if (textareaRef.current) {
@@ -385,60 +383,25 @@ export function ComposeInput({
 
     if (e.key === 'Escape') {
       e.preventDefault()
-      if (showMentionSuggestions || showHashtagSuggestions) {
-        setShowMentionSuggestions(false)
-        setShowHashtagSuggestions(false)
-        setPopupLocked(false)
-      } else {
-        handleCancelOrEscape()
-      }
+      handleCancelOrEscape()
       return
     }
 
-    if (e.key === 'Tab' && !e.shiftKey) {
+    if (!showMentionSuggestions && !showHashtagSuggestions) return
+    const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+
+    if (e.key === 'ArrowDown') {
       e.preventDefault()
-      const cursorPos = textareaRef.current?.selectionStart || text.length
-      const textBeforeCursor = text.slice(0, cursorPos)
-
-      const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
-      const hashtagMatch = textBeforeCursor.match(/#(\w*)$/)
-
-      if (mentionMatch || hashtagMatch) {
-        const type = mentionMatch ? 'mention' : 'hashtag'
-        const matchText = mentionMatch ? mentionMatch[1] : hashtagMatch[1]
-        const triggerIndex = textBeforeCursor.lastIndexOf(mentionMatch ? '@' : '#')
-        setAutocompletePosition(triggerIndex)
-        setPopupLocked(true)
-        if (mentionMatch) {
-          setShowMentionSuggestions(true)
-          setShowHashtagSuggestions(false)
-          searchMentions(matchText)
-        } else {
-          setShowHashtagSuggestions(true)
-          setShowMentionSuggestions(false)
-          searchHashtags(matchText)
-        }
-        setSelectedSuggestionIndex(0)
-        return
-      }
-    }
-
-    if (showMentionSuggestions || showHashtagSuggestions) {
-      const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
-      } else if (e.key === 'Enter' && suggestions.length > 0) {
-        e.preventDefault()
-        if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
-          insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
-        } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
-          insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
-        }
+      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
+    } else if (e.key === 'Enter' && suggestions.length > 0) {
+      e.preventDefault()
+      if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
+      } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
       }
     }
   }
@@ -733,7 +696,14 @@ export function ComposeInput({
               {effectiveMaxChars !== Infinity && (
                 <div className="relative h-7 w-7 flex items-center justify-center">
                   <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-muted/30" strokeWidth="3" />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      className="stroke-muted/30"
+                      strokeWidth="3"
+                    />
                     <circle
                       cx="18"
                       cy="18"
@@ -751,12 +721,14 @@ export function ComposeInput({
                       strokeLinecap="round"
                     />
                   </svg>
-                  <span className={cn(
-                    "absolute text-xs font-medium tabular-nums",
-                    isWarning ? "text-red-600 font-bold" :
-                      isNearLimit ? "text-orange-500" :
-                        "text-muted-foreground"
-                  )}>
+                  <span
+                    className={cn(
+                      "absolute text-xs font-medium tabular-nums",
+                      isWarning ? "text-red-600 font-bold" :
+                        isNearLimit ? "text-orange-500" :
+                          "text-muted-foreground"
+                    )}
+                  >
                     {charCount}
                   </span>
                 </div>
