@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import {JSX, useState} from "react"
 import Link from "next/link"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { BlueskyExternal } from "@/components/bluesky-external"
@@ -17,29 +17,27 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 	const fullText = record.text ?? ""
 	const facets = Array.isArray(record.facets) ? record.facets : []
 
-	// No facets? Just render full Markdown
+	// No facets → full Markdown
 	if (facets.length === 0) {
 		return <MarkdownRenderer content={fullText} />
 	}
 
-	// Sort facets by byteStart (required for correct order)
+	// Sort facets by byteStart
 	const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
 
 	const segments: JSX.Element[] = []
 	let lastByteEnd = 0
 	let key = 0
 
-	// Helper: decode UTF-8 bytes safely to string slice
+	// UTF-8 safe slicing
 	const decoder = new TextDecoder("utf-8")
-
-	// Convert full text to Uint8Array once (for correct byte slicing)
 	const utf8Bytes = new TextEncoder().encode(fullText)
 
 	for (const facet of sortedFacets) {
 		const { byteStart, byteEnd } = facet.index
 		const feature = facet.features?.[0]
 
-		// Plain text before this facet
+		// Plain text before facet
 		if (byteStart > lastByteEnd) {
 			const plainBytes = utf8Bytes.subarray(lastByteEnd, byteStart)
 			const plainText = decoder.decode(plainBytes)
@@ -48,7 +46,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 			)
 		}
 
-		// The facet slice itself
+		// Facet slice
 		const facetBytes = utf8Bytes.subarray(byteStart, byteEnd)
 		const facetText = decoder.decode(facetBytes)
 
@@ -58,7 +56,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				<Link
 					key={key++}
 					href={`/profile/${handle}`}
-					className="text-blue-600 hover:underline font-medium"
+					className="text-red-600 hover:text-red-700 hover:underline font-medium"
 				>
 					@{handle}
 				</Link>
@@ -73,7 +71,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 						e.preventDefault()
 						if (uri) setShowExternal(uri)
 					}}
-					className="text-blue-600 hover:underline cursor-pointer"
+					className="text-red-600 hover:text-red-700 hover:underline cursor-pointer"
 				>
 					<MarkdownRenderer content={facetText} />
 				</a>
@@ -84,13 +82,13 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				<Link
 					key={key++}
 					href={`/feed/${encodeURIComponent(tag)}`}
-					className="text-blue-600 hover:underline"
+					className="text-red-600 hover:text-red-700 hover:underline"
 				>
 					#{tag}
 				</Link>
 			)
 		} else {
-			// Unknown facet type → treat as plain Markdown
+			// Unknown → treat as Markdown
 			segments.push(
 				<MarkdownRenderer key={key++} content={facetText} />
 			)
@@ -99,7 +97,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		lastByteEnd = byteEnd
 	}
 
-	// Don't forget the tail after last facet!
+	// Trailing text
 	if (lastByteEnd < utf8Bytes.length) {
 		const tailBytes = utf8Bytes.subarray(lastByteEnd)
 		const tailText = decoder.decode(tailBytes)
@@ -114,7 +112,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 			{showExternal && (
 				<BlueskyExternal
 					uri={showExternal}
-					onClose={() => setShowExternal(null)} // Make sure your BlueskyExternal accepts onClose
+					onClose={() => setShowExternal(null)}
 				/>
 			)}
 		</>
