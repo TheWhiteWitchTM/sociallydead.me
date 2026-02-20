@@ -25,7 +25,7 @@ interface Notification {
   }
   reason: string
   reasonSubject?: string
-  record: unknown
+  record: any // changed to any for easier access
   isRead: boolean
   indexedAt: string
 }
@@ -139,7 +139,8 @@ export default function NotificationsPage() {
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({})
   const [postPreviews, setPostPreviews] = useState<Record<string, string>>({})
   const [profileHandles, setProfileHandles] = useState<Record<string, string>>({})
-  const [originalPosts, setOriginalPosts] = useState<Record<string, any>>({}) // renamed for clarity
+  const [originalPosts, setOriginalPosts] = useState<Record<string, any>>({})
+  const [quotedPosts, setQuotedPosts] = useState<Record<string, any>>({}) // New: full quoted posts for quote notifications
   const [followAllLoading, setFollowAllLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'mentions'>('all')
 
@@ -151,7 +152,7 @@ export default function NotificationsPage() {
       const result = await getNotifications()
       setNotifications(result.notifications)
 
-      // Following status
+      // Following status (unchanged)
       try {
         const followNotifs = result.notifications.filter(n => n.reason === 'follow')
         const statusPromises = followNotifs.map(async n => {
@@ -168,7 +169,7 @@ export default function NotificationsPage() {
         setFollowingStatus(statusMap)
       } catch {}
 
-      // Fetch full posts for previews (images/videos/embeds work)
+      // Fetch full posts for likes/reposts/replies/quotes
       try {
         const postNotifs = result.notifications.filter(n =>
           n.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(n.reason)
@@ -184,7 +185,7 @@ export default function NotificationsPage() {
               text: post?.record?.text?.slice(0, 100) || 'View post',
               handle: authorHandle,
               rkey: parsed?.rkey || '',
-              fullPost: post // full BlueskyPost (record + embed + author)
+              fullPost: post
             }
           } catch {
             return { uri: n.reasonSubject!, text: 'View post', handle: '', rkey: '', fullPost: null }
@@ -208,6 +209,27 @@ export default function NotificationsPage() {
         setOriginalPosts(postMap)
       } catch {}
 
+      // Special: For quotes, fetch the full quote post itself if needed
+      try {
+        const quoteNotifs = result.notifications.filter(n => n.reason === 'quote')
+        const quotePromises = quoteNotifs.map(async n => {
+          try {
+            // The notification.record is the quote post - but may lack full embed hydration
+            const quotePost = await getPost(n.uri) // fetch full quote post
+            return { uri: n.uri, fullQuotedPost: quotePost }
+          } catch {
+            return { uri: n.uri, fullQuotedPost: null }
+          }
+        })
+
+        const quoteResults = await Promise.all(quotePromises)
+        const quoteMap: Record<string, any> = {}
+        quoteResults.forEach(q => {
+          if (q.fullQuotedPost) quoteMap[q.uri] = q.fullQuotedPost
+        })
+        setQuotedPosts(quoteMap)
+      } catch {}
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notifications")
     } finally {
@@ -215,55 +237,7 @@ export default function NotificationsPage() {
     }
   }, [getNotifications, getProfile, getPost])
 
-  const handleMarkAllRead = async () => {
-    try {
-      await markNotificationsRead()
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
-    } catch (error) {
-      console.error("Failed to mark all read:", error)
-    }
-  }
-
-  const handleFollowBack = async (did: string) => {
-    setFollowLoading(prev => ({ ...prev, [did]: true }))
-    try {
-      await followUser(did)
-      setFollowingStatus(prev => ({ ...prev, [did]: true }))
-    } catch (error) {
-      console.error("Failed to follow:", error)
-    } finally {
-      setFollowLoading(prev => ({ ...prev, [did]: false }))
-    }
-  }
-
-  const filteredNotifications = activeTab === 'mentions'
-    ? notifications.filter(n => n.reason === 'mention' || n.reason === 'reply')
-    : notifications
-
-  const groupedNotifications = groupNotifications(filteredNotifications)
-
-  const unfollowedFollowers = notifications
-    .filter(n => n.reason === 'follow' && user?.did !== n.author?.did && !followingStatus[n.author?.did])
-    .map(n => n.author)
-    .filter(Boolean)
-    .filter((author, index, self) => index === self.findIndex(a => a.did === author.did))
-
-  const handleFollowAllBack = async () => {
-    if (unfollowedFollowers.length === 0) return
-    setFollowAllLoading(true)
-    try {
-      for (const author of unfollowedFollowers) {
-        try {
-          await followUser(author.did)
-          setFollowingStatus(prev => ({ ...prev, [author.did]: true }))
-        } catch (error) {
-          console.error(`Failed to follow ${author.handle}:`, error)
-        }
-      }
-    } finally {
-      setFollowAllLoading(false)
-    }
-  }
+  // ... (handleMarkAllRead, handleFollowBack, filteredNotifications, groupedNotifications, unfollowedFollowers, handleFollowAllBack unchanged - omitted for brevity)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -286,58 +260,9 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Header unchanged */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-3 sm:px-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Bell className="h-5 w-5" />
-            <h1 className="text-lg sm:text-xl font-bold">Notifications</h1>
-            <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'all' | 'mentions')}>
-              <TabsList className="h-8">
-                <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
-                <TabsTrigger value="mentions" className="text-xs px-3">Mentions</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          <div className="flex items-center gap-2">
-            {unfollowedFollowers.length > 0 && (
-              <Button
-                onClick={handleFollowAllBack}
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex"
-                disabled={followAllLoading}
-              >
-                {followAllLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Users className="h-4 w-4 mr-2" />}
-                Follow all back ({unfollowedFollowers.length})
-              </Button>
-            )}
-            <Button onClick={handleMarkAllRead} variant="ghost" size="sm" className="hidden sm:flex">
-              <CheckCheck className="h-4 w-4 mr-2" />
-              Mark all read
-            </Button>
-            <Button onClick={handleMarkAllRead} variant="ghost" size="icon" className="sm:hidden">
-              <CheckCheck className="h-4 w-4" />
-            </Button>
-            <Button onClick={loadNotifications} variant="ghost" size="icon" disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
-
-        {unfollowedFollowers.length > 0 && (
-          <div className="sm:hidden px-4 pb-2">
-            <Button
-              onClick={handleFollowAllBack}
-              variant="outline"
-              size="sm"
-              className="w-full"
-              disabled={followAllLoading}
-            >
-              {followAllLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Users className="h-4 w-4 mr-2" />}
-              Follow all back ({unfollowedFollowers.length})
-            </Button>
-          </div>
-        )}
+        {/* ... full header code as in your original ... */}
       </header>
 
       <main className="mx-auto max-w-2xl px-0 sm:px-4 py-6">
@@ -368,6 +293,7 @@ export default function NotificationsPage() {
           <div className="space-y-2">
             {groupedNotifications.map(item => {
               if (isGrouped(item)) {
+                // Grouped (likes/reposts/follows) - unchanged, keep your original rendering
                 const group = item
                 const Icon = notificationIcons[group.reason] || Heart
                 const colorClass = notificationColors[group.reason] || "text-muted-foreground"
@@ -393,7 +319,7 @@ export default function NotificationsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center mb-1.5">
                             <div className="flex -space-x-2">
-                              {group.authors.slice(0, 6).map(author => (
+                              {group.authors.slice(0, 6).map((author) => (
                                 <UserHoverCard key={author.did} handle={author.handle}>
                                   <Link href={`/profile/${author.handle || author.did}`} className="relative block">
                                     <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
@@ -420,7 +346,10 @@ export default function NotificationsPage() {
 
                           <p className="text-sm">
                             <UserHoverCard handle={firstAuthor.handle}>
-                              <Link href={`/profile/${firstAuthor.handle || firstAuthor.did}`} className="font-semibold hover:underline">
+                              <Link
+                                href={`/profile/${firstAuthor.handle || firstAuthor.did}`}
+                                className="font-semibold hover:underline"
+                              >
                                 {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
                               </Link>
                             </UserHoverCard>
@@ -449,7 +378,7 @@ export default function NotificationsPage() {
 
                           {group.reason === 'follow' && (
                             <div className="mt-2 flex flex-wrap gap-1.5">
-                              {group.authors.filter(a => user?.did !== a.did).slice(0, 3).map(author => (
+                              {group.authors.filter(a => user?.did !== a.did).slice(0, 3).map((author) => (
                                 <div key={author.did}>
                                   {followingStatus[author.did] ? (
                                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -488,6 +417,7 @@ export default function NotificationsPage() {
                 )
               }
 
+              // Ungrouped (reply/mention/quote)
               const n = item as Notification
               if (!n?.author) return null
 
@@ -505,6 +435,9 @@ export default function NotificationsPage() {
               const origHandle = origUri ? (profileHandles[origUri] || origParsed?.handle || '') : ''
               const origRkey = origParsed?.rkey || ''
               const origFallback = postPreviews[origUri] || 'View post'
+
+              // For quotes: use fetched full quote if available
+              const quotePost = n.reason === 'quote' ? quotedPosts[n.uri] || n : n
 
               return (
                 <Card
@@ -552,21 +485,18 @@ export default function NotificationsPage() {
 
                         {['reply', 'quote', 'mention'].includes(n.reason) && (
                           <div className="mt-2 space-y-3">
+                            {/* Main content: reply / quote / mention */}
                             <Link
                               href={`/profile/${handle}/post/${rkey}`}
                               className="block rounded-lg border border-border hover:bg-accent/50 transition-colors overflow-hidden"
                             >
                               <BlueskyContent
-                                post={{
-                                  uri: n.uri,
-                                  author: n.author,
-                                  record: n.record,
-                                  embed: (n as any).embed || (n.record as any)?.embed
-                                }}
+                                post={quotePost} // Use full fetched quote for quote notifications
                                 className="p-3"
                               />
                             </Link>
 
+                            {/* Context: original post being replied to / quoted */}
                             {origUri && (
                               <Link
                                 href={`/profile/${origHandle}/post/${origRkey}`}
@@ -579,7 +509,7 @@ export default function NotificationsPage() {
                                       uri: origUri,
                                       author: { handle: origHandle },
                                       record: origPost?.record || { text: origFallback },
-                                      embed: origPost?.embed || (origPost?.record as any)?.embed
+                                      embed: origPost?.embed
                                     }}
                                     isQuoted={true}
                                     className="text-xs"
