@@ -607,7 +607,7 @@ export default function NotificationsPage() {
                                   className="block p-2 rounded bg-muted/40 text-xs hover:bg-muted/70 transition-colors"
                                 >
                                   <span className="text-muted-foreground">Replying to: </span>
-                                  <span className="text-muted-foreground/80 line-clamp-1">{originalText}{originalText.length >= 100 ? '...' : ''}</span>
+                                  <span className="text-muted-foreground/80 line-clamp-1">{originalText}</span>
                                 </Link>
                               )}
                             </div>
