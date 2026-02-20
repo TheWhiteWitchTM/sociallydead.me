@@ -15,6 +15,7 @@ import {UserHoverCard} from "@/components/user-hover-card";
 import {MarkdownRenderer} from "@/components/markdown-renderer";
 import {BlueskyEmbedHeader} from "@/components/bluesky-embed-header";
 import {BlueskyPostCard} from "@/components/bluesky-post-card";
+import {BlueskyRichText} from "@/components/bluesky-rich-text";
 
 interface Notification {
   uri: string
@@ -576,7 +577,7 @@ export default function NotificationsPage() {
                         {/* Show reply/quote content and link to the actual reply */}
                         {['reply', 'quote', 'mention'].includes(notification.reason) && (() => {
                           // The notification's record contains the reply/quote/mention text
-                          const record = notification.record as { text?: string } | undefined
+                          const record = notification.record as { text?: string, facets?:any[]} | undefined
                           const contentText = record?.text || postPreviews[notification.uri] || ''
                           
                           // The notification's URI is the post itself
@@ -602,7 +603,7 @@ export default function NotificationsPage() {
                                   className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
                                 >
                                   <p className="text-foreground line-clamp-3">
-                                    <MarkdownRenderer content={contentText}/>
+                                    <BlueskyRichText record={notification.record}/>
                                   </p>
                                 </Link>
                               )}
