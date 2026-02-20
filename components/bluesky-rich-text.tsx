@@ -73,7 +73,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 					}}
 					className="text-red-600 hover:text-red-700 hover:underline cursor-pointer"
 				>
-					<MarkdownRenderer content={facetText} />
+					{uri}
 				</a>
 			)
 		} else if (feature?.$type === "app.bsky.richtext.facet#tag") {
