@@ -614,7 +614,7 @@ export default function NotificationsPage() {
                                 >
                                   <span className="text-muted-foreground">Replying to: </span>
                                   <span className="text-foreground line-clamp-1">
-                                    <BlueskyPostCard post={notification.record}/>
+                                    <MarkdownRenderer content={originalText}/>
                                   </span>
                                 </Link>
                               )}
