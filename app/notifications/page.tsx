@@ -12,6 +12,7 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
 import {UserHoverCard} from "@/components/user-hover-card";
+import {MarkdownRenderer} from "@/components/markdown-renderer";
 
 interface Notification {
   uri: string
@@ -597,7 +598,9 @@ export default function NotificationsPage() {
                                   href={`/profile/${handle}/post/${rkey}`}
                                   className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
                                 >
-                                  <p className="text-foreground line-clamp-3">{contentText}</p>
+                                  <p className="text-foreground line-clamp-3">
+                                    <MarkdownRenderer content={contentText}/>
+                                  </p>
                                 </Link>
                               )}
                               {/* The original post being replied to - context */}
@@ -607,7 +610,9 @@ export default function NotificationsPage() {
                                   className="block p-2 rounded bg-muted/40 text-xs hover:bg-muted/70 transition-colors"
                                 >
                                   <span className="text-muted-foreground">Replying to: </span>
-                                  <span className="text-muted-foreground/80 line-clamp-1">{originalText}</span>
+                                  <span className="text-muted-foreground/50 line-clamp-1">
+                                    <MarkdownRenderer content={originalText}/>
+                                  </span>
                                 </Link>
                               )}
                             </div>
