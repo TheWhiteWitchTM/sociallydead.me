@@ -5,13 +5,8 @@ import {JSX} from "react";
 import Link from "next/link";
 import {BlueskyExternal} from "@/components/bluesky-external";
 
-type RichTextRecord = {
-	text?: string
-	facets?: any[]
-}
-
 type RichTextProps = {
-	record: RichTextRecord
+	record: any
 }
 
 const handleExternalClick = (uri: string) => {
@@ -25,7 +20,8 @@ const handleExternalClick = (uri: string) => {
 export const BlueskyRichText = (
 	{record}: RichTextProps,
 ) => {
-		if (!record.text) return null
+
+		if (!record?.text) return null
 
 		if (!record?.facets?.length) {
 			return(
