@@ -43,54 +43,54 @@ export function BlueskyFooter({
 	const { isAuthenticated } = useBluesky()
 
 	return (
-		<div className="flex items-center -ml-2 mt-2 text-muted-foreground">
+		<div className="flex items-center -ml-2 mt-2 text-red-600">
 			{/* Reply */}
 			<Button
 				variant="ghost"
 				size="sm"
-				className="gap-1 px-2 hover:text-blue-500 hover:bg-blue-500/10"
+				className="gap-1 px-2 hover:bg-red-500/10"
 				onClick={onReplyClick}
 				disabled={!isAuthenticated}
 			>
 				<MessageCircle className="h-4 w-4" />
 				<span className="text-xs sm:text-sm tabular-nums font-medium">
-          {replyCount}
-        </span>
+                    {replyCount}
+                </span>
 			</Button>
 
 			{/* Repost */}
 			<Button
 				variant="ghost"
 				size="sm"
-				className={cn("gap-1 px-2 hover:text-green-500 hover:bg-green-500/10", isReposted && "text-green-500")}
+				className={cn("gap-1 px-2 hover:bg-red-500/10", isReposted && "text-red-600")}
 				onClick={onRepostClick}
 				disabled={!isAuthenticated}
 			>
 				<Repeat2 className="h-4 w-4" />
 				<span className="text-xs sm:text-sm tabular-nums font-medium">
-          {repostCount}
-        </span>
+                    {repostCount}
+                </span>
 			</Button>
 
 			{/* Like */}
 			<Button
 				variant="ghost"
 				size="sm"
-				className={cn("gap-1 px-2 hover:text-red-500 hover:bg-red-500/10", isLiked && "text-red-500")}
+				className={cn("gap-1 px-2 hover:bg-red-500/10", isLiked && "text-red-600")}
 				onClick={onLike}
 				disabled={!isAuthenticated}
 			>
 				<Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
 				<span className="text-xs sm:text-sm tabular-nums font-medium">
-          {likeCount}
-        </span>
+                    {likeCount}
+                </span>
 			</Button>
 
 			{/* Bookmark */}
 			<Button
 				variant="ghost"
 				size="sm"
-				className={cn("gap-1 px-2 hover:text-blue-500 hover:bg-blue-500/10", isBookmarked && "text-blue-500")}
+				className={cn("gap-1 px-2 hover:bg-red-500/10", isBookmarked && "text-red-600")}
 				onClick={onBookmark}
 				disabled={!isAuthenticated}
 				title={isBookmarked ? "Remove bookmark" : "Bookmark"}
@@ -103,13 +103,13 @@ export function BlueskyFooter({
 				<Button
 					variant="ghost"
 					size="sm"
-					className="gap-1 px-2 ml-auto hover:text-blue-500 hover:bg-blue-500/10"
+					className="gap-1 px-2 ml-auto hover:bg-red-500/10"
 					onClick={onAnalyticsClick}
 				>
 					<BarChart3 className="h-3.5 w-3.5" />
 					<span className="text-xs tabular-nums font-medium">
-            {formatEngagement(replyCount + repostCount + likeCount)}
-          </span>
+                        {formatEngagement(replyCount + repostCount + likeCount)}
+                    </span>
 				</Button>
 			)}
 		</div>
