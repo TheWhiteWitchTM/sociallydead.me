@@ -11,7 +11,7 @@ import { BlueskyVideo } from "@/components/bluesky-video"
 import { BlueskyExternal } from "@/components/bluesky-external"
 import {BlueskyHeader} from "@/components/bluesky-header";
 import {BlueskyEmbedHeader} from "@/components/bluesky-embed-header";
-import {MarkdownRenderer} from "@/components/markdown-renderer";
+import { BlueskyRichText } from "@/components/bluesky-rich-text"   // ← Import it here
 
 interface BlueskyContentProps {
 	post: any
@@ -61,7 +61,7 @@ export function BlueskyContent({
 		)
 	}
 
-	// Special handling if this is a raw repost record (unlikely, but covers if passed directly)
+	// Special handling if this is a raw repost record
 	if (record.$type === "app.bsky.feed.repost") {
 		return (
 			<div className="p-3 text-sm italic text-muted-foreground">
@@ -78,104 +78,11 @@ export function BlueskyContent({
 	const text = record.text ?? ""
 	const facets = record.facets ?? []
 
-	// Determine if this looks like a pure repost (no text + embed record) - for display purposes
+	// Determine if this looks like a pure repost (no text + embed record)
 	const isPureRepost = !text.trim() && embed?.$type?.includes("record")
 
 	// The embedded post (quote or repost target)
 	const embeddedPost = embed?.record
-
-	// ── Rich text rendering with facets ──
-	const renderRichText = () => {
-		if (!text) return null
-
-		if (!facets.length) {
-			return(
-				<div className="whitespace-pre-wrap break-words">
-					<MarkdownRenderer content={text}/>
-				</div>
-			)
-		}
-
-		const segments: JSX.Element[] = []
-		let lastByteEnd = 0
-
-		// Sort facets by byteStart
-		const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
-
-		for (const facet of sortedFacets) {
-			const { byteStart, byteEnd } = facet.index
-			const feature = facet.features?.[0]
-
-			// Text before facet
-			if (byteStart > lastByteEnd) {
-				segments.push(
-					<span key={lastByteEnd} className="whitespace-pre-wrap">
-            <MarkdownRenderer content={text.slice(lastByteEnd, byteStart)}/>
-          </span>
-				)
-			}
-
-			const slice = text.slice(byteStart, byteEnd)
-
-			if (feature?.$type === "app.bsky.richtext.facet#mention") {
-				const handle = feature.handle || slice.slice(1)
-				segments.push(
-					<Link
-						key={byteStart}
-						href={`/profile/${handle}`}
-						className="text-blue-600 hover:underline font-medium"
-					>
-						@{handle}
-					</Link>
-				)
-			} else if (feature?.$type === "app.bsky.richtext.facet#link") {
-				const uri = feature.uri || slice
-				segments.push(
-					<a
-						key={byteStart}
-						href="#"
-						onClick={(e) => {
-							e.preventDefault()
-							if (uri) handleExternalClick(uri)
-						}}
-						className="text-blue-600 hover:underline"
-					>
-						<MarkdownRenderer content={slice}/>
-					</a>
-				)
-			} else if (feature?.$type === "app.bsky.richtext.facet#tag") {
-				const tag = feature.tag || slice.slice(1)
-				segments.push(
-					<Link
-						key={byteStart}
-						href={`/feed/${encodeURIComponent(tag)}`}
-						className="text-blue-600 hover:underline"
-					>
-						#{tag}
-					</Link>
-				)
-			} else {
-				// fallback
-				segments.push(
-					<span key={byteStart}>
-						<MarkdownRenderer content={slice}/>
-					</span>)
-			}
-
-			lastByteEnd = byteEnd
-		}
-
-		// Trailing text
-		if (lastByteEnd < text.length) {
-			segments.push(
-				<span key={lastByteEnd} className="whitespace-pre-wrap">
-          {text.slice(lastByteEnd)}
-        </span>
-			)
-		}
-
-		return <div className="whitespace-pre-wrap break-words">{segments}</div>
-	}
 
 	return (
 		<Link
@@ -193,8 +100,12 @@ export function BlueskyContent({
 					</div>
 				)}
 
-				{/* Main text (with facets) */}
-				{renderRichText()}
+				{/* Main text — now using BlueskyRichText */}
+				{text && (
+					<div className="whitespace-pre-wrap break-words">
+						<BlueskyRichText record={record} />
+					</div>
+				)}
 
 				{/* Images */}
 				{embed?.images && (
@@ -207,7 +118,7 @@ export function BlueskyContent({
 					/>
 				)}
 
-				{/* Video — updated for app.bsky.embed.video#view */}
+				{/* Video */}
 				{embed?.$type === "app.bsky.embed.video#view" && (
 					<BlueskyVideo
 						playlist={embed.playlist}
