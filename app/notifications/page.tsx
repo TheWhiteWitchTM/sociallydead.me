@@ -13,7 +13,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
 import { UserHoverCard } from "@/components/user-hover-card"
 import { BlueskyContent } from "@/components/bluesky-content"
-import {BlueskyPostCard} from "@/components/bluesky-post-card";  // ← Use the full content renderer
 
 interface Notification {
   uri: string
@@ -140,7 +139,7 @@ export default function NotificationsPage() {
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({})
   const [postPreviews, setPostPreviews] = useState<Record<string, string>>({})
   const [profileHandles, setProfileHandles] = useState<Record<string, string>>({})
-  const [originalRecords, setOriginalRecords] = useState<Record<string, any>>({})
+  const [originalPosts, setOriginalPosts] = useState<Record<string, any>>({}) // renamed for clarity
   const [followAllLoading, setFollowAllLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'mentions'>('all')
 
@@ -154,8 +153,8 @@ export default function NotificationsPage() {
 
       // Following status
       try {
-        const followNotifs = result.notifications.filter((n: Notification) => n.reason === 'follow')
-        const statusPromises = followNotifs.map(async (n: Notification) => {
+        const followNotifs = result.notifications.filter(n => n.reason === 'follow')
+        const statusPromises = followNotifs.map(async n => {
           try {
             const profile = await getProfile(n.author.handle)
             return { did: n.author.did, following: !!profile.viewer?.following }
@@ -165,36 +164,30 @@ export default function NotificationsPage() {
         })
         const statuses = await Promise.all(statusPromises)
         const statusMap: Record<string, boolean> = {}
-        statuses.forEach(s => { statusMap[s.did] = s.following })
+        statuses.forEach(s => statusMap[s.did] = s.following)
         setFollowingStatus(statusMap)
       } catch {}
 
-      // Post previews + full records (including embeds)
+      // Fetch full posts for previews (images/videos/embeds work)
       try {
-        const postNotifs = result.notifications.filter((n: Notification) =>
+        const postNotifs = result.notifications.filter(n =>
           n.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(n.reason)
         )
 
-        const previewPromises = postNotifs.map(async (n: Notification) => {
+        const previewPromises = postNotifs.map(async n => {
           try {
             const post = await getPost(n.reasonSubject!)
             const parsed = parseAtUri(n.reasonSubject!)
             const authorHandle = post?.author?.handle || ''
             return {
               uri: n.reasonSubject!,
-              text: post?.record?.text?.slice(0, 100) || 'View post', // short fallback only
+              text: post?.record?.text?.slice(0, 100) || 'View post',
               handle: authorHandle,
               rkey: parsed?.rkey || '',
-              fullRecord: post?.record || null
+              fullPost: post // full BlueskyPost (record + embed + author)
             }
           } catch {
-            return {
-              uri: n.reasonSubject!,
-              text: 'View post',
-              handle: '',
-              rkey: '',
-              fullRecord: null
-            }
+            return { uri: n.reasonSubject!, text: 'View post', handle: '', rkey: '', fullPost: null }
           }
         })
 
@@ -202,17 +195,17 @@ export default function NotificationsPage() {
 
         const previewMap: Record<string, string> = {}
         const handleMap: Record<string, string> = {}
-        const recordMap: Record<string, any> = {}
+        const postMap: Record<string, any> = {}
 
         previews.forEach(p => {
           previewMap[p.uri] = p.text
           if (p.handle) handleMap[p.uri] = p.handle
-          if (p.fullRecord) recordMap[p.uri] = p.fullRecord
+          if (p.fullPost) postMap[p.uri] = p.fullPost
         })
 
         setPostPreviews(previewMap)
         setProfileHandles(handleMap)
-        setOriginalRecords(recordMap)
+        setOriginalPosts(postMap)
       } catch {}
 
     } catch (err) {
@@ -253,9 +246,7 @@ export default function NotificationsPage() {
     .filter(n => n.reason === 'follow' && user?.did !== n.author?.did && !followingStatus[n.author?.did])
     .map(n => n.author)
     .filter(Boolean)
-    .filter((author, index, self) =>
-      index === self.findIndex(a => a.did === author.did)
-    )
+    .filter((author, index, self) => index === self.findIndex(a => a.did === author.did))
 
   const handleFollowAllBack = async () => {
     if (unfollowedFollowers.length === 0) return
@@ -377,9 +368,6 @@ export default function NotificationsPage() {
           <div className="space-y-2">
             {groupedNotifications.map(item => {
               if (isGrouped(item)) {
-                // ────────────────────────────────────────────────
-                // Grouped (likes, reposts, follows) — keep as before
-                // ────────────────────────────────────────────────
                 const group = item
                 const Icon = notificationIcons[group.reason] || Heart
                 const colorClass = notificationColors[group.reason] || "text-muted-foreground"
@@ -403,18 +391,95 @@ export default function NotificationsPage() {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          {/* avatars, text, time, follow buttons... */}
-                          {/* ... (keep your existing grouped rendering unchanged) */}
-                          {/* For likes/reposts, you can now optionally show full BlueskyContent if you want */}
-                          {group.reasonSubject && ['like', 'repost'].includes(group.reason) && originalRecords[group.reasonSubject] && (
-                              <BlueskyPostCard
-                                post={{
-                                  uri: group.reasonSubject,
-                                  author: { handle: profileHandles[group.reasonSubject] || 'unknown' },
-                                  record: originalRecords[group.reasonSubject],
-                                  embed: originalRecords[group.reasonSubject].embed
-                                }}
+                          <div className="flex items-center mb-1.5">
+                            <div className="flex -space-x-2">
+                              {group.authors.slice(0, 6).map(author => (
+                                <UserHoverCard key={author.did} handle={author.handle}>
+                                  <Link href={`/profile/${author.handle || author.did}`} className="relative block">
+                                    <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
+                                      <AvatarImage src={author.avatar || "/placeholder.svg"} />
+                                      <AvatarFallback className="text-[10px]">
+                                        {(author.displayName || author.handle || '?').slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <VerifiedBadge
+                                      handle={author.handle}
+                                      did={author.did}
+                                      className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm"
+                                    />
+                                  </Link>
+                                </UserHoverCard>
+                              ))}
+                              {count > 6 && (
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] text-muted-foreground font-medium">
+                                  +{count - 6}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <p className="text-sm">
+                            <UserHoverCard handle={firstAuthor.handle}>
+                              <Link href={`/profile/${firstAuthor.handle || firstAuthor.did}`} className="font-semibold hover:underline">
+                                {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
+                              </Link>
+                            </UserHoverCard>
+                            {othersCount > 0 && (
+                              <span className="text-muted-foreground">
+                                {' '}and {othersCount} {othersCount === 1 ? 'other' : 'others'}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground ml-1">{reasonText}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(group.indexedAt), { addSuffix: true })}
+                          </p>
+
+                          {group.reasonSubject && ['like', 'repost'].includes(group.reason) && (
+                            <Link
+                              href={`/profile/${profileHandles[group.reasonSubject] || 'unknown'}/post/${parseAtUri(group.reasonSubject)?.rkey || ''}`}
+                              className="block mt-2 p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
+                            >
+                              <BlueskyContent
+                                post={originalPosts[group.reasonSubject] || { record: { text: postPreviews[group.reasonSubject] || 'View post' } }}
+                                className="text-sm"
                               />
+                            </Link>
+                          )}
+
+                          {group.reason === 'follow' && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {group.authors.filter(a => user?.did !== a.did).slice(0, 3).map(author => (
+                                <div key={author.did}>
+                                  {followingStatus[author.did] ? (
+                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                      <UserCheck className="h-3 w-3" />
+                                      {author.displayName || author.handle}
+                                    </span>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={() => handleFollowBack(author.did)}
+                                      disabled={followLoading[author.did]}
+                                    >
+                                      {followLoading[author.did] ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <UserPlus className="h-3 w-3 mr-1" />
+                                      )}
+                                      {author.displayName || author.handle}
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              {group.authors.filter(a => user?.did !== a.did).length > 3 && (
+                                <span className="inline-flex items-center text-xs text-muted-foreground px-1">
+                                  +{group.authors.filter(a => user?.did !== a.did).length - 3} more
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -423,32 +488,28 @@ export default function NotificationsPage() {
                 )
               }
 
-              // ────────────────────────────────────────────────
-              // Ungrouped (mentions, replies, quotes) — use BlueskyContent
-              // ────────────────────────────────────────────────
-              const notification = item as Notification
-              if (!notification?.author) return null
+              const n = item as Notification
+              if (!n?.author) return null
 
-              const Icon = notificationIcons[notification.reason] || Heart
-              const colorClass = notificationColors[notification.reason] || "text-muted-foreground"
-              const text = notificationText[notification.reason] || "interacted with you"
+              const Icon = notificationIcons[n.reason] || Heart
+              const colorClass = notificationColors[n.reason] || "text-muted-foreground"
+              const actionText = notificationText[n.reason] || "interacted with you"
 
-              const parsed = parseAtUri(notification.uri)
-              const handle = notification.author.handle || parsed?.handle || ''
+              const parsed = parseAtUri(n.uri)
+              const handle = n.author.handle || parsed?.handle || ''
               const rkey = parsed?.rkey || ''
 
-              const originalUri = notification.reasonSubject
-              const originalRecord = originalUri ? originalRecords[originalUri] : null
-              const originalParsed = originalUri ? parseAtUri(originalUri) : null
-              const originalHandle = originalUri
-                ? (profileHandles[originalUri] || originalParsed?.handle || '')
-                : ''
-              const originalRkey = originalParsed?.rkey || ''
+              const origUri = n.reasonSubject
+              const origPost = origUri ? originalPosts[origUri] : null
+              const origParsed = origUri ? parseAtUri(origUri) : null
+              const origHandle = origUri ? (profileHandles[origUri] || origParsed?.handle || '') : ''
+              const origRkey = origParsed?.rkey || ''
+              const origFallback = postPreviews[origUri] || 'View post'
 
               return (
                 <Card
-                  key={`${notification.uri}-${notification.indexedAt}`}
-                  className={`transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x ${!notification.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
+                  key={`${n.uri}-${n.indexedAt}`}
+                  className={`transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x ${!n.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
                 >
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex gap-3">
@@ -456,19 +517,19 @@ export default function NotificationsPage() {
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <UserHoverCard handle={notification.author.handle}>
-                            <Link href={`/profile/${notification.author.handle || notification.author.did}`} className="relative block shrink-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <UserHoverCard handle={n.author.handle}>
+                            <Link href={`/profile/${n.author.handle || n.author.did}`} className="relative block shrink-0">
                               <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-                                <AvatarImage src={notification.author.avatar || "/placeholder.svg"} />
+                                <AvatarImage src={n.author.avatar || "/placeholder.svg"} />
                                 <AvatarFallback className="text-xs">
-                                  {(notification.author.displayName || notification.author.handle || '?').slice(0, 2).toUpperCase()}
+                                  {(n.author.displayName || n.author.handle || '?').slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              {notification.author.handle && (
+                              {n.author.handle && (
                                 <VerifiedBadge
-                                  handle={notification.author.handle}
-                                  did={notification.author.did}
+                                  handle={n.author.handle}
+                                  did={n.author.did}
                                   className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm"
                                 />
                               )}
@@ -476,49 +537,52 @@ export default function NotificationsPage() {
                           </UserHoverCard>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm">
-                              <UserHoverCard handle={notification.author.handle}>
-                                <Link
-                                  href={`/profile/${notification.author.handle || notification.author.did}`}
-                                  className="font-semibold hover:underline"
-                                >
-                                  {notification.author.displayName || notification.author.handle || 'Unknown'}
+                              <UserHoverCard handle={n.author.handle}>
+                                <Link href={`/profile/${n.author.handle || n.author.did}`} className="font-semibold hover:underline">
+                                  {n.author.displayName || n.author.handle || 'Unknown'}
                                 </Link>
                               </UserHoverCard>
-                              <span className="text-muted-foreground ml-1">{text}</span>
+                              <span className="text-muted-foreground ml-1">{actionText}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(notification.indexedAt), { addSuffix: true })}
+                              {formatDistanceToNow(new Date(n.indexedAt), { addSuffix: true })}
                             </p>
                           </div>
                         </div>
 
-                        {['reply', 'quote', 'mention'].includes(notification.reason) && (
+                        {['reply', 'quote', 'mention'].includes(n.reason) && (
                           <div className="mt-2 space-y-3">
-                            {/* Main notification content (reply/quote/mention) */}
                             <Link
                               href={`/profile/${handle}/post/${rkey}`}
-                              className="block rounded-lg border border-border bg-background hover:bg-accent/50 transition-colors overflow-hidden"
+                              className="block rounded-lg border border-border hover:bg-accent/50 transition-colors overflow-hidden"
                             >
-                              <BlueskyPostCard
-                                post={notification}  // ← full notification has uri, author, record, embed?
+                              <BlueskyContent
+                                post={{
+                                  uri: n.uri,
+                                  author: n.author,
+                                  record: n.record,
+                                  embed: (n as any).embed || (n.record as any)?.embed
+                                }}
+                                className="p-3"
                               />
                             </Link>
 
-                            {/* Original post being replied to / quoted */}
-                            {originalUri && (
+                            {origUri && (
                               <Link
-                                href={`/profile/${originalHandle}/post/${originalRkey}`}
+                                href={`/profile/${origHandle}/post/${origRkey}`}
                                 className="block rounded bg-muted/40 hover:bg-muted/70 transition-colors overflow-hidden text-xs"
                               >
                                 <div className="p-2">
                                   <span className="text-muted-foreground block mb-1">Replying to:</span>
-                                  <BlueskyPostCard
+                                  <BlueskyContent
                                     post={{
-                                      uri: originalUri,
-                                      author: { handle: originalHandle },
-                                      record: originalRecord || { text: postPreviews[originalUri] || '' },
-                                      embed: originalRecord?.embed
+                                      uri: origUri,
+                                      author: { handle: origHandle },
+                                      record: origPost?.record || { text: origFallback },
+                                      embed: origPost?.embed || (origPost?.record as any)?.embed
                                     }}
+                                    isQuoted={true}
+                                    className="text-xs"
                                   />
                                 </div>
                               </Link>
