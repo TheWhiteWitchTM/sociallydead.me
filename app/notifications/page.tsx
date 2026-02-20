@@ -12,7 +12,8 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
 import { UserHoverCard } from "@/components/user-hover-card"
-import { BlueskyContent } from "@/components/bluesky-content"  // ← Use the full content renderer
+import { BlueskyContent } from "@/components/bluesky-content"
+import {BlueskyPostCard} from "@/components/bluesky-post-card";  // ← Use the full content renderer
 
 interface Notification {
   uri: string
@@ -406,17 +407,14 @@ export default function NotificationsPage() {
                           {/* ... (keep your existing grouped rendering unchanged) */}
                           {/* For likes/reposts, you can now optionally show full BlueskyContent if you want */}
                           {group.reasonSubject && ['like', 'repost'].includes(group.reason) && originalRecords[group.reasonSubject] && (
-                            <div className="mt-3">
-                              <BlueskyContent
+                              <BlueskyPostCard
                                 post={{
                                   uri: group.reasonSubject,
                                   author: { handle: profileHandles[group.reasonSubject] || 'unknown' },
                                   record: originalRecords[group.reasonSubject],
                                   embed: originalRecords[group.reasonSubject].embed
                                 }}
-                                className="text-sm"
                               />
-                            </div>
                           )}
                         </div>
                       </div>
@@ -501,9 +499,8 @@ export default function NotificationsPage() {
                               href={`/profile/${handle}/post/${rkey}`}
                               className="block rounded-lg border border-border bg-background hover:bg-accent/50 transition-colors overflow-hidden"
                             >
-                              <BlueskyContent
+                              <BlueskyPostCard
                                 post={notification}  // ← full notification has uri, author, record, embed?
-                                className="p-3"
                               />
                             </Link>
 
@@ -515,15 +512,13 @@ export default function NotificationsPage() {
                               >
                                 <div className="p-2">
                                   <span className="text-muted-foreground block mb-1">Replying to:</span>
-                                  <BlueskyContent
+                                  <BlueskyPostCard
                                     post={{
                                       uri: originalUri,
                                       author: { handle: originalHandle },
                                       record: originalRecord || { text: postPreviews[originalUri] || '' },
                                       embed: originalRecord?.embed
                                     }}
-                                    isQuoted={true}
-                                    className="text-xs"
                                   />
                                 </div>
                               </Link>
