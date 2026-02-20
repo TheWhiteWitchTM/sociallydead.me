@@ -184,7 +184,7 @@ export default function NotificationsPage() {
             const authorHandle = post?.author?.handle || ''
             return {
               uri: n.reasonSubject!,
-              text: post?.record?.text?.slice(0, 100) || 'View post',
+              text: post?.record?.text || 'View post',
               handle: authorHandle,
               rkey: parsed?.rkey || '',
               fullRecord: post?.record || null
@@ -459,7 +459,7 @@ export default function NotificationsPage() {
                                 href={`/profile/${handle}/post/${rkey}`}
                                 className="block mt-2 p-2 rounded bg-muted/50 text-sm hover:bg-muted transition-colors"
                               >
-                                <p className="text-foreground line-clamp-2">{previewText}{previewText.length >= 100 ? '...' : ''}</p>
+                                <p className="text-foreground">{previewText}</p>
                               </Link>
                             )
                           })()}
@@ -584,7 +584,7 @@ export default function NotificationsPage() {
                                 href={`/profile/${handle}/post/${rkey}`}
                                 className="block p-2.5 rounded-lg border border-border bg-background text-sm hover:bg-accent/50 transition-colors"
                               >
-                                <p className="text-foreground line-clamp-3">
+                                <p className="text-foreground">
                                   <BlueskyRichText record={record} />
                                 </p>
                               </Link>
@@ -596,11 +596,11 @@ export default function NotificationsPage() {
                                 className="block p-2 rounded bg-muted/40 text-xs hover:bg-muted/70 transition-colors"
                               >
                                 <span className="text-muted-foreground">Replying to: </span>
-                                <span className="text-foreground line-clamp-1">
+                                <span className="text-foreground">
                                   {originalRecord ? (
                                     <BlueskyRichText record={originalRecord} />
                                   ) : (
-                                    originalText + (originalFallbackText.length >= 100 ? '...' : '')
+                                    originalText
                                   )}
                                 </span>
                               </Link>
