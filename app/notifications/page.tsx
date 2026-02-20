@@ -140,6 +140,7 @@ export default function NotificationsPage() {
   const [postPreviews, setPostPreviews] = useState<Record<string, string>>({})
   const [profileHandles, setProfileHandles] = useState<Record<string, string>>({})
   const [originalPosts, setOriginalPosts] = useState<Record<string, any>>({})
+  const [quotedPosts, setQuotedPosts] = useState<Record<string, any>>({})
   const [followAllLoading, setFollowAllLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'mentions'>('all')
 
@@ -151,6 +152,7 @@ export default function NotificationsPage() {
       const result = await getNotifications()
       setNotifications(result.notifications)
 
+      // Following status
       try {
         const followNotifs = result.notifications.filter(n => n.reason === 'follow')
         const statusPromises = followNotifs.map(async n => {
@@ -167,6 +169,7 @@ export default function NotificationsPage() {
         setFollowingStatus(statusMap)
       } catch {}
 
+      // Fetch posts for likes/reposts/replies/quotes
       try {
         const postNotifs = result.notifications.filter(n =>
           n.reasonSubject && ['like', 'repost', 'reply', 'quote'].includes(n.reason)
@@ -206,6 +209,25 @@ export default function NotificationsPage() {
         setOriginalPosts(postMap)
       } catch {}
 
+      // For quotes: fetch the full quote post (the new post that quotes yours)
+      try {
+        const quoteNotifs = result.notifications.filter(n => n.reason === 'quote')
+        const quotePromises = quoteNotifs.map(async n => {
+          try {
+            const quotePost = await getPost(n.uri) // fetch full quote post
+            return { uri: n.uri, fullQuotedPost: quotePost }
+          } catch {
+            return { uri: n.uri, fullQuotedPost: n } // fallback to notification
+          }
+        })
+
+        const quoteResults = await Promise.all(quotePromises)
+        const quoteMap: Record<string, any> = {}
+        quoteResults.forEach(q => {
+          if (q.fullQuotedPost) quoteMap[q.uri] = q.fullQuotedPost
+        })
+        setQuotedPosts(quoteMap)
+      } catch {}
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notifications")
     } finally {
@@ -238,9 +260,7 @@ export default function NotificationsPage() {
     ? notifications.filter(n => n.reason === 'mention' || n.reason === 'reply')
     : notifications
 
-  // ── THIS LINE MUST EXIST HERE ──
   const groupedNotifications = groupNotifications(filteredNotifications)
-  // ─────────────────────────────────
 
   const unfollowedFollowers = notifications
     .filter(n => n.reason === 'follow' && user?.did !== n.author?.did && !followingStatus[n.author?.did])
@@ -367,9 +387,230 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-2">
             {groupedNotifications.map(item => {
-              // ... your full mapping logic for grouped and ungrouped items ...
-              // (copy-paste the rest from your working version here)
-              // The important thing is that groupedNotifications is now defined above
+              if (isGrouped(item)) {
+                const group = item
+                const Icon = notificationIcons[group.reason] || Heart
+                const colorClass = notificationColors[group.reason] || "text-muted-foreground"
+                const count = group.authors.length
+                const firstAuthor = group.authors[0]
+                if (!firstAuthor) return null
+
+                const othersCount = count - 1
+                const reasonText = group.reason === 'follow'
+                  ? (count === 1 ? 'followed you' : 'followed you')
+                  : (notificationText[group.reason] || 'interacted with you')
+
+                return (
+                  <Card
+                    key={group.key}
+                    className={`transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x ${!group.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
+                  >
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex gap-3">
+                        <div className={`mt-1 ${colorClass}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center mb-1.5">
+                            <div className="flex -space-x-2">
+                              {group.authors.slice(0, 6).map(author => (
+                                <UserHoverCard key={author.did} handle={author.handle}>
+                                  <Link href={`/profile/${author.handle || author.did}`} className="relative block">
+                                    <Avatar className="h-7 w-7 border-2 border-background cursor-pointer hover:opacity-80 transition-opacity">
+                                      <AvatarImage src={author.avatar || "/placeholder.svg"} />
+                                      <AvatarFallback className="text-[10px]">
+                                        {(author.displayName || author.handle || '?').slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <VerifiedBadge
+                                      handle={author.handle}
+                                      did={author.did}
+                                      className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm"
+                                    />
+                                  </Link>
+                                </UserHoverCard>
+                              ))}
+                              {count > 6 && (
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] text-muted-foreground font-medium">
+                                  +{count - 6}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <p className="text-sm">
+                            <UserHoverCard handle={firstAuthor.handle}>
+                              <Link href={`/profile/${firstAuthor.handle || firstAuthor.did}`} className="font-semibold hover:underline">
+                                {firstAuthor.displayName || firstAuthor.handle || 'Unknown'}
+                              </Link>
+                            </UserHoverCard>
+                            {othersCount > 0 && (
+                              <span className="text-muted-foreground">
+                                {' '}and {othersCount} {othersCount === 1 ? 'other' : 'others'}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground ml-1">{reasonText}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(group.indexedAt), { addSuffix: true })}
+                          </p>
+
+                          {group.reasonSubject && ['like', 'repost'].includes(group.reason) && (
+                            <Link
+                              href={`/profile/${profileHandles[group.reasonSubject] || 'unknown'}/post/${parseAtUri(group.reasonSubject)?.rkey || ''}`}
+                              className="block mt-2 p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
+                            >
+                              <BlueskyContent
+                                post={originalPosts[group.reasonSubject] || { record: { text: postPreviews[group.reasonSubject] || 'View post' } }}
+                                className="text-sm"
+                              />
+                            </Link>
+                          )}
+
+                          {group.reason === 'follow' && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {group.authors.filter(a => user?.did !== a.did).slice(0, 3).map(author => (
+                                <div key={author.did}>
+                                  {followingStatus[author.did] ? (
+                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                      <UserCheck className="h-3 w-3" />
+                                      {author.displayName || author.handle}
+                                    </span>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={() => handleFollowBack(author.did)}
+                                      disabled={followLoading[author.did]}
+                                    >
+                                      {followLoading[author.did] ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <UserPlus className="h-3 w-3 mr-1" />
+                                      )}
+                                      {author.displayName || author.handle}
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              {group.authors.filter(a => user?.did !== a.did).length > 3 && (
+                                <span className="inline-flex items-center text-xs text-muted-foreground px-1">
+                                  +{group.authors.filter(a => user?.did !== a.did).length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              }
+
+              const n = item as Notification
+              if (!n?.author) return null
+
+              const Icon = notificationIcons[n.reason] || Heart
+              const colorClass = notificationColors[n.reason] || "text-muted-foreground"
+              const actionText = notificationText[n.reason] || "interacted with you"
+
+              const parsed = parseAtUri(n.uri)
+              const handle = n.author.handle || parsed?.handle || ''
+              const rkey = parsed?.rkey || ''
+
+              const origUri = n.reasonSubject
+              const origPost = origUri ? originalPosts[origUri] : null
+              const origParsed = origUri ? parseAtUri(origUri) : null
+              const origHandle = origUri ? (profileHandles[origUri] || origParsed?.handle || '') : ''
+              const origRkey = origParsed?.rkey || ''
+              const origFallback = postPreviews[origUri] || 'View post'
+
+              const quotePost = n.reason === 'quote' ? quotedPosts[n.uri] || n : n
+
+              return (
+                <Card
+                  key={`${n.uri}-${n.indexedAt}`}
+                  className={`transition-colors rounded-none sm:rounded-lg border-x-0 sm:border-x ${!n.isRead ? 'bg-primary/5 border-primary/20' : ''}`}
+                >
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex gap-3">
+                      <div className={`mt-1 ${colorClass}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <UserHoverCard handle={n.author.handle}>
+                            <Link href={`/profile/${n.author.handle || n.author.did}`} className="relative block shrink-0">
+                              <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                                <AvatarImage src={n.author.avatar || "/placeholder.svg"} />
+                                <AvatarFallback className="text-xs">
+                                  {(n.author.displayName || n.author.handle || '?').slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              {n.author.handle && (
+                                <VerifiedBadge
+                                  handle={n.author.handle}
+                                  did={n.author.did}
+                                  className="absolute -right-1 -bottom-1 scale-75 origin-bottom-right bg-background rounded-full p-0.5 border border-background shadow-sm"
+                                />
+                              )}
+                            </Link>
+                          </UserHoverCard>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm">
+                              <UserHoverCard handle={n.author.handle}>
+                                <Link href={`/profile/${n.author.handle || n.author.did}`} className="font-semibold hover:underline">
+                                  {n.author.displayName || n.author.handle || 'Unknown'}
+                                </Link>
+                              </UserHoverCard>
+                              <span className="text-muted-foreground ml-1">{actionText}</span>
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(n.indexedAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+
+                        {['reply', 'quote', 'mention'].includes(n.reason) && (
+                          <div className="mt-2 space-y-3">
+                            <Link
+                              href={`/profile/${handle}/post/${rkey}`}
+                              className="block rounded-lg border border-border hover:bg-accent/50 transition-colors overflow-hidden"
+                            >
+                              <BlueskyContent
+                                post={quotePost}
+                                className="p-3"
+                              />
+                            </Link>
+
+                            {origUri && (
+                              <Link
+                                href={`/profile/${origHandle}/post/${origRkey}`}
+                                className="block rounded bg-muted/40 hover:bg-muted/70 transition-colors overflow-hidden text-xs"
+                              >
+                                <div className="p-2">
+                                  <span className="text-muted-foreground block mb-1">Replying to:</span>
+                                  <BlueskyContent
+                                    post={{
+                                      uri: origUri,
+                                      author: { handle: origHandle },
+                                      record: origPost?.record || { text: origFallback },
+                                      embed: origPost?.embed
+                                    }}
+                                    isQuoted={true}
+                                    className="text-xs"
+                                  />
+                                </div>
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
             })}
           </div>
         )}
