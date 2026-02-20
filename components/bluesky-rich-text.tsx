@@ -1,98 +1,89 @@
 "use client"
 
-import {MarkdownRenderer} from "@/components/markdown-renderer";
-import {JSX} from "react";
-import Link from "next/link";
-import {BlueskyExternal} from "@/components/bluesky-external";
+import { RichText as ATRichText } from "@atproto/api"
+import { useState } from "react"
+import Link from "next/link"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { BlueskyExternal } from "@/components/bluesky-external"
 
 type RichTextProps = {
 	record: any
 }
 
-const handleExternalClick = (uri: string) => {
-	return(
-		<BlueskyExternal
-			uri={uri}
-		/>
-	)
-}
+export const BlueskyRichText = ({ record }: RichTextProps) => {
+	const [showExternal, setShowExternal] = useState<string | null>(null)
 
-export const BlueskyRichText = (
-	{record}: RichTextProps,
-) => {
+	if (!record?.text) return null
 
-		if (!record?.text) return null
+	const text = record.text ?? ""
+	const facets = record.facets ?? []
 
-		if (!record?.facets?.length) {
-			return(
-				<MarkdownRenderer content={record.text}/>
+	// If no facets, render full text with Markdown
+	if (!facets.length) {
+		return <MarkdownRenderer content={text} />
+	}
+
+	// Use official RichText for correct byte handling and segmentation
+	const rt = new ATRichText({ text, facets })
+
+	const segments: JSX.Element[] = []
+	let key = 0
+
+	for (const segment of rt.segments) {
+		if (segment.isMention()) {
+			const handle = segment.mention?.handle ?? segment.text.slice(1)
+			segments.push(
+				<Link
+					key={key++}
+					href={`/profile/${handle}`}
+					className="text-blue-600 hover:underline font-medium"
+				>
+					@{handle}
+				</Link>
+			)
+		} else if (segment.isLink()) {
+			const uri = segment.link?.uri ?? segment.text
+			segments.push(
+				<a
+					key={key++}
+					href="#"
+					onClick={(e) => {
+						e.preventDefault()
+						setShowExternal(uri)  // Open the browser component (modal/preview)
+					}}
+					className="text-blue-600 hover:underline"
+				>
+					{segment.text}
+				</a>
+			)
+		} else if (segment.isTag()) {
+			const tag = segment.tag?.tag ?? segment.text.slice(1)
+			segments.push(
+				<Link
+					key={key++}
+					href={`/feed/${encodeURIComponent(tag)}`}
+					className="text-blue-600 hover:underline"
+				>
+					#{tag}
+				</Link>
+			)
+		} else {
+			// Plain text segment – apply Markdown if needed (optimized: only if text might contain MD)
+			segments.push(
+				<MarkdownRenderer key={key++} content={segment.text} />
 			)
 		}
+	}
 
-		const text = record.text ?? ""
-		const facets = record.facets ?? []
-
-		const segments: JSX.Element[] = []
-		let lastByteEnd = 0
-
-		// Sort facets by byteStart
-		const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
-
-		for (const facet of sortedFacets) {
-			const { byteStart, byteEnd } = facet.index
-			const feature = facet.features?.[0]
-
-			// Text before facet
-			if (byteStart > lastByteEnd) {
-				segments.push(
-            <MarkdownRenderer key={lastByteEnd} content={text.slice(lastByteEnd, byteStart)}/>
-				)
-			}
-
-			const slice = text.slice(byteStart, byteEnd)
-
-			if (feature?.$type === "app.bsky.richtext.facet#mention") {
-				const handle = feature.handle || slice.slice(1)
-				segments.push(
-					<Link
-						key={byteStart}
-						href={`/profile/${handle}`}
-						className="text-red-600 hover:underline font-medium"
-					>
-						@{handle}
-					</Link>
-				)
-			} else if (feature?.$type === "app.bsky.richtext.facet#link") {
-				const uri = feature.uri || slice
-				segments.push(
-					<a
-						key={byteStart}
-						href="#"
-						onClick={(e) => {
-							e.preventDefault()
-							if (uri) handleExternalClick(uri)
-						}}
-						className="text-red-600 hover:underline"
-					>
-						<MarkdownRenderer content={slice}/>
-					</a>
-				)
-			} else if (feature?.$type === "app.bsky.richtext.facet#tag") {
-				const tag = feature.tag || slice.slice(1)
-				segments.push(
-					<Link
-						key={byteStart}
-						href={`/feed/${encodeURIComponent(tag)}`}
-						className="text-red-600 hover:underline"
-					>
-						#{tag}
-					</Link>
-				)
-			} else {
-				// fallback
-				segments.push(
-					<MarkdownRenderer key={byteStart} content={slice}/>
-				)
-			}
-		}
+	return (
+		<>
+			{segments}
+			{showExternal && (
+				<BlueskyExternal
+					uri={showExternal}
+					onClose={() => setShowExternal(null)}  // Assume BlueskyExternal has onClose prop
+				/>
+			)}
+		</>
+	)
 }
