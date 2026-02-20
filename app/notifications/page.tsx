@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
 import {UserHoverCard} from "@/components/user-hover-card";
 import {MarkdownRenderer} from "@/components/markdown-renderer";
+import {BlueskyEmbedHeader} from "@/components/bluesky-embed-header";
+import {BlueskyPostCard} from "@/components/bluesky-post-card";
 
 interface Notification {
   uri: string
@@ -578,6 +580,7 @@ export default function NotificationsPage() {
                           const contentText = record?.text || postPreviews[notification.uri] || ''
                           
                           // The notification's URI is the post itself
+                          notification.record
                           const parsed = parseAtUri(notification.uri)
                           const handle = notification.author.handle || parsed?.handle || ''
                           const rkey = parsed?.rkey || ''
@@ -610,8 +613,8 @@ export default function NotificationsPage() {
                                   className="block p-2 rounded bg-muted/40 text-xs hover:bg-muted/70 transition-colors"
                                 >
                                   <span className="text-muted-foreground">Replying to: </span>
-                                  <span className="text-muted-foreground/50 line-clamp-1">
-                                    <MarkdownRenderer content={originalText}/>
+                                  <span className="text-foreground line-clamp-1">
+                                    <BlueskyPostCard post={notification}/>
                                   </span>
                                 </Link>
                               )}
