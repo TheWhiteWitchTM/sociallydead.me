@@ -27,7 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text" // your working one
+import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
+import { suggestHandles, suggestHashtags } from "@/hooks/bluesky/use-bluesky-suggestions"
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -133,7 +134,6 @@ export function ComposeInput({
                              }: ComposeInputProps) {
   const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
-  const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const highlighterRef = useRef<HTMLDivElement>(null)
@@ -273,16 +273,11 @@ export function ComposeInput({
     }
   }, [linkCardDismissed, onLinkCardChange, isDM])
 
+  // REPLACED: Now uses suggestHandles
   const searchMentions = useCallback(async (query: string) => {
     setIsSearchingMentions(true)
     try {
-      const typeahead = await searchActorsTypeahead(query)
-      let actors = typeahead.actors
-      if ((!actors || actors.length === 0) && query.length > 0) {
-        const result = await searchActors(query)
-        actors = result.actors
-      }
-      const suggestions = (actors || []).slice(0, 5)
+      const suggestions = await suggestHandles(query, 8)
       setMentionSuggestions(suggestions)
     } catch (error) {
       console.error('Error searching mentions:', error)
@@ -290,17 +285,21 @@ export function ComposeInput({
     } finally {
       setIsSearchingMentions(false)
     }
-  }, [searchActors, searchActorsTypeahead])
+  }, [])
 
-  const searchHashtags = useCallback((query: string) => {
+  // REPLACED: Now uses suggestHashtags
+  const searchHashtags = useCallback(async (query: string) => {
     if (query.length < 1) {
       setHashtagSuggestions([])
       return
     }
-    const matches = POPULAR_HASHTAGS.filter(tag =>
-      tag.toLowerCase().startsWith(query.toLowerCase())
-    ).slice(0, 5)
-    setHashtagSuggestions(matches)
+    try {
+      const suggestions = await suggestHashtags(query, 10)
+      setHashtagSuggestions(suggestions)
+    } catch (error) {
+      console.error('Error searching hashtags:', error)
+      setHashtagSuggestions([])
+    }
   }, [])
 
   const handleTextChange = (newText: string) => {
@@ -349,11 +348,7 @@ export function ComposeInput({
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
-      if (matchText.length === 0) {
-        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
-      } else {
-        searchHashtags(matchText)
-      }
+      searchHashtags(matchText)
       return
     }
 
@@ -479,6 +474,7 @@ export function ComposeInput({
     }, 0)
   }
 
+  // REPLACED: Now uses suggestHandles
   const searchMentionsPicker = useCallback(async (query: string) => {
     if (!query.trim()) {
       setMentionPickerResults([])
@@ -486,20 +482,15 @@ export function ComposeInput({
     }
     setIsSearchingPicker(true)
     try {
-      const typeahead = await searchActorsTypeahead(query)
-      let actors = typeahead.actors
-      if ((!actors || actors.length === 0) && query.length > 0) {
-        const result = await searchActors(query)
-        actors = result.actors
-      }
-      setMentionPickerResults((actors || []).slice(0, 20))
+      const suggestions = await suggestHandles(query, 20)
+      setMentionPickerResults(suggestions)
     } catch (error) {
       console.error('Error searching mentions:', error)
       setMentionPickerResults([])
     } finally {
       setIsSearchingPicker(false)
     }
-  }, [searchActors, searchActorsTypeahead])
+  }, [])
 
   const insertSelectedMentions = () => {
     if (selectedMentions.size === 0) return
@@ -801,7 +792,6 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* Rest of the component (TooltipProvider, media preview, link card, dialogs, etc.) remains unchanged */}
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
