@@ -3,7 +3,7 @@
 import { JSX, useState } from "react"
 import Link from "next/link"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { BlueskyExternal } from "@/components/bluesky/bluesky-external"
+import { BlueskyExternalBrowser } from "@/components/bluesky/bluesky-external-browser"
 
 type RichTextProps = {
 	record: any
@@ -18,12 +18,12 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 	const fullText = record.text ?? ""
 	const facets = Array.isArray(record.facets) ? record.facets : []
 
-	// No facets → full Markdown (keep as-is for full posts)
+	// No facets → full Markdown
 	if (facets.length === 0) {
 		return <MarkdownRenderer content={fullText} />
 	}
 
-	// Sort facets by byteStart (required for correct order)
+	// Sort facets by byteStart
 	const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
 
 	const segments: JSX.Element[] = []
@@ -75,7 +75,6 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 							e.preventDefault()
 							e.stopPropagation()
 							setExternalURI(uri)
-							alert(uri)
 							setShowExternal(true)
 						}}
 						className="text-red-600 hover:text-red-700 hover:underline cursor-pointer inline"
@@ -84,7 +83,6 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 					</a>
 				)
 			} else {
-				// Fallback if no uri (rare)
 				segments.push(
 					<span key={key++} className="inline text-red-600">
             {facetText}
@@ -103,7 +101,6 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				</Link>
 			)
 		} else {
-			// Unknown facet type → render as inline markdown
 			segments.push(
 				<span key={key++} className="inline">
           <MarkdownRenderer content={facetText} inline />
@@ -114,7 +111,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		lastByteEnd = byteEnd
 	}
 
-	// Trailing text after last facet – preserve whitespace
+	// Trailing text
 	if (lastByteEnd < utf8Bytes.length) {
 		const tailBytes = utf8Bytes.subarray(lastByteEnd)
 		const tailText = decoder.decode(tailBytes)
@@ -131,10 +128,14 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
         {segments}
       </span>
 
-			{showExternal && (
-				<BlueskyExternal
+			{showExternal && externalURI && (
+				<BlueskyExternalBrowser
 					uri={externalURI}
-					onClose={() => setShowExternal(false)}
+					open={showExternal}
+					onOpenChange={(open) => {
+						setShowExternal(open)
+						if (!open) setExternalURI(null)
+					}}
 				/>
 			)}
 		</>
