@@ -32,7 +32,7 @@ const EMOJI_CATEGORIES = {
   "Gestures": ["👋","🤚","🖐️","✋","🖖","🫱","🫲","🫳","🫴","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🫵","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","💪","🦾"],
   "Hearts": ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","🫀"],
   "Animals": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞"],
-  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","waffle","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
+  "Food": ["🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🌽","🌶️","🫑","🥒","🥬","🧅","🍄","🥜","🫘","🌰","🍞","🥐","🥖","🫓","🥨","🥯","🥞","🧇","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🍕","🌭","🥪","🌮","🌯","🫔","🥙","🧆","🥚","🍳","🥘","🍲"],
   "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
   "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
@@ -599,7 +599,7 @@ export function ComposeInput({
 
     const mentionRegex = /@([a-zA-Z0-9.-]+)/g
     const hashtagRegex = /#([a-zA-Z0-9_]+)/g
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s<>{}|\\^`]+(?:[^\s<.,:;"')\]!?]))/gi
+    const urlRegex = /((https?:\/\/)?(www\.)?[\w-]+\.[\w-]{2,}(\/[\w-._~:/?#[\]@!$&'()*+,;=]*)?)/gi
 
     let keyCounter = 0
 
@@ -618,7 +618,7 @@ export function ComposeInput({
             {content}
           </span>
         )
-        return <span key={lineKey}>{lineParts}</span>
+        return lineParts
       }
 
       let lastIndex = 0
@@ -685,7 +685,7 @@ export function ComposeInput({
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-red-600 underline">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-red-600 underline bg-red-500/5">
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   <span>{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -698,7 +698,7 @@ export function ComposeInput({
               element = (
                 <span
                   key={`${lineKey}-${keyCounter++}`}
-                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
+                  className="text-red-600 font-medium bg-red-500/5"
                 >
                   @{match[1]}
                 </span>
@@ -708,7 +708,7 @@ export function ComposeInput({
               element = (
                 <span
                   key={`${lineKey}-${keyCounter++}`}
-                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
+                  className="text-red-600 font-medium bg-red-500/5"
                 >
                   #{match[1]}
                 </span>
@@ -718,7 +718,7 @@ export function ComposeInput({
               element = (
                 <span
                   key={`${lineKey}-${keyCounter++}`}
-                  className="text-red-600 underline bg-red-500/5 px-0.5 rounded break-all"
+                  className="text-red-600 underline bg-red-500/5 break-all"
                 >
                   {match[0]}
                 </span>
@@ -745,14 +745,18 @@ export function ComposeInput({
         lineParts.push(currentText.slice(lastIndex))
       }
 
-      if (lineParts.length === 0 && line === '') {
+      if (lineParts.length === 0) {
         lineParts.push(<br key={`${lineKey}-empty`} />)
       }
 
-      return <span key={lineKey}>{lineParts}</span>
+      return lineParts
     })
 
-    return processedLines
+    return processedLines.map((lineParts, idx) => (
+      <div key={idx} className="leading-[1.5]">
+        {lineParts}
+      </div>
+    ))
   }
 
   const composeType = postType === "reply" ? "Replying" :
@@ -855,7 +859,7 @@ export function ComposeInput({
           <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.5] tracking-normal",
+              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0",
               minHeight
             )}
             style={{
@@ -866,7 +870,6 @@ export function ComposeInput({
               wordBreak: 'break-word',
               overflowWrap: 'break-word',
               hyphens: 'auto',
-              whiteSpace: 'pre-wrap',
             }}
             aria-hidden="true"
           >
@@ -881,7 +884,7 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 leading-[1.5] tracking-normal",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
               minHeight
             )}
             style={{
@@ -891,7 +894,6 @@ export function ComposeInput({
               letterSpacing: 'normal',
               wordBreak: 'break-word',
               overflowWrap: 'break-word',
-              whiteSpace: 'pre-wrap',
             }}
           />
 
