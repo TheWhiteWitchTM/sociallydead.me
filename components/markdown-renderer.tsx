@@ -81,7 +81,7 @@ function ShikiCodeBlock({ code, language }: { code: string; language: string }) 
 
 export function RichMarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
-    <div className={cn("prose prose-sm dark:prose-invert max-w-none", className)}>
+    <span className={cn("prose prose-sm dark:prose-invert max-w-none", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
@@ -130,6 +130,6 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
       >
         {content}
       </ReactMarkdown>
-    </div>
+    </span>
   )
 }
