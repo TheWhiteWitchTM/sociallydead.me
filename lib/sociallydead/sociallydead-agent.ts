@@ -3,6 +3,11 @@ import { AtpAgent } from '@atproto/api';
 let appAgent: AtpAgent | null = null;
 
 export const getSociallyDeadAgent = async () => {
+	return null;
+}
+
+
+export const getSociallyDeadAgent2 = async () => {
 	if (appAgent) return appAgent;
 
 	const handle = process.env.APP_BSKY_HANDLE;
