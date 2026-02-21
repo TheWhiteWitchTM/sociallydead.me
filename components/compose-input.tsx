@@ -2,7 +2,27 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { RichText } from '@atproto/api'
-import { Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, Send, PenSquare } from "lucide-react"
+import {
+  Loader2,
+  ImagePlus,
+  X,
+  Video,
+  ExternalLink,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  ListOrdered,
+  Code,
+  Link2,
+  Strikethrough,
+  Quote,
+  SmilePlus,
+  Send,
+  PenSquare,
+  Hash
+} from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -23,7 +43,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
 import { suggestHandles, suggestHashtags } from "@/lib/sociallydead/sociallydead-suggestion"
-import {Popover, PopoverContent} from "@/components/ui/popover";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
