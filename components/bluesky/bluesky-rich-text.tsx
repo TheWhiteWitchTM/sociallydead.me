@@ -37,15 +37,15 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		const { byteStart, byteEnd } = facet.index
 		const feature = facet.features?.[0]
 
-		// Plain text before facet – force inline, no block breaks
+		// Plain text before facet – NO trimming, keep exact spaces
 		if (byteStart > lastByteEnd) {
 			const plainBytes = utf8Bytes.subarray(lastByteEnd, byteStart)
-			const plainText = decoder.decode(plainBytes).trimEnd() // avoid trailing space issues
+			const plainText = decoder.decode(plainBytes)
 			segments.push(
 				<span
 					key={key++}
 					className="inline"
-					dangerouslySetInnerHTML={{ __html: plainText }} // ← bypass MarkdownRenderer for plain segments
+					dangerouslySetInnerHTML={{ __html: plainText }}
 				/>
 			)
 		}
@@ -103,10 +103,10 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		lastByteEnd = byteEnd
 	}
 
-	// Trailing text – same inline treatment
+	// Trailing text – NO trimming, keep exact spaces
 	if (lastByteEnd < utf8Bytes.length) {
 		const tailBytes = utf8Bytes.subarray(lastByteEnd)
-		const tailText = decoder.decode(tailBytes).trimStart()
+		const tailText = decoder.decode(tailBytes)
 		segments.push(
 			<span
 				key={key++}
