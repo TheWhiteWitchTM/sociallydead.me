@@ -2,32 +2,13 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { RichText } from '@atproto/api'
-import {
-  Loader2,
-  ImagePlus,
-  X,
-  Video,
-  ExternalLink,
-  Bold,
-  Italic,
-  Heading1,
-  Heading2,
-  List,
-  ListOrdered,
-  Code,
-  Link2,
-  Strikethrough,
-  Quote,
-  SmilePlus,
-  Send,
-  PenSquare,
-  Hash
-} from "lucide-react"
+import { Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
 import { cn } from "@/lib/utils"
@@ -43,7 +24,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
 import { suggestHandles, suggestHashtags } from "@/lib/sociallydead/sociallydead-suggestion"
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -272,7 +252,8 @@ export function ComposeInput({
     }
   }, [linkCardDismissed, onLinkCardChange, isDM])
 
-  const handleTextChange = async (newText: string) => {
+  const handleTextChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value
     onTextChange(newText)
 
     const warningThreshold = effectiveMaxChars * 0.9
@@ -295,7 +276,7 @@ export function ComposeInput({
       }
     }, 800)
 
-    const cursorPos = textareaRef.current?.selectionStart || newText.length
+    const cursorPos = e.target.selectionStart
     const textBeforeCursor = newText.slice(0, cursorPos)
 
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
@@ -307,7 +288,6 @@ export function ComposeInput({
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
       setIsSearchingMentions(true)
-
       const suggestions = await suggestHandles(matchText, 5)
       setMentionSuggestions(suggestions)
       setIsSearchingMentions(false)
@@ -322,7 +302,6 @@ export function ComposeInput({
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
-
       const suggestions = await suggestHashtags(matchText, 5)
       setHashtagSuggestions(suggestions)
       return
@@ -621,7 +600,7 @@ export function ComposeInput({
             ref={textareaRef}
             placeholder={placeholder}
             value={text}
-            onChange={(e) => handleTextChange(e.target.value)}
+            onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
@@ -651,7 +630,7 @@ export function ComposeInput({
                     <div
                       key={user.did}
                       className={cn(
-                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors cursor-pointer",
+                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
                         idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       )}
                       onClick={() => insertSuggestion(user.handle, 'mention')}
@@ -671,6 +650,10 @@ export function ComposeInput({
                           @{user.handle}
                         </p>
                       </div>
+                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
+                        Add
+                      </Button>
                     </div>
                   ))
                 )}
@@ -685,7 +668,7 @@ export function ComposeInput({
                   <div
                     key={tag}
                     className={cn(
-                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors cursor-pointer",
+                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
                       idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                     )}
                     onClick={() => insertSuggestion(tag, 'hashtag')}
@@ -694,6 +677,10 @@ export function ComposeInput({
                       <Hash className="h-4 w-4" />
                     </div>
                     <span className="text-sm font-medium flex-1">#{tag}</span>
+                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
+                      Add
+                    </Button>
                   </div>
                 ))}
               </CardContent>
@@ -778,7 +765,7 @@ export function ComposeInput({
 
             <div className="w-2" />
 
-            {formatActions.map(({ icon: Icon, label, action }) => (
+            {formatActions.map(({ icon: Icon, label, action } ) => (
               <Tooltip key={label}>
                 <TooltipTrigger asChild>
                   <Button
@@ -971,7 +958,6 @@ function getLiveRichText(text: string) {
 
   let facets = rt.facets ?? []
 
-  // Manual mention detection ONLY for ranges not already covered
   const mentionRegex = /(?:^|\s)(@([a-zA-Z0-9.-]+(?:\.[a-zA-Z0-9.-]+)*))/g
   let match
   const manualFacets: any[] = []
