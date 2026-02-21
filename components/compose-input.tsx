@@ -2,20 +2,14 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { RichText } from '@atproto/api'
-import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
+import { Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { useBluesky } from "@/lib/bluesky-context"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { VerifiedBadge } from "@/components/verified-badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
   AlertDialog,
@@ -27,7 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text" // your working one
+import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
+import { suggestHandles, suggestHashtags } from "@/lib/sociallydead/sociallydead-suggestion"
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -38,13 +33,6 @@ const EMOJI_CATEGORIES = {
   "Objects": ["⌚","📱","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💾","💿","📀","📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭","⏱️","⏲️","⏰","🕰️","💡","🔦","🕯️","🧯","🛢️","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒️","🛠️","⛏️","🪚","🔩","⚙️","🪤","🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️"],
   "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
-
-const POPULAR_HASHTAGS = [
-  "art", "music", "photography", "gaming", "tech", "news", "politics",
-  "sports", "science", "health", "food", "travel", "fashion", "movies",
-  "books", "anime", "bluesky", "developer", "design", "ai", "sociallydead",
-  "coding", "programming", "react", "nextjs", "webdev", "crypto", "nature"
-]
 
 interface MentionSuggestion {
   did: string
@@ -133,18 +121,18 @@ export function ComposeInput({
                              }: ComposeInputProps) {
   const isDM = postType === "dm"
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
-  const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const highlighterRef = useRef<HTMLDivElement>(null)
 
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
-  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
-  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState(0)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
+
+  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
+  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
 
   const [linkCardLoading, setLinkCardLoading] = useState(false)
   const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
@@ -158,16 +146,6 @@ export function ComposeInput({
 
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
-
-  const [mentionPickerOpen, setMentionPickerOpen] = useState(false)
-  const [mentionSearch, setMentionSearch] = useState("")
-  const [mentionPickerResults, setMentionPickerResults] = useState<MentionSuggestion[]>([])
-  const [selectedMentions, setSelectedMentions] = useState<Set<string>>(new Set())
-  const [isSearchingPicker, setIsSearchingPicker] = useState(false)
-
-  const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
-  const [hashtagSearch, setHashtagSearch] = useState("")
-  const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
 
   const hasVideo = mediaFiles.some(f => f.type === "video")
   const hasImages = mediaFiles.some(f => f.type === "image")
@@ -273,37 +251,7 @@ export function ComposeInput({
     }
   }, [linkCardDismissed, onLinkCardChange, isDM])
 
-  const searchMentions = useCallback(async (query: string) => {
-    setIsSearchingMentions(true)
-    try {
-      const typeahead = await searchActorsTypeahead(query)
-      let actors = typeahead.actors
-      if ((!actors || actors.length === 0) && query.length > 0) {
-        const result = await searchActors(query)
-        actors = result.actors
-      }
-      const suggestions = (actors || []).slice(0, 5)
-      setMentionSuggestions(suggestions)
-    } catch (error) {
-      console.error('Error searching mentions:', error)
-      setMentionSuggestions([])
-    } finally {
-      setIsSearchingMentions(false)
-    }
-  }, [searchActors, searchActorsTypeahead])
-
-  const searchHashtags = useCallback((query: string) => {
-    if (query.length < 1) {
-      setHashtagSuggestions([])
-      return
-    }
-    const matches = POPULAR_HASHTAGS.filter(tag =>
-      tag.toLowerCase().startsWith(query.toLowerCase())
-    ).slice(0, 5)
-    setHashtagSuggestions(matches)
-  }, [])
-
-  const handleTextChange = (newText: string) => {
+  const handleTextChange = async (newText: string) => {
     onTextChange(newText)
 
     const warningThreshold = effectiveMaxChars * 0.9
@@ -337,7 +285,11 @@ export function ComposeInput({
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
-      searchMentions(matchText)
+      setIsSearchingMentions(true)
+
+      const suggestions = await suggestHandles(matchText, 5)
+      setMentionSuggestions(suggestions)
+      setIsSearchingMentions(false)
       return
     }
 
@@ -349,11 +301,9 @@ export function ComposeInput({
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
-      if (matchText.length === 0) {
-        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
-      } else {
-        searchHashtags(matchText)
-      }
+
+      const suggestions = await suggestHashtags(matchText, 5)
+      setHashtagSuggestions(suggestions)
       return
     }
 
@@ -478,68 +428,6 @@ export function ComposeInput({
       }
     }, 0)
   }
-
-  const searchMentionsPicker = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setMentionPickerResults([])
-      return
-    }
-    setIsSearchingPicker(true)
-    try {
-      const typeahead = await searchActorsTypeahead(query)
-      let actors = typeahead.actors
-      if ((!actors || actors.length === 0) && query.length > 0) {
-        const result = await searchActors(query)
-        actors = result.actors
-      }
-      setMentionPickerResults((actors || []).slice(0, 20))
-    } catch (error) {
-      console.error('Error searching mentions:', error)
-      setMentionPickerResults([])
-    } finally {
-      setIsSearchingPicker(false)
-    }
-  }, [searchActors, searchActorsTypeahead])
-
-  const insertSelectedMentions = () => {
-    if (selectedMentions.size === 0) return
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
-    const mentions = Array.from(selectedMentions).map(h => `@${h}`).join(' ')
-    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + mentions + ' ' + after
-    onTextChange(newText)
-    setSelectedMentions(new Set())
-    setMentionPickerOpen(false)
-    setMentionSearch("")
-    setTimeout(() => textareaRef.current?.focus(), 100)
-  }
-
-  const insertSelectedHashtags = () => {
-    if (selectedHashtags.size === 0) return
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
-    const hashtags = Array.from(selectedHashtags).map(h => `#${h}`).join(' ')
-    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + hashtags + ' ' + after
-    onTextChange(newText)
-    setSelectedHashtags(new Set())
-    setHashtagPickerOpen(false)
-    setHashtagSearch("")
-    setTimeout(() => textareaRef.current?.focus(), 100)
-  }
-
-  const filteredHashtags = hashtagSearch.trim() === ""
-    ? POPULAR_HASHTAGS
-    : POPULAR_HASHTAGS.filter(tag => tag.toLowerCase().includes(hashtagSearch.toLowerCase()))
-
-  useEffect(() => {
-    if (!mentionPickerOpen) return
-    const timer = setTimeout(() => {
-      searchMentionsPicker(mentionSearch)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [mentionSearch, mentionPickerOpen, searchMentionsPicker])
 
   const wrapSelection = (prefix: string, suffix: string) => {
     const textarea = textareaRef.current
@@ -742,7 +630,7 @@ export function ComposeInput({
                     <div
                       key={user.did}
                       className={cn(
-                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors cursor-pointer",
                         idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       )}
                       onClick={() => insertSuggestion(user.handle, 'mention')}
@@ -762,10 +650,6 @@ export function ComposeInput({
                           @{user.handle}
                         </p>
                       </div>
-                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
-                        Add
-                      </Button>
                     </div>
                   ))
                 )}
@@ -780,7 +664,7 @@ export function ComposeInput({
                   <div
                     key={tag}
                     className={cn(
-                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors cursor-pointer",
                       idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                     )}
                     onClick={() => insertSuggestion(tag, 'hashtag')}
@@ -789,10 +673,6 @@ export function ComposeInput({
                       <Hash className="h-4 w-4" />
                     </div>
                     <span className="text-sm font-medium flex-1">#{tag}</span>
-                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
-                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
-                      Add
-                    </Button>
                   </div>
                 ))}
               </CardContent>
@@ -801,7 +681,6 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* Rest of the component (TooltipProvider, media preview, link card, dialogs, etc.) remains unchanged */}
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
@@ -899,42 +778,6 @@ export function ComposeInput({
             ))}
 
             <Separator orientation="vertical" className="h-5 mx-1" />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setMentionPickerOpen(true)}
-                >
-                  <AtSign className="h-3.5 w-3.5" />
-                  <span className="sr-only">Add Mentions</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Add Mentions</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setHashtagPickerOpen(true)}
-                >
-                  <Hash className="h-3.5 w-3.5" />
-                  <span className="sr-only">Add Hashtags</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Add Hashtags</p>
-              </TooltipContent>
-            </Tooltip>
 
             {isDM && (
               <>
@@ -1078,155 +921,6 @@ export function ComposeInput({
         </div>
       )}
 
-      <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Mentions</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Search for people..."
-              value={mentionSearch}
-              onChange={(e) => setMentionSearch(e.target.value)}
-              autoFocus
-              className="h-10 text-base"
-            />
-            <ScrollArea className="h-72 border rounded-lg">
-              {isSearchingPicker ? (
-                <div className="flex items-center justify-center p-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : mentionPickerResults.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  {mentionSearch ? "No users found" : "Type to search for people"}
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {mentionPickerResults.map((user) => (
-                    <div
-                      key={user.did}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
-                      onClick={() => {
-                        const newSelected = new Set(selectedMentions)
-                        if (newSelected.has(user.handle)) {
-                          newSelected.delete(user.handle)
-                        } else {
-                          newSelected.add(user.handle)
-                        }
-                        setSelectedMentions(newSelected)
-                      }}
-                    >
-                      <Checkbox
-                        checked={selectedMentions.has(user.handle)}
-                        onCheckedChange={() => {}}
-                      />
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                        <AvatarFallback>
-                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate flex items-center gap-1">
-                          {user.displayName || user.handle}
-                          <VerifiedBadge handle={user.handle} />
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                {selectedMentions.size} selected
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => {
-                  setMentionPickerOpen(false)
-                  setSelectedMentions(new Set())
-                  setMentionSearch("")
-                }}>
-                  Cancel
-                </Button>
-                <Button onClick={insertSelectedMentions} disabled={selectedMentions.size === 0}>
-                  Add {selectedMentions.size > 0 && `(${selectedMentions.size})`}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={hashtagPickerOpen} onOpenChange={setHashtagPickerOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Hashtags</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Search hashtags..."
-              value={hashtagSearch}
-              onChange={(e) => setHashtagSearch(e.target.value)}
-              autoFocus
-              className="h-10 text-base"
-            />
-            <ScrollArea className="h-72 border rounded-lg">
-              {filteredHashtags.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
-                  No hashtags found
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {filteredHashtags.map((tag) => (
-                    <div
-                      key={tag}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
-                      onClick={() => {
-                        const newSelected = new Set(selectedHashtags)
-                        if (newSelected.has(tag)) {
-                          newSelected.delete(tag)
-                        } else {
-                          newSelected.add(tag)
-                        }
-                        setSelectedHashtags(newSelected)
-                      }}
-                    >
-                      <Checkbox
-                        checked={selectedHashtags.has(tag)}
-                        onCheckedChange={() => {}}
-                      />
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                        <Hash className="h-5 w-5" />
-                      </div>
-                      <span className="text-sm font-medium">#{tag}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                {selectedHashtags.size} selected
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => {
-                  setHashtagPickerOpen(false)
-                  setSelectedHashtags(new Set())
-                  setHashtagSearch("")
-                }}>
-                  Cancel
-                </Button>
-                <Button onClick={insertSelectedHashtags} disabled={selectedHashtags.size === 0}>
-                  Add {selectedHashtags.size > 0 && `(${selectedHashtags.size})`}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1268,7 +962,6 @@ function getLiveRichText(text: string) {
     const byteStart = new TextEncoder().encode(text.slice(0, offset)).length
     const byteEnd = byteStart + new TextEncoder().encode(fullMatch).length
 
-    // Skip if this range is already covered by any existing facet (link, tag, or previous mention)
     const covered = facets.some(f => byteStart >= f.index.byteStart && byteEnd <= f.index.byteEnd)
     if (covered) continue
 
@@ -1282,10 +975,8 @@ function getLiveRichText(text: string) {
     })
   }
 
-  // Combine and sort (manual added after auto)
   facets = [...facets, ...manualFacets].sort((a, b) => a.index.byteStart - b.index.byteStart)
 
-  // Final dedupe: remove any that overlap (very rare after above check, but safe)
   const deduped: any[] = []
   let lastEnd = 0
   for (const f of facets) {
