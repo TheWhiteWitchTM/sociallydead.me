@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
 import { suggestHandles, suggestHashtags } from "@/hooks/bluesky/use-bluesky-suggestions"
-import {Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
+import { PopoverTrigger, Popover, PopoverContent } from "@/components/ui/popover"
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -39,14 +39,11 @@ const EMOJI_CATEGORIES = {
   "Symbols": ["💯","🔥","⭐","🌟","✨","⚡","💥","💫","🎉","🎊","🏆","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌","🎿","⛷️","🏂"],
 } as const
 
-// ────────────────────────────────────────────────
-// MEDIA CONSTANTS — ALL BACK WHERE THEY BELONG
-// ────────────────────────────────────────────────
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
 const ALL_MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES]
 const MAX_IMAGES = 4
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024  // 50 MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024
 
 export interface LinkCardData {
   url: string
@@ -238,13 +235,20 @@ export function ComposeInput({
   }, [linkCardDismissed, onLinkCardChange, isDM])
 
   const loadMentionSuggestions = useCallback(async (prefix: string) => {
-    if (!prefix.trim()) return setMentionSuggestions([])
+    console.log("[loadMentionSuggestions] called with prefix:", prefix)
+    if (!prefix.trim()) {
+      console.log("[loadMentionSuggestions] prefix empty → clearing")
+      setMentionSuggestions([])
+      return
+    }
     setIsSearching(true)
     try {
+      console.log("[loadMentionSuggestions] calling suggestHandles...")
       const res = await suggestHandles(prefix.trim(), 8)
+      console.log("[loadMentionSuggestions] suggestHandles returned:", res)
       setMentionSuggestions(Array.isArray(res) ? res : [])
     } catch (err) {
-      console.error("suggestHandles error:", err)
+      console.error("[loadMentionSuggestions] crashed:", err)
       setMentionSuggestions([])
     } finally {
       setIsSearching(false)
@@ -252,13 +256,20 @@ export function ComposeInput({
   }, [])
 
   const loadHashtagSuggestions = useCallback(async (prefix: string) => {
-    if (!prefix.trim()) return setHashtagSuggestions([])
+    console.log("[loadHashtagSuggestions] called with prefix:", prefix)
+    if (!prefix.trim()) {
+      console.log("[loadHashtagSuggestions] prefix empty → clearing")
+      setHashtagSuggestions([])
+      return
+    }
     setIsSearching(true)
     try {
+      console.log("[loadHashtagSuggestions] calling suggestHashtags...")
       const res = await suggestHashtags(prefix.trim(), 10)
+      console.log("[loadHashtagSuggestions] suggestHashtags returned:", res)
       setHashtagSuggestions(Array.isArray(res) ? res : [])
     } catch (err) {
-      console.error("suggestHashtags error:", err)
+      console.error("[loadHashtagSuggestions] crashed:", err)
       setHashtagSuggestions([])
     } finally {
       setIsSearching(false)
@@ -287,8 +298,11 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart ?? newText.length
     const beforeCursor = newText.slice(0, cursorPos)
 
+    console.log("[handleTextChange] beforeCursor:", JSON.stringify(beforeCursor))
+
     const mentionMatch = beforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
+      console.log("[handleTextChange] MENTION MATCH → prefix:", mentionMatch[1], "position:", beforeCursor.lastIndexOf('@'))
       setAutocompletePosition(beforeCursor.lastIndexOf('@'))
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
@@ -299,6 +313,7 @@ export function ComposeInput({
 
     const hashtagMatch = beforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
+      console.log("[handleTextChange] HASHTAG MATCH → prefix:", hashtagMatch[1], "position:", beforeCursor.lastIndexOf('#'))
       setAutocompletePosition(beforeCursor.lastIndexOf('#'))
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
@@ -307,6 +322,7 @@ export function ComposeInput({
       return
     }
 
+    console.log("[handleTextChange] NO MATCH → hiding popups")
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
   }
@@ -560,7 +576,7 @@ export function ComposeInput({
           />
 
           {showMentionSuggestions && (
-            <Card className="absolute left-8 top-full w-96 z-50 mt-1 shadow-xl border-primary/20">
+            <Card className="absolute left-8 top-full w-96 z-[999] mt-1 shadow-xl border-primary/30 bg-white">
               <CardContent className="p-2 max-h-72 overflow-y-auto">
                 {isSearching ? (
                   <div className="py-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -595,7 +611,7 @@ export function ComposeInput({
           )}
 
           {showHashtagSuggestions && (
-            <Card className="absolute left-8 top-full w-96 z-50 mt-1 shadow-xl border-primary/20">
+            <Card className="absolute left-8 top-full w-96 z-[999] mt-1 shadow-xl border-primary/30 bg-white">
               <CardContent className="p-2 max-h-72 overflow-y-auto">
                 {isSearching ? (
                   <div className="py-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -758,7 +774,6 @@ function getLiveRichText(text: string) {
 
   let facets = rt.facets ?? []
 
-  // Manual mention fallback
   const mentionRegex = /(?:^|\s)(@([a-zA-Z0-9.-]+(?:\.[a-zA-Z0-9.-]+)*))/g
   let match
   while ((match = mentionRegex.exec(text)) !== null) {
