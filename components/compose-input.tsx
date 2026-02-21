@@ -170,7 +170,7 @@ export function ComposeInput({
   const hasVideo = mediaFiles.some(f => f.type === "video")
   const hasImages = mediaFiles.some(f => f.type === "image")
   const imageCount = mediaFiles.filter(f => f.type === "image").length
-  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES   // ← disabled in DM
+  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES
 
   const charCount = text.length
   const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
@@ -254,7 +254,7 @@ export function ComposeInput({
   }, [hasPlayedWarning])
 
   const fetchLinkCard = useCallback(async (url: string) => {
-    if (linkCardDismissed || isDM) return   // no link cards in DM
+    if (linkCardDismissed || isDM) return
     setLinkCardLoading(true)
     try {
       const res = await fetch(`/api/og?url=${encodeURIComponent(url)}`)
@@ -413,7 +413,7 @@ export function ComposeInput({
   }
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isDM) return   // safety
+    if (isDM) return
     const files = e.target.files
     if (!files) return
 
@@ -595,16 +595,15 @@ export function ComposeInput({
     const strikethroughRegex = /(~~)(.*?)(~~)/g
     const codeRegex = /(`)(.*?)(`)/g
     const linkRegex = /(\[)(.*?)(\]\()(.*?)(\))/g
-    const headingRegex = /^(#{1,6})\s+(.+)$/gm
+    const headingRegex = /^(#{1,6})\s+(.+)$/
 
     const mentionRegex = /@([a-zA-Z0-9.-]+)/g
     const hashtagRegex = /#([a-zA-Z0-9_]+)/g
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?]|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})(?:\/[^\s<]*)?)/g
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<>{}|\\^`]+(?:[^\s<.,:;"')\]!?]))/gi
 
-    let processedText = text
     let keyCounter = 0
 
-    const lines = processedText.split('\n')
+    const lines = text.split('\n')
     const processedLines = lines.map((line, lineIdx) => {
       const lineParts: React.ReactNode[] = []
       let currentText = line
@@ -641,7 +640,7 @@ export function ComposeInput({
         regex.lastIndex = 0
         while ((match = regex.exec(currentText)) !== null) {
           const index = match.index
-          const fullMatch = match[0]
+          const fullMatchLength = match[0].length
           let element: React.ReactNode
 
           switch (type) {
@@ -674,7 +673,10 @@ export function ComposeInput({
               break
             case 'code':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="bg-muted text-primary px-1 rounded font-mono text-xs">
+                <span
+                  key={`${lineKey}-${keyCounter++}`}
+                  className="bg-muted text-primary px-1 rounded font-mono text-xs"
+                >
                   <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
                   <span className="text-muted-foreground/60">{match[3]}</span>
@@ -683,39 +685,48 @@ export function ComposeInput({
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-500">
+                <span key={`${lineKey}-${keyCounter++}`} className="text-red-600 underline">
                   <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span className="underline">{match[2]}</span>
+                  <span>{match[2]}</span>
                   <span className="text-muted-foreground/60">{match[3]}</span>
-                  <span className="text-blue-400 text-xs">{match[4]}</span>
+                  <span className="text-red-600/80 text-xs">{match[4]}</span>
                   <span className="text-muted-foreground/60">{match[5]}</span>
                 </span>
               )
               break
             case 'mention':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 px-0.5 rounded">
+                <span
+                  key={`${lineKey}-${keyCounter++}`}
+                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
+                >
                   @{match[1]}
                 </span>
               )
               break
             case 'hashtag':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 font-medium bg-blue-500/5 px-0.5 rounded">
+                <span
+                  key={`${lineKey}-${keyCounter++}`}
+                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
+                >
                   #{match[1]}
                 </span>
               )
               break
             case 'url':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-blue-600 underline bg-blue-500/5 px-0.5 rounded">
+                <span
+                  key={`${lineKey}-${keyCounter++}`}
+                  className="text-red-600 underline bg-red-500/5 px-0.5 rounded break-all"
+                >
                   {match[0]}
                 </span>
               )
               break
           }
 
-          allMatches.push({ index, length: fullMatch.length, element })
+          allMatches.push({ index, length: fullMatchLength, element })
         }
       })
 
@@ -734,15 +745,14 @@ export function ComposeInput({
         lineParts.push(currentText.slice(lastIndex))
       }
 
-      return <span key={lineKey}>{lineParts.length > 0 ? lineParts : <br />}</span>
+      if (lineParts.length === 0 && line === '') {
+        lineParts.push(<br key={`${lineKey}-empty`} />)
+      }
+
+      return <span key={lineKey}>{lineParts}</span>
     })
 
-    return processedLines.map((line, idx) => (
-      <span key={idx}>
-        {line}
-        {idx < processedLines.length - 1 && '\n'}
-      </span>
-    ))
+    return processedLines
   }
 
   const composeType = postType === "reply" ? "Replying" :
@@ -845,15 +855,20 @@ export function ComposeInput({
           <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-auto select-none z-0",
+              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.5] tracking-normal",
               minHeight
             )}
-            aria-hidden="true"
             style={{
               fontFamily: 'inherit',
-              lineHeight: '1.5',
               fontSize: '0.875rem',
+              lineHeight: '1.5',
+              letterSpacing: 'normal',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              hyphens: 'auto',
+              whiteSpace: 'pre-wrap',
             }}
+            aria-hidden="true"
           >
             {renderHighlightedText()}
           </div>
@@ -866,13 +881,17 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 leading-[1.5] tracking-normal",
               minHeight
             )}
             style={{
               color: 'transparent',
               caretColor: 'var(--foreground)',
               lineHeight: '1.5',
+              letterSpacing: 'normal',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
             }}
           />
 
@@ -950,7 +969,6 @@ export function ComposeInput({
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
-            {/* Media upload – only shown/enabled outside DM */}
             {!isDM && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -972,7 +990,6 @@ export function ComposeInput({
               </Tooltip>
             )}
 
-            {/* Emoji – available everywhere including DM */}
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1023,7 +1040,7 @@ export function ComposeInput({
               </PopoverContent>
             </Popover>
 
-            <div className="w-2" /> {/* spacer */}
+            <div className="w-2" />
 
             {formatActions.map(({ icon: Icon, label, action }) => (
               <Tooltip key={label}>
@@ -1083,7 +1100,6 @@ export function ComposeInput({
               </TooltipContent>
             </Tooltip>
 
-            {/* DM mode only: action buttons at bottom right */}
             {isDM && (
               <>
                 <Separator orientation="vertical" className="h-5 mx-2" />
@@ -1104,7 +1120,7 @@ export function ComposeInput({
                     onClick={onSubmit}
                     disabled={
                       isSubmitting ||
-                      !text.trim()   // DM usually requires text
+                      !text.trim()
                     }
                     size="sm"
                     className="h-7 px-4 text-xs font-bold"
@@ -1123,7 +1139,6 @@ export function ComposeInput({
             )}
           </div>
 
-          {/* Non-DM bottom right area – empty now, actions moved up */}
           {!isDM && (
             <div className="flex items-center gap-2 shrink-0 opacity-0 pointer-events-none w-0 h-0" />
           )}
