@@ -26,9 +26,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit/dist/index.js'
-import Placeholder from '@tiptap/extension-placeholder/dist/index.js'
-import Suggestion from '@tiptap/suggestion/dist/index.js'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import Suggestion from "@tiptap/suggestion";
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -167,71 +167,6 @@ export function ComposeInput({
       }),
       Placeholder.configure({
         placeholder,
-      }),
-      Suggestion.configure({
-        char: '@',
-        command: ({ editor, range, props }) => {
-          editor.chain().focus().deleteRange(range).insertContent(`@${props.handle} `).run()
-        },
-        items: ({ query }) => {
-          return mentionSuggestions
-            .filter((s) => s.handle.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 5)
-            .map((s) => ({
-              id: s.handle,
-              label: s.displayName || s.handle,
-              handle: s.handle,
-            }))
-        },
-        render: () => {
-          return {
-            onStart: (props) => {
-              setMentionSuggestions(props.items.map(item => ({
-                did: '',
-                handle: item.handle,
-                displayName: item.label,
-              })))
-              setShowMentionSuggestions(true)
-            },
-            onExit: () => setShowMentionSuggestions(false),
-            onUpdate: (props) => {
-              setMentionSuggestions(props.items.map(item => ({
-                did: '',
-                handle: item.handle,
-                displayName: item.label,
-              })))
-              setShowMentionSuggestions(true)
-            },
-          }
-        },
-      }),
-      Suggestion.configure({
-        char: '#',
-        command: ({ editor, range, props }) => {
-          editor.chain().focus().deleteRange(range).insertContent(`#${props.id} `).run()
-        },
-        items: ({ query }) => {
-          return POPULAR_HASHTAGS
-            .filter((tag) => tag.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 5)
-            .map((tag) => ({
-              id: tag,
-              label: tag,
-            }))
-        },
-        render: () => {
-          return {
-            onStart: (props) => {
-              setHashtagSuggestions(props.items.map(item => item.label))
-              setShowHashtagSuggestions(true)
-            },
-            onExit: () => setShowHashtagSuggestions(false),
-            onUpdate: (props) => {
-              setHashtagSuggestions(props.items.map(item => item.label))
-              setShowHashtagSuggestions(true)
-            },
-          }
-        },
       }),
     ],
     content: text,
