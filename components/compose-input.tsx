@@ -590,115 +590,109 @@ export function ComposeInput({
   ]
 
   const renderHighlightedText = () => {
-    const boldRegex = /(\*\*)(.*?)(\*\*)/g
-    const italicRegex = /(\*)([^*]+?)(\*)/g
-    const strikethroughRegex = /(~~)(.*?)(~~)/g
-    const codeRegex = /(`)(.*?)(`)/g
-    const linkRegex = /(\[)(.*?)(\]\()(.*?)(\))/g
+    const boldRegex = /(\*\*)(.*?)\1/g
+    const italicRegex = /(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g
+    const strikethroughRegex = /(~~)(.*?)\1/g
+    const codeRegex = /(`)(.*?)\1/g
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
     const headingRegex = /^(#{1,6})\s+(.+)$/
 
     const mentionRegex = /@([a-zA-Z0-9.-]+)/g
     const hashtagRegex = /#([a-zA-Z0-9_]+)/g
-    const urlRegex = /((https?:\/\/)?(www\.)?[\w-]+\.[\w-]{2,}(\/[\w-._~:/?#[\]@!$&'()*+,;=]*)?)/gi
+    const urlRegex = /((https?:\/\/)?(www\.)?[\w-]+\.[\w-]{2,}(?:\/[^\s<]*)?)/gi
 
     let keyCounter = 0
 
     const lines = text.split('\n')
-    const processedLines = lines.map((line, lineIdx) => {
-      const lineParts: React.ReactNode[] = []
-      let currentText = line
-      const lineKey = `line-${lineIdx}`
 
+    return lines.map((line, lineIdx) => {
+      const lineKey = `line-${lineIdx}`
+      const parts: React.ReactNode[] = []
+      let currentText = line
+      let lastIndex = 0
+
+      // Full-line heading
       const headingMatch = currentText.match(headingRegex)
       if (headingMatch) {
         const [, hashes, content] = headingMatch
-        lineParts.push(
+        parts.push(
           <span key={`${lineKey}-heading`} className="text-primary font-bold text-lg">
             <span className="text-muted-foreground">{hashes} </span>
             {content}
           </span>
         )
-        return lineParts
+        return (
+          <div key={lineKey} className="leading-[1.5]">
+            {parts}
+          </div>
+        )
       }
 
-      let lastIndex = 0
       const patterns = [
-        { regex: boldRegex, type: 'bold' },
-        { regex: italicRegex, type: 'italic' },
+        { regex: boldRegex,          type: 'bold' },
+        { regex: italicRegex,        type: 'italic' },
         { regex: strikethroughRegex, type: 'strikethrough' },
-        { regex: codeRegex, type: 'code' },
-        { regex: linkRegex, type: 'link' },
-        { regex: mentionRegex, type: 'mention' },
-        { regex: hashtagRegex, type: 'hashtag' },
-        { regex: urlRegex, type: 'url' },
+        { regex: codeRegex,          type: 'code' },
+        { regex: linkRegex,          type: 'link' },
+        { regex: mentionRegex,       type: 'mention' },
+        { regex: hashtagRegex,       type: 'hashtag' },
+        { regex: urlRegex,           type: 'url' },
       ]
 
-      const allMatches: Array<{ index: number; length: number; element: React.ReactNode }> = []
+      const allMatches: { index: number; length: number; element: React.ReactNode }[] = []
 
       patterns.forEach(({ regex, type }) => {
-        let match
         regex.lastIndex = 0
+        let match
         while ((match = regex.exec(currentText)) !== null) {
           const index = match.index
-          const fullMatchLength = match[0].length
-          let element: React.ReactNode
+          const fullLength = match[0].length
+          let element: React.ReactNode = null
 
           switch (type) {
             case 'bold':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="font-bold">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
+                <span key={`${lineKey}-b-${keyCounter++}`} className="font-bold">
                   {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
                 </span>
               )
               break
             case 'italic':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="italic">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
+                <span key={`${lineKey}-i-${keyCounter++}`} className="italic">
+                  {match[1]}
                 </span>
               )
               break
             case 'strikethrough':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="line-through">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
+                <span key={`${lineKey}-s-${keyCounter++}`} className="line-through">
                   {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
                 </span>
               )
               break
             case 'code':
               element = (
                 <span
-                  key={`${lineKey}-${keyCounter++}`}
+                  key={`${lineKey}-c-${keyCounter++}`}
                   className="bg-muted text-primary px-1 rounded font-mono text-xs"
                 >
-                  <span className="text-muted-foreground/60">{match[1]}</span>
                   {match[2]}
-                  <span className="text-muted-foreground/60">{match[3]}</span>
                 </span>
               )
               break
             case 'link':
               element = (
-                <span key={`${lineKey}-${keyCounter++}`} className="text-red-600 underline bg-red-500/5">
-                  <span className="text-muted-foreground/60">{match[1]}</span>
-                  <span>{match[2]}</span>
-                  <span className="text-muted-foreground/60">{match[3]}</span>
-                  <span className="text-red-600/80 text-xs">{match[4]}</span>
-                  <span className="text-muted-foreground/60">{match[5]}</span>
+                <span key={`${lineKey}-l-${keyCounter++}`} className="text-red-600 underline">
+                  {match[1]} {/* only the [text] part */}
                 </span>
               )
               break
             case 'mention':
               element = (
                 <span
-                  key={`${lineKey}-${keyCounter++}`}
-                  className="text-red-600 font-medium bg-red-500/5"
+                  key={`${lineKey}-m-${keyCounter++}`}
+                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
                 >
                   @{match[1]}
                 </span>
@@ -707,8 +701,8 @@ export function ComposeInput({
             case 'hashtag':
               element = (
                 <span
-                  key={`${lineKey}-${keyCounter++}`}
-                  className="text-red-600 font-medium bg-red-500/5"
+                  key={`${lineKey}-h-${keyCounter++}`}
+                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
                 >
                   #{match[1]}
                 </span>
@@ -717,8 +711,8 @@ export function ComposeInput({
             case 'url':
               element = (
                 <span
-                  key={`${lineKey}-${keyCounter++}`}
-                  className="text-red-600 underline bg-red-500/5 break-all"
+                  key={`${lineKey}-u-${keyCounter++}`}
+                  className="text-red-600 underline bg-red-500/5 px-0.5 rounded break-all"
                 >
                   {match[0]}
                 </span>
@@ -726,37 +720,37 @@ export function ComposeInput({
               break
           }
 
-          allMatches.push({ index, length: fullMatchLength, element })
+          if (element) {
+            allMatches.push({ index, length: fullLength, element })
+          }
         }
       })
 
       allMatches.sort((a, b) => a.index - b.index)
 
       lastIndex = 0
-      allMatches.forEach((match) => {
-        if (match.index > lastIndex) {
-          lineParts.push(currentText.slice(lastIndex, match.index))
+      allMatches.forEach((m) => {
+        if (m.index > lastIndex) {
+          parts.push(currentText.slice(lastIndex, m.index))
         }
-        lineParts.push(match.element)
-        lastIndex = match.index + match.length
+        parts.push(m.element)
+        lastIndex = m.index + m.length
       })
 
       if (lastIndex < currentText.length) {
-        lineParts.push(currentText.slice(lastIndex))
+        parts.push(currentText.slice(lastIndex))
       }
 
-      if (lineParts.length === 0) {
-        lineParts.push(<br key={`${lineKey}-empty`} />)
+      if (parts.length === 0 && line === '') {
+        parts.push(<br key={`${lineKey}-br`} />)
       }
 
-      return lineParts
+      return (
+        <div key={lineKey} className="leading-[1.5]">
+          {parts}
+        </div>
+      )
     })
-
-    return processedLines.map((lineParts, idx) => (
-      <div key={idx} className="leading-[1.5]">
-        {lineParts}
-      </div>
-    ))
   }
 
   const composeType = postType === "reply" ? "Replying" :
@@ -859,7 +853,7 @@ export function ComposeInput({
           <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0",
+              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.5]",
               minHeight
             )}
             style={{
@@ -884,7 +878,7 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 leading-[1.5]",
               minHeight
             )}
             style={{
