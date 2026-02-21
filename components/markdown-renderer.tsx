@@ -15,7 +15,7 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
     <span className={cn("inline text-sm", className)}>
-      {content?.trim() ? content.trim() : null}
+      {content}
     </span>
   )
 }
