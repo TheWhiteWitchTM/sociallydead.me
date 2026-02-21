@@ -14,9 +14,9 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
-    <div className={cn("whitespace-pre-wrap break-words text-sm", className)}>
+    <span className={cn("inline text-sm", className)}>
       {content?.trim() ? content.trim() : null}
-    </div>
+    </span>
   )
 }
 
@@ -85,16 +85,6 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              {children}
-            </a>
-          ),
           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
           ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
           ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
