@@ -120,7 +120,7 @@ export function ComposeInput({
                                linkCard = null,
                                onLinkCardChange,
                                placeholder = "What's happening?",
-                               minHeight = "min-h-32",
+                               minHeight = "min-h-24",
                                maxChars,
                                postType = "post",
                                compact = false,
@@ -600,7 +600,7 @@ export function ComposeInput({
   return (
     <div className="space-y-2">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
-        <div className="border-b border-border bg-muted/30 px-4 py-1.5 flex items-center justify-between">
+        <div className="border-b border-border bg-muted/30 px-3 py-1 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PenSquare className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs font-medium text-muted-foreground">{composeType}</span>
@@ -691,7 +691,7 @@ export function ComposeInput({
           <div
             ref={highlighterRef}
             className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.5]",
+              "absolute inset-0 pointer-events-none px-3 py-2 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.5]",
               minHeight
             )}
             style={{
@@ -716,7 +716,7 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 caret-foreground leading-[1.5]",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-3 py-2 bg-transparent relative z-10 caret-foreground leading-[1.5]",
               minHeight
             )}
             style={{
@@ -1252,9 +1252,44 @@ export function ComposeInput({
 function getLiveRichText(text: string) {
   const rt = new RichText({ text })
   rt.detectFacetsWithoutResolution()
+
+  // Manually add mention facets for preview
+  const mentionRegex = /(?:^|\s)(@([a-zA-Z0-9.-]+(?:\.[a-zA-Z0-9.-]+)*))/g
+  let match
+  const facets = rt.facets ?? []
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    const fullMatch = match[1]
+    const handle = match[2]
+    const offset = match[0].startsWith(' ') ? match.index + 1 : match.index
+    const byteStart = new TextEncoder().encode(text.slice(0, offset)).length
+    const byteEnd = byteStart + new TextEncoder().encode(fullMatch).length
+
+    // Check for overlap with existing facets
+    const overlap = facets.some(f => {
+      const fStart = f.index.byteStart
+      const fEnd = f.index.byteEnd
+      return byteStart < fEnd && byteEnd > fStart
+    })
+
+    if (!overlap) {
+      facets.push({
+        $type: 'app.bsky.richtext.facet',
+        index: { byteStart, byteEnd },
+        features: [{
+          $type: 'app.bsky.richtext.facet#mention',
+          handle,  // Set handle for the renderer to use
+        }]
+      })
+    }
+  }
+
+  // Sort facets by start position
+  facets.sort((a, b) => a.index.byteStart - b.index.byteStart)
+
   return {
     text: rt.text,
-    facets: rt.facets ?? [],
+    facets,
   }
 }
 
