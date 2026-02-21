@@ -28,8 +28,7 @@ import {
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import Mention from '@tiptap/extension-mention'
-import CharacterCount from '@tiptap/extension-character-count'
+import Suggestion from '@tiptap/suggestion'
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -138,13 +137,6 @@ export function ComposeInput({
   const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
-  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
-  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
-  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
-  const [isSearchingMentions, setIsSearchingMentions] = useState(false)
-
   const [linkCardLoading, setLinkCardLoading] = useState(false)
   const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
   const [linkCardDismissed, setLinkCardDismissed] = useState(false)
@@ -158,29 +150,6 @@ export function ComposeInput({
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
 
-  const [mentionPickerOpen, setMentionPickerOpen] = useState(false)
-  const [mentionSearch, setMentionSearch] = useState("")
-  const [mentionPickerResults, setMentionPickerResults] = useState<MentionSuggestion[]>([])
-  const [selectedMentions, setSelectedMentions] = useState<Set<string>>(new Set())
-  const [isSearchingPicker, setIsSearchingPicker] = useState(false)
-
-  const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
-  const [hashtagSearch, setHashtagSearch] = useState("")
-  const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
-
-  const hasVideo = mediaFiles.some(f => f.type === "video")
-  const hasImages = mediaFiles.some(f => f.type === "image")
-  const imageCount = mediaFiles.filter(f => f.type === "image").length
-  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES
-
-  const charCount = text.length
-  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
-
-  const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
-  const isNearLimit = progress >= 70
-  const isWarning = progress >= 90
-
-  // Tiptap editor with custom styles
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -199,13 +168,69 @@ export function ComposeInput({
       Placeholder.configure({
         placeholder,
       }),
-      CharacterCount.configure({
-        limit: effectiveMaxChars === Infinity ? null : effectiveMaxChars,
+      Suggestion.configure({
+        char: '@',
+        command: ({ editor, range, props }) => {
+          editor.chain().focus().deleteRange(range).insertContent(`@${props.handle} `).run()
+        },
+        items: ({ query }) => {
+          return mentionSuggestions
+            .filter((s) => s.handle.toLowerCase().startsWith(query.toLowerCase()))
+            .slice(0, 5)
+            .map((s) => ({
+              id: s.handle,
+              label: s.displayName || s.handle,
+              handle: s.handle,
+            }))
+        },
+        render: () => {
+          return {
+            onStart: (props) => {
+              setMentionSuggestions(props.items.map(item => ({
+                did: '',
+                handle: item.handle,
+                displayName: item.label,
+              })))
+              setShowMentionSuggestions(true)
+            },
+            onExit: () => setShowMentionSuggestions(false),
+            onUpdate: (props) => {
+              setMentionSuggestions(props.items.map(item => ({
+                did: '',
+                handle: item.handle,
+                displayName: item.label,
+              })))
+              setShowMentionSuggestions(true)
+            },
+          }
+        },
       }),
-      // Optional: mention extension for @autocomplete (can replace manual popup)
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'text-red-600 font-medium bg-red-500/5 px-0.5 rounded',
+      Suggestion.configure({
+        char: '#',
+        command: ({ editor, range, props }) => {
+          editor.chain().focus().deleteRange(range).insertContent(`#${props.id} `).run()
+        },
+        items: ({ query }) => {
+          return POPULAR_HASHTAGS
+            .filter((tag) => tag.toLowerCase().startsWith(query.toLowerCase()))
+            .slice(0, 5)
+            .map((tag) => ({
+              id: tag,
+              label: tag,
+            }))
+        },
+        render: () => {
+          return {
+            onStart: (props) => {
+              setHashtagSuggestions(props.items.map(item => item.label))
+              setShowHashtagSuggestions(true)
+            },
+            onExit: () => setShowHashtagSuggestions(false),
+            onUpdate: (props) => {
+              setHashtagSuggestions(props.items.map(item => item.label))
+              setShowHashtagSuggestions(true)
+            },
+          }
         },
       }),
     ],
@@ -213,7 +238,7 @@ export function ComposeInput({
     editorProps: {
       attributes: {
         class: cn(
-          "px-4 py-3 text-sm leading-[1.5] tracking-normal outline-none min-h-[8rem] whitespace-pre-wrap break-words focus-visible:outline-none prose max-w-none prose-red prose-a:text-red-600 prose-a:underline prose-a:no-underline-hover",
+          "px-4 py-3 text-sm leading-[1.5] tracking-normal outline-none min-h-[8rem] whitespace-pre-wrap break-words focus-visible:outline-none prose max-w-none prose-red prose-a:text-red-600 prose-a:underline prose-strong:text-foreground prose-code:bg-muted prose-code:text-primary prose-code:px-1 prose-code:rounded prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-ul:list-disc prose-ol:list-decimal",
           minHeight
         ),
       },
@@ -244,72 +269,202 @@ export function ComposeInput({
     },
   })
 
-  // ... all your other state variables and functions (searchMentions, handleMediaSelect, dialogs, etc.) remain unchanged ...
+  useEffect(() => {
+    if (autoFocus && editor) {
+      editor.commands.focus()
+    }
+  }, [autoFocus, editor])
 
-  // Toolbar actions using Tiptap commands
-  const formatActions = [
-    { icon: Bold, label: "Bold", action: () => editor?.chain().focus().toggleBold().run() },
-    { icon: Italic, label: "Italic", action: () => editor?.chain().focus().toggleItalic().run() },
-    { icon: Strikethrough, label: "Strikethrough", action: () => editor?.chain().focus().toggleStrike().run() },
-    { icon: Code, label: "Code", action: () => editor?.chain().focus().toggleCode().run() },
-    { icon: Heading1, label: "Heading 1", action: () => editor?.chain().focus().toggleHeading({ level: 1 }).run() },
-    { icon: Heading2, label: "Heading 2", action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run() },
-    { icon: Quote, label: "Quote", action: () => editor?.chain().focus().toggleBlockquote().run() },
-    { icon: List, label: "Bullet List", action: () => editor?.chain().focus().toggleBulletList().run() },
-    { icon: ListOrdered, label: "Numbered List", action: () => editor?.chain().focus().toggleOrderedList().run() },
-    { icon: Link2, label: "Link", action: () => {
-        const previousUrl = editor?.getAttributes('link').href
-        const url = window.prompt('URL', previousUrl)
-        if (url === null) return
-        if (url === '') {
-          editor?.chain().focus().extendMarkRange('link').unsetLink().run()
-          return
+  const playWarningSound = useCallback(() => {
+    if (hasPlayedWarning) return
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext()
+      }
+      const ctx = audioContextRef.current
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+      oscillator.frequency.value = 440
+      oscillator.type = 'sine'
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+      gainNode.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+      oscillator.start(ctx.currentTime)
+      oscillator.stop(ctx.currentTime + 0.2)
+      setHasPlayedWarning(true)
+    } catch {}
+  }, [hasPlayedWarning])
+
+  const fetchLinkCard = useCallback(async (url: string) => {
+    if (linkCardDismissed || isDM) return
+    setLinkCardLoading(true)
+    try {
+      const res = await fetch(`/api/og?url=${encodeURIComponent(url)}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.title || data.description) {
+          onLinkCardChange?.(data)
+          setLinkCardUrl(url)
         }
-        editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-      }},
-  ]
+      }
+    } catch {}
+    finally {
+      setLinkCardLoading(false)
+    }
+  }, [linkCardDismissed, onLinkCardChange, isDM])
 
-  // Insert suggestion using Tiptap
-  const insertSuggestion = useCallback((suggestion: string, type: 'mention' | 'hashtag') => {
-    const prefix = type === 'mention' ? '@' : '#'
-    editor?.commands.insertContent(prefix + suggestion + ' ')
-    setShowMentionSuggestions(false)
-    setShowHashtagSuggestions(false)
-  }, [editor])
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isDM) return
+    const files = e.target.files
+    if (!files) return
 
-  const insertEmoji = useCallback((emoji: string) => {
-    editor?.commands.insertContent(emoji)
-  }, [editor])
+    const newFiles = Array.from(files)
+    for (const file of newFiles) {
+      const isImage = IMAGE_TYPES.includes(file.type)
+      const isVideo = VIDEO_TYPES.includes(file.type)
+      if (!isImage && !isVideo) continue
 
-  // ... rest of your code (handleMediaSelect, dialogs, toolbar render, etc.) unchanged ...
+      if (isVideo) {
+        if (hasImages || hasVideo) continue
+        if (file.size > MAX_VIDEO_SIZE) continue
+        const preview = URL.createObjectURL(file)
+        onMediaFilesChange?.([{ file, preview, type: "video" }])
+        break
+      }
+
+      if (isImage) {
+        if (hasVideo) continue
+        if (imageCount >= MAX_IMAGES) continue
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          onMediaFilesChange?.([...mediaFiles.filter(f => f.type !== "video"),
+            ...(mediaFiles.filter(f => f.type === "image").length < MAX_IMAGES
+              ? [{ file, preview: ev.target?.result as string, type: "image" as const }]
+              : [])
+          ].slice(0, MAX_IMAGES))
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removeMedia = (index: number) => {
+    const updated = mediaFiles.filter((_, i) => i !== index)
+    if (mediaFiles[index]?.type === "video") {
+      URL.revokeObjectURL(mediaFiles[index].preview)
+    }
+    onMediaFilesChange?.(updated)
+  }
+
+  const dismissLinkCard = () => {
+    onLinkCardChange?.(null)
+    setLinkCardDismissed(true)
+  }
+
+  const composeType = postType === "reply" ? "Replying" :
+    postType === "quote" ? "Quoting" :
+      postType === "dm" ? "Direct Message" :
+        postType === "article" ? "Writing Article" :
+          "New Post"
 
   return (
     <div className="space-y-2">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-4 py-1.5 flex items-center justify-between">
-          {/* header unchanged */}
+          <div className="flex items-center gap-2">
+            <PenSquare className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">{composeType}</span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {!isDM && effectiveMaxChars !== Infinity && (
+              <div className="relative h-7 w-7 flex items-center justify-center">
+                <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    className="stroke-muted/30"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    strokeWidth="3"
+                    strokeDasharray="100"
+                    strokeDashoffset={100 - progress}
+                    className={cn(
+                      "transition-all duration-300",
+                      progress < 70 ? "stroke-green-500" :
+                        progress < 90 ? "stroke-orange-500" :
+                          "stroke-red-600"
+                    )}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span
+                  className={cn(
+                    "absolute text-xs font-medium tabular-nums",
+                    isWarning ? "text-red-600 font-bold" :
+                      isNearLimit ? "text-orange-500" :
+                        "text-muted-foreground"
+                  )}
+                >
+                  {charCount}
+                </span>
+              </div>
+            )}
+
+            {!isDM && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                  onClick={handleCancelOrEscape}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+
+                {onSubmit && (
+                  <Button
+                    onClick={onSubmit}
+                    disabled={
+                      isSubmitting ||
+                      (!text.trim() && mediaFiles.length === 0) ||
+                      isOverLimit
+                    }
+                    size="sm"
+                    className="h-7 px-3 text-xs font-bold"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        {postType === "reply" ? "Reply" : postType === "dm" ? "Send" : "Post"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="relative">
           <EditorContent editor={editor} />
-
-          {/* Mention suggestions popup */}
-          {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* ... your existing popup content ... */}
-            </Card>
-          )}
-
-          {/* Hashtag suggestions popup */}
-          {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
-            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* ... your existing popup content ... */}
-            </Card>
-          )}
         </div>
       </Card>
 
-      {/* Toolbar with Tiptap commands */}
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
@@ -334,12 +489,426 @@ export function ComposeInput({
               </Tooltip>
             )}
 
-            {/* ... emoji picker, format actions (now using editor.chain() above), mention/hashtag picker unchanged ... */}
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                    >
+                      <SmilePlus className="h-3.5 w-3.5" />
+                      <span className="sr-only">Emoji</span>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Emoji</p>
+                </TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-72 p-0" align="start" side="top">
+                <div className="p-2">
+                  <div className="flex gap-1 overflow-x-auto pb-2 border-b mb-2">
+                    {(Object.keys(EMOJI_CATEGORIES) as Array<keyof typeof EMOJI_CATEGORIES>).map((cat) => (
+                      <Button
+                        key={cat}
+                        variant={emojiCategory === cat ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => setEmojiCategory(cat)}
+                      >
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-8 gap-0.5 max-h-48 overflow-y-auto">
+                    {EMOJI_CATEGORIES[emojiCategory].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
+                        onClick={() => editor?.commands.insertContent(emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <div className="w-2" />
+
+            {formatActions.map(({ icon: Icon, label, action }) => (
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={action}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="sr-only">{label}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+
+            <Separator orientation="vertical" className="h-5 mx-1" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setMentionPickerOpen(true)}
+                >
+                  <AtSign className="h-3.5 w-3.5" />
+                  <span className="sr-only">Add Mentions</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">Add Mentions</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setHashtagPickerOpen(true)}
+                >
+                  <Hash className="h-3.5 w-3.5" />
+                  <span className="sr-only">Add Hashtags</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">Add Hashtags</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {isDM && (
+              <>
+                <Separator orientation="vertical" className="h-5 mx-2" />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                  onClick={handleCancelOrEscape}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+
+                {onSubmit && (
+                  <Button
+                    onClick={onSubmit}
+                    disabled={
+                      isSubmitting ||
+                      (!text.trim())
+                    }
+                    size="sm"
+                    className="h-7 px-4 text-xs font-bold"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        Send
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
+
+          {!isDM && (
+            <div className="flex items-center gap-2 shrink-0 opacity-0 pointer-events-none w-0 h-0" />
+          )}
         </div>
       </TooltipProvider>
 
-      {/* ... media previews, link card, dialogs unchanged ... */}
+      {!isDM && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ALL_MEDIA_TYPES.join(",")}
+          multiple
+          hidden
+          onChange={handleMediaSelect}
+        />
+      )}
+
+      {mediaFiles.length > 0 && !isDM && (
+        <div className={cn(
+          "gap-2",
+          hasVideo ? "flex" : "grid grid-cols-2"
+        )}>
+          {mediaFiles.map((media, index) => (
+            <div key={index} className="relative group">
+              {media.type === "image" ? (
+                <img
+                  src={media.preview}
+                  alt={`Upload ${index + 1}`}
+                  className="w-full h-32 object-cover rounded-lg border"
+                />
+              ) : (
+                <div className="relative w-full rounded-lg border overflow-hidden bg-muted">
+                  <video
+                    src={media.preview}
+                    className="w-full max-h-64 object-contain"
+                    controls
+                    preload="metadata"
+                  />
+                  <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Video className="h-3 w-3" />
+                    Video
+                  </div>
+                </div>
+              )}
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => removeMedia(index)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {linkCardLoading && !isDM && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 border rounded-lg">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading link preview...
+        </div>
+      )}
+      {linkCard && !linkCardLoading && !isDM && (
+        <div className="relative">
+          <Card className="overflow-hidden">
+            {linkCard.image && (
+              <div className={cn("relative bg-muted", compact ? "aspect-[2/1]" : "aspect-video")}>
+                <img
+                  src={linkCard.image}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
+            <CardContent className="p-3">
+              <div className="flex items-start gap-2">
+                <ExternalLink className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium line-clamp-2 text-sm">{linkCard.title}</p>
+                  {linkCard.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{linkCard.description}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{linkCard.url}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 rounded-full bg-background/80 hover:bg-background"
+            onClick={dismissLinkCard}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={mentionPickerOpen} onOpenChange={setMentionPickerOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Mentions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Search for people..."
+              value={mentionSearch}
+              onChange={(e) => setMentionSearch(e.target.value)}
+              autoFocus
+              className="h-10 text-base"
+            />
+            <ScrollArea className="h-72 border rounded-lg">
+              {isSearchingPicker ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : mentionPickerResults.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  {mentionSearch ? "No users found" : "Type to search for people"}
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {mentionPickerResults.map((user) => (
+                    <div
+                      key={user.did}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        const newSelected = new Set(selectedMentions)
+                        if (newSelected.has(user.handle)) {
+                          newSelected.delete(user.handle)
+                        } else {
+                          newSelected.add(user.handle)
+                        }
+                        setSelectedMentions(newSelected)
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedMentions.has(user.handle)}
+                        onCheckedChange={() => {}}
+                      />
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback>
+                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate flex items-center gap-1">
+                          {user.displayName || user.handle}
+                          <VerifiedBadge handle={user.handle} />
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedMentions.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setMentionPickerOpen(false)
+                  setSelectedMentions(new Set())
+                  setMentionSearch("")
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={insertSelectedMentions} disabled={selectedMentions.size === 0}>
+                  Add {selectedMentions.size > 0 && `(${selectedMentions.size})`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={hashtagPickerOpen} onOpenChange={setHashtagPickerOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Hashtags</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Search hashtags..."
+              value={hashtagSearch}
+              onChange={(e) => setHashtagSearch(e.target.value)}
+              autoFocus
+              className="h-10 text-base"
+            />
+            <ScrollArea className="h-72 border rounded-lg">
+              {filteredHashtags.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  No hashtags found
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {filteredHashtags.map((tag) => (
+                    <div
+                      key={tag}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => {
+                        const newSelected = new Set(selectedHashtags)
+                        if (newSelected.has(tag)) {
+                          newSelected.delete(tag)
+                        } else {
+                          newSelected.add(tag)
+                        }
+                        setSelectedHashtags(newSelected)
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedHashtags.has(tag)}
+                        onCheckedChange={() => {}}
+                      />
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <Hash className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm font-medium">#{tag}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {selectedHashtags.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  setHashtagPickerOpen(false)
+                  setSelectedHashtags(new Set())
+                  setHashtagSearch("")
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={insertSelectedHashtags} disabled={selectedHashtags.size === 0}>
+                  Add {selectedHashtags.size > 0 && `(${selectedHashtags.size})`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard {isDM ? "message" : "post"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your {isDM ? "message" : "post"} will be permanently discarded.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDiscard}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
