@@ -15,7 +15,7 @@ export async function suggestHandles(
 ): Promise<HandleSuggestion[]> {
 	if (!prefix.trim()) return []
 
-	const agent = useBluesky().agent
+	const {agent} = useBluesky()
 	if (!agent) throw new Error("No agent")
 
 	try {
@@ -45,7 +45,7 @@ export async function suggestHashtags(
 	if (!prefix.trim()) return []
 
 	const lowerPrefix = prefix.toLowerCase().trim()
-	const agent = useBluesky().agent
+	const {agent} = useBluesky()
 	if (!agent) throw new Error("No agent")
 
 	try {
