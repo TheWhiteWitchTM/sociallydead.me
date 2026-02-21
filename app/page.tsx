@@ -93,7 +93,7 @@ function CoffeeWare() {
       {" - "}
       <Link
         className={"underline decoration-red-600 underline-offset-4"}
-        href={"https://buymeacoffee.com/thewhitewitchtm"}
+        href={"https://buymeacoffee.com/sociallydead"}
         target={"_blank"}
       >
           Please support us with somecoffee☕
