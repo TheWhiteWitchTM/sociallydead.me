@@ -27,7 +27,47 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
 import { suggestHandles, suggestHashtags } from "@/hooks/bluesky/use-bluesky-suggestions"
-import { PopoverTrigger, Popover, PopoverContent } from "@/components/ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+// ─── Cursor coordinate calculator ──────────────────────────────────────────
+function getCursorXY(textarea: HTMLTextAreaElement, selectionStart: number) {
+  const { offsetLeft: inputX, offsetTop: inputY } = textarea
+
+  const mirror = document.createElement('div')
+  const mirrorStyle = mirror.style
+  const computed = getComputedStyle(textarea)
+
+  mirrorStyle.position = 'absolute'
+  mirrorStyle.visibility = 'hidden'
+  mirrorStyle.whiteSpace = 'pre-wrap'
+  mirrorStyle.wordWrap = 'break-word'
+  mirrorStyle.overflow = 'hidden'
+  mirrorStyle.fontFamily = computed.fontFamily
+  mirrorStyle.fontSize = computed.fontSize
+  mirrorStyle.fontWeight = computed.fontWeight
+  mirrorStyle.letterSpacing = computed.letterSpacing
+  mirrorStyle.lineHeight = computed.lineHeight
+  mirrorStyle.padding = computed.padding
+  mirrorStyle.border = computed.border
+  mirrorStyle.width = `${textarea.clientWidth}px`
+  mirrorStyle.height = 'auto'
+
+  const textBefore = textarea.value.substring(0, selectionStart)
+  mirror.textContent = textBefore.replace(/\s/g, '\u00a0') // preserve spaces
+
+  const cursorSpan = document.createElement('span')
+  cursorSpan.textContent = '\u200b' // zero-width space
+  mirror.appendChild(cursorSpan)
+
+  document.body.appendChild(mirror)
+  const { offsetLeft: spanX, offsetTop: spanY } = cursorSpan
+  document.body.removeChild(mirror)
+
+  return {
+    x: inputX + spanX,
+    y: inputY + spanY,
+    lineHeight: parseFloat(computed.lineHeight) || 24,
+  }
+}
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -135,6 +175,7 @@ export function ComposeInput({
   const [autocompletePosition, setAutocompletePosition] = useState(0)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearching, setIsSearching] = useState(false)
+  const [cursorCoords, setCursorCoords] = useState<{ x: number; y: number; lineHeight: number } | null>(null)
 
   const [linkCardLoading, setLinkCardLoading] = useState(false)
   const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
@@ -235,20 +276,16 @@ export function ComposeInput({
   }, [linkCardDismissed, onLinkCardChange, isDM])
 
   const loadMentionSuggestions = useCallback(async (prefix: string) => {
-    console.log("[loadMentionSuggestions] called with prefix:", prefix)
     if (!prefix.trim()) {
-      console.log("[loadMentionSuggestions] prefix empty → clearing")
       setMentionSuggestions([])
       return
     }
     setIsSearching(true)
     try {
-      console.log("[loadMentionSuggestions] calling suggestHandles...")
       const res = await suggestHandles(prefix.trim(), 8)
-      console.log("[loadMentionSuggestions] suggestHandles returned:", res)
       setMentionSuggestions(Array.isArray(res) ? res : [])
     } catch (err) {
-      console.error("[loadMentionSuggestions] crashed:", err)
+      console.error("suggestHandles failed:", err)
       setMentionSuggestions([])
     } finally {
       setIsSearching(false)
@@ -256,24 +293,30 @@ export function ComposeInput({
   }, [])
 
   const loadHashtagSuggestions = useCallback(async (prefix: string) => {
-    console.log("[loadHashtagSuggestions] called with prefix:", prefix)
     if (!prefix.trim()) {
-      console.log("[loadHashtagSuggestions] prefix empty → clearing")
       setHashtagSuggestions([])
       return
     }
     setIsSearching(true)
     try {
-      console.log("[loadHashtagSuggestions] calling suggestHashtags...")
       const res = await suggestHashtags(prefix.trim(), 10)
-      console.log("[loadHashtagSuggestions] suggestHashtags returned:", res)
       setHashtagSuggestions(Array.isArray(res) ? res : [])
     } catch (err) {
-      console.error("[loadHashtagSuggestions] crashed:", err)
+      console.error("suggestHashtags failed:", err)
       setHashtagSuggestions([])
     } finally {
       setIsSearching(false)
     }
+  }, [])
+
+  const updateCursorPosition = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta || ta.selectionStart == null) {
+      setCursorCoords(null)
+      return
+    }
+    const coords = getCursorXY(ta, ta.selectionStart)
+    setCursorCoords(coords)
   }, [])
 
   const handleTextChange = (newText: string) => {
@@ -298,33 +341,31 @@ export function ComposeInput({
     const cursorPos = textareaRef.current?.selectionStart ?? newText.length
     const beforeCursor = newText.slice(0, cursorPos)
 
-    console.log("[handleTextChange] beforeCursor:", JSON.stringify(beforeCursor))
-
     const mentionMatch = beforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
-      console.log("[handleTextChange] MENTION MATCH → prefix:", mentionMatch[1], "position:", beforeCursor.lastIndexOf('@'))
       setAutocompletePosition(beforeCursor.lastIndexOf('@'))
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
       loadMentionSuggestions(mentionMatch[1])
+      updateCursorPosition()
       return
     }
 
     const hashtagMatch = beforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
-      console.log("[handleTextChange] HASHTAG MATCH → prefix:", hashtagMatch[1], "position:", beforeCursor.lastIndexOf('#'))
       setAutocompletePosition(beforeCursor.lastIndexOf('#'))
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
       loadHashtagSuggestions(hashtagMatch[1])
+      updateCursorPosition()
       return
     }
 
-    console.log("[handleTextChange] NO MATCH → hiding popups")
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
+    setCursorCoords(null)
   }
 
   const insertSuggestion = (value: string, type: 'mention' | 'hashtag') => {
@@ -338,6 +379,7 @@ export function ComposeInput({
 
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
+    setCursorCoords(null)
 
     setTimeout(() => {
       const ta = textareaRef.current
@@ -498,7 +540,7 @@ export function ComposeInput({
             "New Post"
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 relative">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -575,17 +617,25 @@ export function ComposeInput({
             style={{ color: 'transparent', caretColor: 'var(--foreground)', whiteSpace: 'pre-wrap' }}
           />
 
-          {showMentionSuggestions && (
-            <Card className="absolute left-8 top-full w-96 z-[999] mt-1 shadow-xl border-primary/30 bg-white">
+          {showMentionSuggestions && cursorCoords && (
+            <Card
+              className="fixed z-[9999] w-96 shadow-2xl border-primary/30 bg-background rounded-lg overflow-hidden"
+              style={{
+                left: `${cursorCoords.x}px`,
+                top: `${cursorCoords.y - 300}px`, // adjust -300 to move higher/lower
+              }}
+            >
               <CardContent className="p-2 max-h-72 overflow-y-auto">
                 {isSearching ? (
-                  <div className="py-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                  <div className="py-10 flex justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
                 ) : mentionSuggestions.length > 0 ? (
                   mentionSuggestions.map((user, i) => (
                     <div
                       key={user.did}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg cursor-pointer",
+                        "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
                         i === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       )}
                       onClick={() => insertSuggestion(user.handle, 'mention')}
@@ -610,17 +660,25 @@ export function ComposeInput({
             </Card>
           )}
 
-          {showHashtagSuggestions && (
-            <Card className="absolute left-8 top-full w-96 z-[999] mt-1 shadow-xl border-primary/30 bg-white">
+          {showHashtagSuggestions && cursorCoords && (
+            <Card
+              className="fixed z-[9999] w-96 shadow-2xl border-primary/30 bg-background rounded-lg overflow-hidden"
+              style={{
+                left: `${cursorCoords.x}px`,
+                top: `${cursorCoords.y - 300}px`, // same offset - adjust if needed
+              }}
+            >
               <CardContent className="p-2 max-h-72 overflow-y-auto">
                 {isSearching ? (
-                  <div className="py-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                  <div className="py-10 flex justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
                 ) : hashtagSuggestions.length > 0 ? (
                   hashtagSuggestions.map((tag, i) => (
                     <div
                       key={tag}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg cursor-pointer",
+                        "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
                         i === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       )}
                       onClick={() => insertSuggestion(tag, 'hashtag')}
@@ -640,7 +698,7 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* Toolbar */}
+      {/* Toolbar, media previews, link card, dialogs — all unchanged from your original */}
       <TooltipProvider>
         <div className="flex flex-wrap items-center gap-1 border rounded-lg p-2 bg-muted/30">
           {!isDM && (
