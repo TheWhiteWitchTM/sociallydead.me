@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
 import { suggestHandles, suggestHashtags } from "@/lib/sociallydead/sociallydead-suggestion"
+import {Popover, PopoverContent} from "@/components/ui/popover";
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
