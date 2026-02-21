@@ -10,8 +10,8 @@ type RichTextProps = {
 }
 
 export const BlueskyRichText = ({ record }: RichTextProps) => {
-	const [showExternal, setShowExternal] = useState<boolean>(false)
-	const [getExternalURI, setExternalURI] = useState<string | null>(null)
+	const [showExternal, setShowExternal] = useState(false)
+	const [externalUri, setExternalUri] = useState<string | null>(null)
 
 	if (!record?.text) return null
 
@@ -73,8 +73,8 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 						href="#"
 						onClick={(e) => {
 							e.preventDefault()
-							e.stopPropagation() // ensure click doesn't bubble and get lost
-							setExternalURI(uri)
+							e.stopPropagation()
+							setExternalUri(uri)
 							setShowExternal(true)
 						}}
 						className="text-red-600 hover:text-red-700 hover:underline cursor-pointer inline"
@@ -130,10 +130,13 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
         {segments}
       </span>
 
-			{showExternal && (
+			{showExternal && externalUri && (
 				<BlueskyExternal
-					uri={showExternal}
-					onClose={() => setShowExternal(false)}
+					uri={externalUri}
+					onClose={() => {
+						setShowExternal(false)
+						setExternalUri(null) // optional: clean up after close
+					}}
 				/>
 			)}
 		</>
