@@ -75,6 +75,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 							e.preventDefault()
 							e.stopPropagation()
 							setExternalURI(uri)
+							alert(uri)
 							setShowExternal(true)
 						}}
 						className="text-red-600 hover:text-red-700 hover:underline cursor-pointer inline"
@@ -86,7 +87,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				// Fallback if no uri (rare)
 				segments.push(
 					<span key={key++} className="inline text-red-600">
-            {facetText}
+            FALLBACK! {facetText}
           </span>
 				)
 			}
