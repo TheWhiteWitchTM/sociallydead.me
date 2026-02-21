@@ -55,7 +55,7 @@ export const metadata: Metadata = {
 		// Use your banner as the main preview image
 		images: [
 			{
-				url: "/banner.jpg",
+				url: "/meta.jpg",
 				alt: "SociallyDead Bluesky Client Banner – Markdown & Edit Features",
 			},
 		],
@@ -69,9 +69,8 @@ export const metadata: Metadata = {
 		description:
 			"Powerful Bluesky client: markdown highlights, articles, pseudo-edit posts and cleaner UI.",
 		// Same banner works here (X loves large images)
-		images: ["/banner.jpg"],
-		// Optional: your X handle if you have one
-		// creator: "@yourhandle",
+		images: ["/meta.jpg"],
+		creator: "@thewhitewitchtm",
 	},
 
 	// Optional: keywords if you want to hint at them (less important in 2026 but harmless)

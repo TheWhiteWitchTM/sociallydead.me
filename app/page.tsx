@@ -441,7 +441,7 @@ export default function HomePage() {
     )
     return jsx
   } catch {
-    console.err("JSX Error!")
+    console.error("JSX Error!")
     return (<></>)
   }
 }
