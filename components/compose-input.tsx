@@ -590,16 +590,9 @@ export function ComposeInput({
   ]
 
   const renderHighlightedText = () => {
-    const boldRegex = /(\*\*)(.*?)\1/g
-    const italicRegex = /(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g
-    const strikethroughRegex = /(~~)(.*?)\1/g
-    const codeRegex = /(`)(.*?)\1/g
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
-    const headingRegex = /^(#{1,6})\s+(.+)$/
-
     const mentionRegex = /@([a-zA-Z0-9.-]+)/g
     const hashtagRegex = /#([a-zA-Z0-9_]+)/g
-    const urlRegex = /((https?:\/\/)?(www\.)?[\w-]+\.[\w-]{2,}(?:\/[^\s<]*)?)/gi
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<>"']+[^\s<>"',.!?])/gi
 
     let keyCounter = 0
 
@@ -611,32 +604,10 @@ export function ComposeInput({
       let currentText = line
       let lastIndex = 0
 
-      // Full-line heading
-      const headingMatch = currentText.match(headingRegex)
-      if (headingMatch) {
-        const [, hashes, content] = headingMatch
-        parts.push(
-          <span key={`${lineKey}-heading`} className="text-primary font-bold text-lg">
-            <span className="text-muted-foreground">{hashes} </span>
-            {content}
-          </span>
-        )
-        return (
-          <div key={lineKey} className="leading-[1.5]">
-            {parts}
-          </div>
-        )
-      }
-
       const patterns = [
-        { regex: boldRegex,          type: 'bold' },
-        { regex: italicRegex,        type: 'italic' },
-        { regex: strikethroughRegex, type: 'strikethrough' },
-        { regex: codeRegex,          type: 'code' },
-        { regex: linkRegex,          type: 'link' },
-        { regex: mentionRegex,       type: 'mention' },
-        { regex: hashtagRegex,       type: 'hashtag' },
-        { regex: urlRegex,           type: 'url' },
+        { regex: mentionRegex, type: 'mention' },
+        { regex: hashtagRegex, type: 'hashtag' },
+        { regex: urlRegex, type: 'url' },
       ]
 
       const allMatches: { index: number; length: number; element: React.ReactNode }[] = []
@@ -647,94 +618,50 @@ export function ComposeInput({
         while ((match = regex.exec(currentText)) !== null) {
           const index = match.index
           const fullLength = match[0].length
-          let element: React.ReactNode = null
+          let element: React.ReactNode
 
-          switch (type) {
-            case 'bold':
-              element = (
-                <span key={`${lineKey}-b-${keyCounter++}`} className="font-bold">
-                  {match[2]}
-                </span>
-              )
-              break
-            case 'italic':
-              element = (
-                <span key={`${lineKey}-i-${keyCounter++}`} className="italic">
-                  {match[1]}
-                </span>
-              )
-              break
-            case 'strikethrough':
-              element = (
-                <span key={`${lineKey}-s-${keyCounter++}`} className="line-through">
-                  {match[2]}
-                </span>
-              )
-              break
-            case 'code':
-              element = (
-                <span
-                  key={`${lineKey}-c-${keyCounter++}`}
-                  className="bg-muted text-primary px-1 rounded font-mono text-xs"
-                >
-                  {match[2]}
-                </span>
-              )
-              break
-            case 'link':
-              element = (
-                <span key={`${lineKey}-l-${keyCounter++}`} className="text-red-600 underline">
-                  {match[1]} {/* only the [text] part */}
-                </span>
-              )
-              break
-            case 'mention':
-              element = (
-                <span
-                  key={`${lineKey}-m-${keyCounter++}`}
-                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
-                >
-                  @{match[1]}
-                </span>
-              )
-              break
-            case 'hashtag':
-              element = (
-                <span
-                  key={`${lineKey}-h-${keyCounter++}`}
-                  className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
-                >
-                  #{match[1]}
-                </span>
-              )
-              break
-            case 'url':
-              element = (
-                <span
-                  key={`${lineKey}-u-${keyCounter++}`}
-                  className="text-red-600 underline bg-red-500/5 px-0.5 rounded break-all"
-                >
-                  {match[0]}
-                </span>
-              )
-              break
+          if (type === 'mention') {
+            element = (
+              <span
+                key={`${lineKey}-m-${keyCounter++}`}
+                className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
+              >
+                @{match[1]}
+              </span>
+            )
+          } else if (type === 'hashtag') {
+            element = (
+              <span
+                key={`${lineKey}-h-${keyCounter++}`}
+                className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
+              >
+                #{match[1]}
+              </span>
+            )
+          } else if (type === 'url') {
+            element = (
+              <span
+                key={`${lineKey}-u-${keyCounter++}`}
+                className="text-red-600 underline bg-red-500/5 px-0.5 rounded break-all"
+              >
+                {match[0]}
+              </span>
+            )
           }
 
-          if (element) {
-            allMatches.push({ index, length: fullLength, element })
-          }
+          allMatches.push({ index, length: fullLength, element })
         }
       })
 
       allMatches.sort((a, b) => a.index - b.index)
 
       lastIndex = 0
-      allMatches.forEach((m) => {
-        if (m.index > lastIndex) {
-          parts.push(currentText.slice(lastIndex, m.index))
+      allMatches.forEach((match) => {
+        if (match.index > lastIndex) {
+          parts.push(currentText.slice(lastIndex, match.index))
         }
-        parts.push(m.element)
-        lastIndex = m.index + m.length
+        parts.push(match.element)
+        lastIndex = match.index + match.length
       })
 
       if (lastIndex < currentText.length) {
@@ -742,7 +669,7 @@ export function ComposeInput({
       }
 
       if (parts.length === 0 && line === '') {
-        parts.push(<br key={`${lineKey}-br`} />)
+        parts.push(<br key={`${lineKey}-empty`} />)
       }
 
       return (
