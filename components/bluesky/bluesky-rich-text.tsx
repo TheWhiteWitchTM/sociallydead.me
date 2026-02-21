@@ -73,7 +73,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 						href="#"
 						onClick={(e) => {
 							e.preventDefault()
-							e.stopPropagation() // ensure click doesn't bubble and get lost
+							e.stopPropagation()
 							setExternalURI(uri)
 							setShowExternal(true)
 						}}
