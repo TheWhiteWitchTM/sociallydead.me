@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { RichText } from '@atproto/api'
 import { Loader2, ImagePlus, X, Hash, Video, ExternalLink, Bold, Italic, Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough, Quote, SmilePlus, AtSign, Send, PenSquare } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -26,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text" // your working one
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -589,97 +591,6 @@ export function ComposeInput({
     { icon: Link2, label: "Link", action: () => wrapSelection("[", "](url)") },
   ]
 
-  const renderHighlightedText = () => {
-    const mentionRegex = /@([a-zA-Z0-9.-]+)/g
-    const hashtagRegex = /#([a-zA-Z0-9_]+)/g
-    const urlRegex = /((?:https?:\/\/|www\.)[^\s<>"']+[^\s<>"',.!?])/gi
-
-    let keyCounter = 0
-
-    const lines = text.split('\n')
-
-    return lines.map((line, lineIdx) => {
-      const lineKey = `line-${lineIdx}`
-      const parts: React.ReactNode[] = []
-      let currentText = line
-      let lastIndex = 0
-
-      const patterns = [
-        { regex: mentionRegex, type: 'mention' },
-        { regex: hashtagRegex, type: 'hashtag' },
-        { regex: urlRegex, type: 'url' },
-      ]
-
-      const allMatches: { index: number; length: number; element: React.ReactNode }[] = []
-
-      patterns.forEach(({ regex, type }) => {
-        regex.lastIndex = 0
-        let match
-        while ((match = regex.exec(currentText)) !== null) {
-          const index = match.index
-          const fullLength = match[0].length
-          let element: React.ReactNode
-
-          if (type === 'mention') {
-            element = (
-              <span
-                key={`${lineKey}-m-${keyCounter++}`}
-                className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
-              >
-                @{match[1]}
-              </span>
-            )
-          } else if (type === 'hashtag') {
-            element = (
-              <span
-                key={`${lineKey}-h-${keyCounter++}`}
-                className="text-red-600 font-medium bg-red-500/5 px-0.5 rounded"
-              >
-                #{match[1]}
-              </span>
-            )
-          } else if (type === 'url') {
-            element = (
-              <span
-                key={`${lineKey}-u-${keyCounter++}`}
-                className="text-red-600 underline bg-red-500/5 px-0.5 rounded break-all"
-              >
-                {match[0]}
-              </span>
-            )
-          }
-
-          allMatches.push({ index, length: fullLength, element })
-        }
-      })
-
-      allMatches.sort((a, b) => a.index - b.index)
-
-      lastIndex = 0
-      allMatches.forEach((match) => {
-        if (match.index > lastIndex) {
-          parts.push(currentText.slice(lastIndex, match.index))
-        }
-        parts.push(match.element)
-        lastIndex = match.index + match.length
-      })
-
-      if (lastIndex < currentText.length) {
-        parts.push(currentText.slice(lastIndex))
-      }
-
-      if (parts.length === 0 && line === '') {
-        parts.push(<br key={`${lineKey}-empty`} />)
-      }
-
-      return (
-        <div key={lineKey} className="leading-[1.5]">
-          {parts}
-        </div>
-      )
-    })
-  }
-
   const composeType = postType === "reply" ? "Replying" :
     postType === "quote" ? "Quoting" :
       postType === "dm" ? "Direct Message" :
@@ -794,7 +705,7 @@ export function ComposeInput({
             }}
             aria-hidden="true"
           >
-            {renderHighlightedText()}
+            <BlueskyRichText record={getLiveRichText(text)} />
           </div>
 
           <Textarea
@@ -805,7 +716,7 @@ export function ComposeInput({
             onKeyDown={handleKeyDown}
             onScroll={syncScroll}
             className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 leading-[1.5]",
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 caret-foreground leading-[1.5]",
               minHeight
             )}
             style={{
@@ -815,6 +726,7 @@ export function ComposeInput({
               letterSpacing: 'normal',
               wordBreak: 'break-word',
               overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
             }}
           />
 
@@ -1333,9 +1245,17 @@ export function ComposeInput({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   )
+}
+
+function getLiveRichText(text: string) {
+  const rt = new RichText({ text })
+  rt.detectFacetsWithoutResolution()
+  return {
+    text: rt.text,
+    facets: rt.facets ?? [],
+  }
 }
 
 export { IMAGE_TYPES, VIDEO_TYPES, MAX_VIDEO_SIZE }
