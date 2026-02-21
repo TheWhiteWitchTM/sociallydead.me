@@ -87,7 +87,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				// Fallback if no uri (rare)
 				segments.push(
 					<span key={key++} className="inline text-red-600">
-            FALLBACK! {facetText}
+            {facetText}
           </span>
 				)
 			}
@@ -131,7 +131,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
         {segments}
       </span>
 
-			{showExternal && externalURI && (
+			{showExternal && (
 				<BlueskyExternal
 					uri={externalURI}
 					onClose={() => setShowExternal(false)}
