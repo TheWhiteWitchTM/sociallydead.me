@@ -25,9 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Placeholder from '@tiptap/extension-placeholder'
+import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
+import { RichText } from '@atproto/api'
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -92,6 +91,15 @@ function extractUrl(text: string): string | null {
   return null
 }
 
+function getLiveRichText(text: string) {
+  const rt = new RichText({ text })
+  rt.detectFacetsWithoutResolution()
+  return {
+    text: rt.text,
+    facets: rt.facets ?? [],
+  }
+}
+
 interface ComposeInputProps {
   text: string
   onTextChange: (text: string) => void
@@ -135,6 +143,16 @@ export function ComposeInput({
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
   const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
+  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
+  const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
+  const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
+  const [autocompletePosition, setAutocompletePosition] = useState(0)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
   const [linkCardLoading, setLinkCardLoading] = useState(false)
   const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
@@ -171,65 +189,56 @@ export function ComposeInput({
   const isNearLimit = progress >= 70
   const isWarning = progress >= 90
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2],
-        },
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
-        },
-      }),
-      Placeholder.configure({
-        placeholder,
-      }),
-    ],
-    content: text,
-    editorProps: {
-      attributes: {
-        class: cn(
-          "px-4 py-3 text-sm leading-[1.5] tracking-normal outline-none min-h-[8rem] whitespace-pre-wrap break-words focus-visible:outline-none prose max-w-none prose-red prose-a:text-red-600 prose-a:underline prose-strong:text-foreground prose-code:bg-muted prose-code:text-primary prose-code:px-1 prose-code:rounded prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-ul:list-disc prose-ol:list-decimal",
-          minHeight
-        ),
-      },
-    },
-    onUpdate: ({ editor }) => {
-      const newText = editor.getText()
-      onTextChange(newText)
+  // ──────────────────────────────────────────────────────────────
+  // Helper functions - moved up so they are defined before use
+  // ──────────────────────────────────────────────────────────────
 
-      const warningThreshold = effectiveMaxChars * 0.9
-      if (newText.length < warningThreshold) {
-        setHasPlayedWarning(false)
-      }
-      if (newText.length >= warningThreshold && text.length < warningThreshold) {
-        playWarningSound()
-      }
+  const simulateEscape = useCallback(() => {
+    const escEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      code: "Escape",
+      keyCode: 27,
+      which: 27,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    })
 
-      if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
-      linkCardDebounceRef.current = setTimeout(() => {
-        const url = extractUrl(newText)
-        if (url && url !== linkCardUrl && !linkCardDismissed && !isDM) {
-          fetchLinkCard(url)
-        } else if (!url || isDM) {
-          onLinkCardChange?.(null)
-          setLinkCardUrl(null)
-          setLinkCardDismissed(false)
-        }
-      }, 800)
-    },
-  })
+    document.dispatchEvent(escEvent)
+    document.body.dispatchEvent(escEvent)
+    window.dispatchEvent(escEvent)
+    if (document.activeElement) document.activeElement.dispatchEvent(escEvent)
+  }, [])
 
-  useEffect(() => {
-    if (autoFocus && editor) {
-      editor.commands.focus()
+  const forceClose = useCallback(() => {
+    simulateEscape()
+  }, [simulateEscape])
+
+  const handleCancelOrEscape = useCallback(() => {
+    if (showMentionSuggestions || showHashtagSuggestions) {
+      setShowMentionSuggestions(false)
+      setShowHashtagSuggestions(false)
+      return
     }
-  }, [autoFocus, editor])
+
+    if (text.trim() || mediaFiles.length > 0 || linkCard) {
+      setShowDiscardDialog(true)
+    } else {
+      forceClose()
+    }
+  }, [showMentionSuggestions, showHashtagSuggestions, text, mediaFiles.length, linkCard, forceClose])
+
+  const handleDiscard = useCallback(() => {
+    forceClose()
+    setShowDiscardDialog(false)
+  }, [forceClose])
+
+  const syncScroll = useCallback(() => {
+    if (textareaRef.current && previewRef.current) {
+      previewRef.current.scrollTop = textareaRef.current.scrollTop
+      previewRef.current.scrollLeft = textareaRef.current.scrollLeft
+    }
+  }, [])
 
   const playWarningSound = useCallback(() => {
     if (hasPlayedWarning) return
@@ -270,55 +279,211 @@ export function ComposeInput({
     }
   }, [linkCardDismissed, onLinkCardChange, isDM])
 
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isDM) return
-    const files = e.target.files
-    if (!files) return
-
-    const newFiles = Array.from(files)
-    for (const file of newFiles) {
-      const isImage = IMAGE_TYPES.includes(file.type)
-      const isVideo = VIDEO_TYPES.includes(file.type)
-      if (!isImage && !isVideo) continue
-
-      if (isVideo) {
-        if (hasImages || hasVideo) continue
-        if (file.size > MAX_VIDEO_SIZE) continue
-        const preview = URL.createObjectURL(file)
-        onMediaFilesChange?.([{ file, preview, type: "video" }])
-        break
+  const searchMentions = useCallback(async (query: string) => {
+    setIsSearchingMentions(true)
+    try {
+      const typeahead = await searchActorsTypeahead(query)
+      let actors = typeahead.actors
+      if ((!actors || actors.length === 0) && query.length > 0) {
+        const result = await searchActors(query)
+        actors = result.actors
       }
+      const suggestions = (actors || []).slice(0, 5)
+      setMentionSuggestions(suggestions)
+    } catch (error) {
+      console.error('Error searching mentions:', error)
+      setMentionSuggestions([])
+    } finally {
+      setIsSearchingMentions(false)
+    }
+  }, [searchActors, searchActorsTypeahead])
 
-      if (isImage) {
-        if (hasVideo) continue
-        if (imageCount >= MAX_IMAGES) continue
-        const reader = new FileReader()
-        reader.onload = (ev) => {
-          onMediaFilesChange?.([...mediaFiles.filter(f => f.type !== "video"),
-            ...(mediaFiles.filter(f => f.type === "image").length < MAX_IMAGES
-              ? [{ file, preview: ev.target?.result as string, type: "image" as const }]
-              : [])
-          ].slice(0, MAX_IMAGES))
-        }
-        reader.readAsDataURL(file)
-      }
+  const searchHashtags = useCallback((query: string) => {
+    if (query.length < 1) {
+      setHashtagSuggestions([])
+      return
+    }
+    const matches = POPULAR_HASHTAGS.filter(tag =>
+      tag.toLowerCase().startsWith(query.toLowerCase())
+    ).slice(0, 5)
+    setHashtagSuggestions(matches)
+  }, [])
+
+  const handleTextChange = useCallback((newText: string) => {
+    onTextChange(newText)
+
+    const warningThreshold = effectiveMaxChars * 0.9
+    if (newText.length < warningThreshold) {
+      setHasPlayedWarning(false)
+    }
+    if (newText.length >= warningThreshold && text.length < warningThreshold) {
+      playWarningSound()
     }
 
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
+    if (linkCardDebounceRef.current) clearTimeout(linkCardDebounceRef.current)
+    linkCardDebounceRef.current = setTimeout(() => {
+      const url = extractUrl(newText)
+      if (url && url !== linkCardUrl && !linkCardDismissed && !isDM) {
+        fetchLinkCard(url)
+      } else if (!url || isDM) {
+        onLinkCardChange?.(null)
+        setLinkCardUrl(null)
+        setLinkCardDismissed(false)
+      }
+    }, 800)
 
-  const removeMedia = (index: number) => {
-    const updated = mediaFiles.filter((_, i) => i !== index)
-    if (mediaFiles[index]?.type === "video") {
-      URL.revokeObjectURL(mediaFiles[index].preview)
+    const cursorPos = textareaRef.current?.selectionStart || newText.length
+    const textBeforeCursor = newText.slice(0, cursorPos)
+
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
+    if (mentionMatch) {
+      const matchText = mentionMatch[1]
+      const triggerIndex = textBeforeCursor.lastIndexOf('@')
+      setAutocompletePosition(triggerIndex)
+      setShowMentionSuggestions(true)
+      setShowHashtagSuggestions(false)
+      setSelectedSuggestionIndex(0)
+      searchMentions(matchText)
+      return
     }
-    onMediaFilesChange?.(updated)
-  }
 
-  const dismissLinkCard = () => {
-    onLinkCardChange?.(null)
-    setLinkCardDismissed(true)
-  }
+    const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
+    if (hashtagMatch) {
+      const matchText = hashtagMatch[1]
+      const triggerIndex = textBeforeCursor.lastIndexOf('#')
+      setAutocompletePosition(triggerIndex)
+      setShowHashtagSuggestions(true)
+      setShowMentionSuggestions(false)
+      setSelectedSuggestionIndex(0)
+      if (matchText.length === 0) {
+        setHashtagSuggestions(POPULAR_HASHTAGS.slice(0, 5))
+      } else {
+        searchHashtags(matchText)
+      }
+      return
+    }
+
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+  }, [onTextChange, text, effectiveMaxChars, linkCardUrl, linkCardDismissed, isDM, playWarningSound, fetchLinkCard, onLinkCardChange, searchMentions, searchHashtags])
+
+  const insertSuggestion = useCallback((suggestion: string, type: 'mention' | 'hashtag') => {
+    const prefix = type === 'mention' ? '@' : '#'
+    const beforeTrigger = text.slice(0, autocompletePosition)
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const afterCursor = text.slice(cursorPos)
+    const newText = beforeTrigger + prefix + suggestion + ' ' + afterCursor
+    onTextChange(newText)
+    setShowMentionSuggestions(false)
+    setShowHashtagSuggestions(false)
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = beforeTrigger.length + prefix.length + suggestion.length + 1
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }, [text, autocompletePosition, onTextChange])
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const cursorPos = textareaRef.current?.selectionStart || text.length
+    const before = text.slice(0, cursorPos)
+    const after = text.slice(cursorPos)
+    const newText = before + emoji + after
+    onTextChange(newText)
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = cursorPos + emoji.length
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newPos, newPos)
+      }
+    }, 0)
+  }, [text, onTextChange])
+
+  const wrapSelection = useCallback((prefix: string, suffix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = text.slice(start, end)
+    const before = text.slice(0, start)
+    const after = text.slice(end)
+    const wrapped = selectedText
+      ? `${before}${prefix}${selectedText}${suffix}${after}`
+      : `${before}${prefix}text${suffix}${after}`
+    onTextChange(wrapped)
+    setTimeout(() => {
+      textarea.focus()
+      if (selectedText) {
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length)
+      } else {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4)
+      }
+    }, 0)
+  }, [text, onTextChange])
+
+  const insertAtLineStart = useCallback((prefix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1
+    const before = text.slice(0, lineStart)
+    const after = text.slice(lineStart)
+    const newText = `${before}${prefix}${after}`
+    onTextChange(newText)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
+    }, 0)
+  }, [text, onTextChange])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && e.shiftKey && onSubmit && !isSubmitting) {
+      e.preventDefault()
+      if (text.trim()) {
+        onSubmit()
+      }
+      return
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancelOrEscape()
+      return
+    }
+
+    if (!showMentionSuggestions && !showHashtagSuggestions) return
+    const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
+    } else if (e.key === 'Enter' && suggestions.length > 0) {
+      e.preventDefault()
+      if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(mentionSuggestions[selectedSuggestionIndex].handle, 'mention')
+      } else if (showHashtagSuggestions && hashtagSuggestions[selectedSuggestionIndex]) {
+        insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
+      }
+    }
+  }, [onSubmit, isSubmitting, text, handleCancelOrEscape, showMentionSuggestions, showHashtagSuggestions, mentionSuggestions, hashtagSuggestions, selectedSuggestionIndex, insertSuggestion])
+
+  const formatActions = [
+    { icon: Bold, label: "Bold", action: () => wrapSelection("**", "**") },
+    { icon: Italic, label: "Italic", action: () => wrapSelection("*", "*") },
+    { icon: Strikethrough, label: "Strikethrough", action: () => wrapSelection("~~", "~~") },
+    { icon: Code, label: "Code", action: () => wrapSelection("`", "`") },
+    { icon: Heading1, label: "Heading 1", action: () => insertAtLineStart("# ") },
+    { icon: Heading2, label: "Heading 2", action: () => insertAtLineStart("## ") },
+    { icon: Quote, label: "Quote", action: () => insertAtLineStart("> ") },
+    { icon: List, label: "Bullet List", action: () => insertAtLineStart("- ") },
+    { icon: ListOrdered, label: "Numbered List", action: () => insertAtLineStart("1. ") },
+    { icon: Link2, label: "Link", action: () => wrapSelection("[", "](url)") },
+  ]
 
   const composeType = postType === "reply" ? "Replying" :
     postType === "quote" ? "Quoting" :
@@ -417,7 +582,121 @@ export function ComposeInput({
         </div>
 
         <div className="relative">
-          <EditorContent editor={editor} />
+          {/* Rich preview layer */}
+          <div
+            ref={previewRef}
+            className={cn(
+              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.6] blur-[0.4px] opacity-95",
+              minHeight
+            )}
+            style={{
+              fontFamily: 'inherit',
+              fontSize: '0.875rem',
+              lineHeight: '1.6',
+              letterSpacing: 'normal',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
+              caretColor: 'transparent',
+            }}
+            aria-hidden="true"
+          >
+            <BlueskyRichText record={getLiveRichText(text)} />
+          </div>
+
+          {/* Transparent textarea for typing & caret */}
+          <Textarea
+            ref={textareaRef}
+            placeholder={placeholder}
+            value={text}
+            onChange={(e) => handleTextChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onScroll={syncScroll}
+            className={cn(
+              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 caret-foreground leading-[1.5]",
+              minHeight
+            )}
+            style={{
+              color: 'transparent',
+              caretColor: 'var(--foreground)',
+              lineHeight: '1.5',
+              letterSpacing: 'normal',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
+            }}
+          />
+
+          {/* Mention suggestions */}
+          {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
+            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardContent className="p-1 max-h-60 overflow-y-auto">
+                {isSearchingMentions ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  mentionSuggestions.map((user, idx) => (
+                    <div
+                      key={user.did}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                        idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                      )}
+                      onClick={() => insertSuggestion(user.handle, 'mention')}
+                    >
+                      <Avatar className="h-8 w-8 border border-background/10">
+                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarFallback className={cn("text-xs", idx === selectedSuggestionIndex ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted")}>
+                          {(user.displayName || user.handle).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate flex items-center gap-1">
+                          {user.displayName || user.handle}
+                          <VerifiedBadge handle={user.handle} className={idx === selectedSuggestionIndex ? "text-primary-foreground" : ""} />
+                        </p>
+                        <p className={cn("text-xs truncate", idx === selectedSuggestionIndex ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                          @{user.handle}
+                        </p>
+                      </div>
+                      <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                              onClick={(e) => { e.stopPropagation(); insertSuggestion(user.handle, 'mention') }}>
+                        Add
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Hashtag suggestions */}
+          {showHashtagSuggestions && hashtagSuggestions.length > 0 && (
+            <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardContent className="p-1 max-h-60 overflow-y-auto">
+                {hashtagSuggestions.map((tag, idx) => (
+                  <div
+                    key={tag}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors",
+                      idx === selectedSuggestionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                    )}
+                    onClick={() => insertSuggestion(tag, 'hashtag')}
+                  >
+                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", idx === selectedSuggestionIndex ? "bg-primary-foreground/20" : "bg-muted")}>
+                      <Hash className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-medium flex-1">#{tag}</span>
+                    <Button type="button" size="xs" variant={idx === selectedSuggestionIndex ? "secondary" : "outline"} className="h-6 px-2 shrink-0"
+                            onClick={(e) => { e.stopPropagation(); insertSuggestion(tag, 'hashtag') }}>
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </Card>
 
@@ -485,7 +764,7 @@ export function ComposeInput({
                         key={emoji}
                         type="button"
                         className="h-8 w-8 flex items-center justify-center rounded hover:bg-accent text-lg cursor-pointer transition-colors"
-                        onClick={() => editor?.commands.insertContent(emoji)}
+                        onClick={() => insertEmoji(emoji)}
                       >
                         {emoji}
                       </button>
