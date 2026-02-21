@@ -1,6 +1,6 @@
 "use client"
 
-import {JSX, useState} from "react"
+import { JSX, useState } from "react"
 import Link from "next/link"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { BlueskyExternal } from "@/components/bluesky/bluesky-external"
@@ -42,7 +42,9 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 			const plainBytes = utf8Bytes.subarray(lastByteEnd, byteStart)
 			const plainText = decoder.decode(plainBytes)
 			segments.push(
-				<MarkdownRenderer key={key++} content={plainText} />
+				<span key={key++}>
+          <MarkdownRenderer content={plainText} />
+        </span>
 			)
 		}
 
@@ -69,7 +71,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 					href="#"
 					onClick={(e) => {
 						e.preventDefault()
-						if (uri) setShowExternal(uri)
+						if (uri) setShowExternal(uri) // ← safe: only call if uri exists
 					}}
 					className="text-red-600 hover:text-red-700 hover:underline cursor-pointer"
 				>
@@ -90,7 +92,9 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		} else {
 			// Unknown → treat as Markdown
 			segments.push(
-				<MarkdownRenderer key={key++} content={facetText} />
+				<span key={key++}>
+          <MarkdownRenderer content={facetText} />
+        </span>
 			)
 		}
 
@@ -102,13 +106,18 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		const tailBytes = utf8Bytes.subarray(lastByteEnd)
 		const tailText = decoder.decode(tailBytes)
 		segments.push(
-			<MarkdownRenderer key={key++} content={tailText} />
+			<span key={key++}>
+        <MarkdownRenderer content={tailText} />
+      </span>
 		)
 	}
 
 	return (
 		<>
-			{segments}
+      <span className="inline">
+        {segments}
+      </span>
+
 			{showExternal && (
 				<BlueskyExternal
 					uri={showExternal}
