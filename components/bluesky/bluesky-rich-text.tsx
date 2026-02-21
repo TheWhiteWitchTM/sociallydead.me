@@ -17,12 +17,12 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 	const fullText = record.text ?? ""
 	const facets = Array.isArray(record.facets) ? record.facets : []
 
-	// No facets → full Markdown (keep as-is)
+	// No facets → full Markdown (keep as-is for full posts)
 	if (facets.length === 0) {
 		return <MarkdownRenderer content={fullText} />
 	}
 
-	// Sort facets by byteStart
+	// Sort facets by byteStart (required for correct order)
 	const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)
 
 	const segments: JSX.Element[] = []
@@ -37,20 +37,18 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		const { byteStart, byteEnd } = facet.index
 		const feature = facet.features?.[0]
 
-		// Plain text before facet – NO trimming, keep exact spaces
+		// Plain text before facet – preserve exact whitespace
 		if (byteStart > lastByteEnd) {
 			const plainBytes = utf8Bytes.subarray(lastByteEnd, byteStart)
 			const plainText = decoder.decode(plainBytes)
 			segments.push(
-				<span
-					key={key++}
-					className="inline"
-					dangerouslySetInnerHTML={{ __html: plainText }}
-				/>
+				<span key={key++} className="inline">
+          <MarkdownRenderer content={plainText} inline />
+        </span>
 			)
 		}
 
-		// Facet slice
+		// Facet content slice
 		const facetBytes = utf8Bytes.subarray(byteStart, byteEnd)
 		const facetText = decoder.decode(facetBytes)
 
@@ -67,19 +65,29 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 			)
 		} else if (feature?.$type === "app.bsky.richtext.facet#link") {
 			const uri = feature.uri || facetText.trim()
-			segments.push(
-				<a
-					key={key++}
-					href="#"
-					onClick={(e) => {
-						e.preventDefault()
-						if (uri) setShowExternal(uri)
-					}}
-					className="text-red-600 hover:text-red-700 hover:underline cursor-pointer inline"
-				>
-					{facetText}
-				</a>
-			)
+			if (uri) {
+				segments.push(
+					<a
+						key={key++}
+						href="#"
+						onClick={(e) => {
+							e.preventDefault()
+							e.stopPropagation() // ensure click doesn't bubble and get lost
+							setShowExternal(uri)
+						}}
+						className="text-red-600 hover:text-red-700 hover:underline cursor-pointer inline"
+					>
+						{facetText}
+					</a>
+				)
+			} else {
+				// Fallback if no uri (rare)
+				segments.push(
+					<span key={key++} className="inline text-red-600">
+            {facetText}
+          </span>
+				)
+			}
 		} else if (feature?.$type === "app.bsky.richtext.facet#tag") {
 			const tag = feature.tag || facetText.slice(1)
 			segments.push(
@@ -92,10 +100,10 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				</Link>
 			)
 		} else {
-			// Unknown → inline markdown
+			// Unknown facet type → render as inline markdown
 			segments.push(
 				<span key={key++} className="inline">
-          <MarkdownRenderer content={facetText} />
+          <MarkdownRenderer content={facetText} inline />
         </span>
 			)
 		}
@@ -103,16 +111,14 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		lastByteEnd = byteEnd
 	}
 
-	// Trailing text – NO trimming, keep exact spaces
+	// Trailing text after last facet – preserve whitespace
 	if (lastByteEnd < utf8Bytes.length) {
 		const tailBytes = utf8Bytes.subarray(lastByteEnd)
 		const tailText = decoder.decode(tailBytes)
 		segments.push(
-			<span
-				key={key++}
-				className="inline"
-				dangerouslySetInnerHTML={{ __html: tailText }}
-			/>
+			<span key={key++} className="inline">
+        <MarkdownRenderer content={tailText} inline />
+      </span>
 		)
 	}
 
