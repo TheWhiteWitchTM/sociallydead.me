@@ -12,11 +12,6 @@ interface MarkdownRendererProps {
   className?: string
 }
 
-/**
- * Simple renderer for Bluesky-style post text.
- * Preserves all newlines exactly as they appear (whitespace-pre-wrap).
- * No automatic linkification, hashtag, or mention handling anymore.
- */
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
     <div className={cn("whitespace-pre-wrap break-words text-sm", className)}>
@@ -25,11 +20,6 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   )
 }
 
-/**
- * Shiki-powered syntax highlighted code block.
- * Lazy-loads shiki only when needed.
- * Uses github-light / github-dark depending on current theme.
- */
 function ShikiCodeBlock({ code, language }: { code: string; language: string }) {
   const { resolvedTheme } = useTheme()
   const [html, setHtml] = useState<string | null>(null)
@@ -45,9 +35,10 @@ function ShikiCodeBlock({ code, language }: { code: string; language: string }) 
           lang: language || "text",
           theme,
         })
-        if (!cancelled) setHtml(result)
+        if (!cancelled) {
+          setHtml(result)
+        }
       } catch {
-        // fallback to plain text highlighting
         try {
           const { codeToHtml } = await import("shiki")
           const theme = resolvedTheme === "dark" ? "github-dark" : "github-light"
@@ -55,9 +46,13 @@ function ShikiCodeBlock({ code, language }: { code: string; language: string }) 
             lang: "text",
             theme,
           })
-          if (!cancelled) setHtml(result)
+          if (!cancelled) {
+            setHtml(result)
+          }
         } catch {
-          if (!cancelled) setHtml(null)
+          if (!cancelled) {
+            setHtml(null)
+          }
         }
       }
     }
@@ -84,12 +79,6 @@ function ShikiCodeBlock({ code, language }: { code: string; language: string }) 
   )
 }
 
-/**
- * Clean rich markdown renderer – no custom link/mention/hashtag parsing.
- * Formatting (bold, italic, lists, code blocks, etc.) is handled by ReactMarkdown.
- * Links that are already written as proper Markdown `[text](url)` will work.
- * Syntax highlighting via Shiki for fenced code blocks.
- */
 export function RichMarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
     <div className={cn("prose prose-sm dark:prose-invert max-w-none", className)}>
@@ -106,14 +95,16 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
               {children}
             </a>
           ),
+          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
+          li: ({ children }) => <li className="mb-1">{children}</li>,
           code: ({ className: codeClassName, children }) => {
             const match = /language-(\w+)/.exec(codeClassName || "")
             if (match) {
-              // fenced code block → use Shiki
               const codeString = String(children).replace(/\n$/, "")
               return <ShikiCodeBlock code={codeString} language={match[1]} />
             }
-            // inline code
             return (
               <code className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono text-foreground">
                 {children}
@@ -130,9 +121,6 @@ export function RichMarkdownRenderer({ content, className }: MarkdownRendererPro
               {children}
             </blockquote>
           ),
-          ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
-          ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
-          // headings keep simple defaults (you can customize further if needed)
           h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
           h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
