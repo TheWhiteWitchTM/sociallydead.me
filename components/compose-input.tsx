@@ -801,6 +801,7 @@ export function ComposeInput({
         </div>
       </Card>
 
+      {/* Rest of the component (TooltipProvider, media preview, link card, dialogs, etc.) remains unchanged */}
       <TooltipProvider delayDuration={300}>
         <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-1 bg-muted/30">
           <div className="flex items-center gap-0.5 flex-wrap">
@@ -1253,10 +1254,12 @@ function getLiveRichText(text: string) {
   const rt = new RichText({ text })
   rt.detectFacetsWithoutResolution()
 
-  // Manually add mention facets for preview
+  let facets = rt.facets ?? []
+
+  // Manual mention detection ONLY for ranges not already covered
   const mentionRegex = /(?:^|\s)(@([a-zA-Z0-9.-]+(?:\.[a-zA-Z0-9.-]+)*))/g
   let match
-  const facets = rt.facets ?? []
+  const manualFacets: any[] = []
 
   while ((match = mentionRegex.exec(text)) !== null) {
     const fullMatch = match[1]
@@ -1265,31 +1268,36 @@ function getLiveRichText(text: string) {
     const byteStart = new TextEncoder().encode(text.slice(0, offset)).length
     const byteEnd = byteStart + new TextEncoder().encode(fullMatch).length
 
-    // Check for overlap with existing facets
-    const overlap = facets.some(f => {
-      const fStart = f.index.byteStart
-      const fEnd = f.index.byteEnd
-      return byteStart < fEnd && byteEnd > fStart
-    })
+    // Skip if this range is already covered by any existing facet (link, tag, or previous mention)
+    const covered = facets.some(f => byteStart >= f.index.byteStart && byteEnd <= f.index.byteEnd)
+    if (covered) continue
 
-    if (!overlap) {
-      facets.push({
-        $type: 'app.bsky.richtext.facet',
-        index: { byteStart, byteEnd },
-        features: [{
-          $type: 'app.bsky.richtext.facet#mention',
-          handle,  // Set handle for the renderer to use
-        }]
-      })
+    manualFacets.push({
+      $type: 'app.bsky.richtext.facet',
+      index: { byteStart, byteEnd },
+      features: [{
+        $type: 'app.bsky.richtext.facet#mention',
+        handle,
+      }]
+    })
+  }
+
+  // Combine and sort (manual added after auto)
+  facets = [...facets, ...manualFacets].sort((a, b) => a.index.byteStart - b.index.byteStart)
+
+  // Final dedupe: remove any that overlap (very rare after above check, but safe)
+  const deduped: any[] = []
+  let lastEnd = 0
+  for (const f of facets) {
+    if (f.index.byteStart >= lastEnd) {
+      deduped.push(f)
+      lastEnd = f.index.byteEnd
     }
   }
 
-  // Sort facets by start position
-  facets.sort((a, b) => a.index.byteStart - b.index.byteStart)
-
   return {
     text: rt.text,
-    facets,
+    facets: deduped,
   }
 }
 
