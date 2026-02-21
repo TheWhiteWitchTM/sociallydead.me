@@ -52,9 +52,9 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { HandleLink } from "@/components/handle-link"
 import { useBluesky } from "@/lib/bluesky-context"
 import { cn } from "@/lib/utils"
-import { BlueskyContent } from "@/components/bluesky-content"
-import { BlueskyHeader } from "@/components/bluesky-header"
-import { BlueskyFooter } from "@/components/bluesky-footer"
+import { BlueskyContent } from "@/components/bluesky/bluesky-content"
+import { BlueskyHeader } from "@/components/bluesky/bluesky-header"
+import { BlueskyFooter } from "@/components/bluesky/bluesky-footer"
 
 function formatEngagement(count: number): string {
 	if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`

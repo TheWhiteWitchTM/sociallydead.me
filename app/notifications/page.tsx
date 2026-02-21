@@ -12,7 +12,7 @@ import { VerifiedBadge } from "@/components/verified-badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, Heart, Repeat2, UserPlus, AtSign, MessageCircle, Quote, CheckCheck, UserCheck, Users, Bell } from "lucide-react"
 import { UserHoverCard } from "@/components/user-hover-card"
-import { BlueskyContent } from "@/components/bluesky-content"
+import { BlueskyContent } from "@/components/bluesky/bluesky-content"
 
 interface Notification {
   uri: string

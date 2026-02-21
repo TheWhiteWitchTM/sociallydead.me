@@ -4,14 +4,14 @@ import {JSX, useState} from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { X } from "lucide-react"
-import { Dialog, DialogContent } from "./ui/dialog"
-import { Button } from "./ui/button"
-import { BlueskyImages } from "@/components/bluesky-images"
-import { BlueskyVideo } from "@/components/bluesky-video"
-import { BlueskyExternal } from "@/components/bluesky-external"
-import {BlueskyHeader} from "@/components/bluesky-header";
-import {BlueskyEmbedHeader} from "@/components/bluesky-embed-header";
-import { BlueskyRichText } from "@/components/bluesky-rich-text"   // ← Import it here
+import { Dialog, DialogContent } from "../ui/dialog"
+import { Button } from "../ui/button"
+import { BlueskyImages } from "@/components/bluesky/bluesky-images"
+import { BlueskyVideo } from "@/components/bluesky/bluesky-video"
+import { BlueskyExternal } from "@/components/bluesky/bluesky-external"
+import {BlueskyHeader} from "@/components/bluesky/bluesky-header";
+import {BlueskyEmbedHeader} from "@/components/bluesky/bluesky-embed-header";
+import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"   // ← Import it here
 
 interface BlueskyContentProps {
 	post: any

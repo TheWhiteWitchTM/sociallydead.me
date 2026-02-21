@@ -3,7 +3,7 @@
 import {JSX, useState} from "react"
 import Link from "next/link"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { BlueskyExternal } from "@/components/bluesky-external"
+import { BlueskyExternal } from "@/components/bluesky/bluesky-external"
 
 type RichTextProps = {
 	record: any
