@@ -17,7 +17,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 	const fullText = record.text ?? ""
 	const facets = Array.isArray(record.facets) ? record.facets : []
 
-	// No facets → full Markdown
+	// No facets → full Markdown (keep as-is)
 	if (facets.length === 0) {
 		return <MarkdownRenderer content={fullText} />
 	}
@@ -37,14 +37,16 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		const { byteStart, byteEnd } = facet.index
 		const feature = facet.features?.[0]
 
-		// Plain text before facet
+		// Plain text before facet – force inline, no block breaks
 		if (byteStart > lastByteEnd) {
 			const plainBytes = utf8Bytes.subarray(lastByteEnd, byteStart)
-			const plainText = decoder.decode(plainBytes)
+			const plainText = decoder.decode(plainBytes).trimEnd() // avoid trailing space issues
 			segments.push(
-				<span key={key++}>
-          <MarkdownRenderer content={plainText} />
-        </span>
+				<span
+					key={key++}
+					className="inline"
+					dangerouslySetInnerHTML={{ __html: plainText }} // ← bypass MarkdownRenderer for plain segments
+				/>
 			)
 		}
 
@@ -58,7 +60,7 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				<Link
 					key={key++}
 					href={`/profile/${handle}`}
-					className="text-red-600 hover:text-red-700 hover:underline font-medium"
+					className="text-red-600 hover:text-red-700 hover:underline font-medium inline"
 				>
 					@{handle}
 				</Link>
@@ -71,9 +73,9 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 					href="#"
 					onClick={(e) => {
 						e.preventDefault()
-						if (uri) setShowExternal(uri) // ← safe: only call if uri exists
+						if (uri) setShowExternal(uri)
 					}}
-					className="text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+					className="text-red-600 hover:text-red-700 hover:underline cursor-pointer inline"
 				>
 					{facetText}
 				</a>
@@ -84,15 +86,15 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 				<Link
 					key={key++}
 					href={`/feed/${encodeURIComponent(tag)}`}
-					className="text-red-600 hover:text-red-700 hover:underline"
+					className="text-red-600 hover:text-red-700 hover:underline inline"
 				>
 					#{tag}
 				</Link>
 			)
 		} else {
-			// Unknown → treat as Markdown
+			// Unknown → inline markdown
 			segments.push(
-				<span key={key++}>
+				<span key={key++} className="inline">
           <MarkdownRenderer content={facetText} />
         </span>
 			)
@@ -101,20 +103,22 @@ export const BlueskyRichText = ({ record }: RichTextProps) => {
 		lastByteEnd = byteEnd
 	}
 
-	// Trailing text
+	// Trailing text – same inline treatment
 	if (lastByteEnd < utf8Bytes.length) {
 		const tailBytes = utf8Bytes.subarray(lastByteEnd)
-		const tailText = decoder.decode(tailBytes)
+		const tailText = decoder.decode(tailBytes).trimStart()
 		segments.push(
-			<span key={key++}>
-        <MarkdownRenderer content={tailText} />
-      </span>
+			<span
+				key={key++}
+				className="inline"
+				dangerouslySetInnerHTML={{ __html: tailText }}
+			/>
 		)
 	}
 
 	return (
 		<>
-      <span className="inline">
+      <span className="inline whitespace-pre-wrap break-words">
         {segments}
       </span>
 
