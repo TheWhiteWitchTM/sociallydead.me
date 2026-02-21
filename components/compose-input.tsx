@@ -2,19 +2,14 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { RichText } from '@atproto/api'
-import {
-  Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic,
-  Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough,
-  Quote, SmilePlus, Send, PenSquare, Hash
-} from "lucide-react"
-import { Separator } from "@/components/ui/separator"
+
+// ─── ALL shadcn/ui imports ─────────────────────────────────────────────────
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { VerifiedBadge } from "@/components/verified-badge"
-import { cn } from "@/lib/utils"
+import { Separator } from "@/components/ui/separator"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +20,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"   // ← explicitly added for emoji picker
+
+// ─── Icons ─────────────────────────────────────────────────────────────────
+import {
+  Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic,
+  Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough,
+  Quote, SmilePlus, Send, PenSquare, Hash
+} from "lucide-react"
+
+// ─── Custom components ─────────────────────────────────────────────────────
+import { VerifiedBadge } from "@/components/verified-badge"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
+import { cn } from "@/lib/utils"
+
+// ─── Suggestion functions ──────────────────────────────────────────────────
 import { suggestHandles, suggestHashtags } from "@/hooks/bluesky/use-bluesky-suggestions"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-// ─── Cursor coordinate calculator ──────────────────────────────────────────
+
+// ─── Cursor position helper ────────────────────────────────────────────────
 function getCursorXY(textarea: HTMLTextAreaElement, selectionStart: number) {
-  const { offsetLeft: inputX, offsetTop: inputY } = textarea
+  const { offsetLeft: inputX, offsetTop: inputY, scrollLeft, scrollTop } = textarea
 
   const mirror = document.createElement('div')
   const mirrorStyle = mirror.style
@@ -52,10 +61,10 @@ function getCursorXY(textarea: HTMLTextAreaElement, selectionStart: number) {
   mirrorStyle.height = 'auto'
 
   const textBefore = textarea.value.substring(0, selectionStart)
-  mirror.textContent = textBefore.replace(/\s/g, '\u00a0') // preserve spaces
+  mirror.textContent = textBefore.replace(/\s/g, '\u00a0')
 
   const cursorSpan = document.createElement('span')
-  cursorSpan.textContent = '\u200b' // zero-width space
+  cursorSpan.textContent = '\u200b'
   mirror.appendChild(cursorSpan)
 
   document.body.appendChild(mirror)
@@ -63,8 +72,8 @@ function getCursorXY(textarea: HTMLTextAreaElement, selectionStart: number) {
   document.body.removeChild(mirror)
 
   return {
-    x: inputX + spanX,
-    y: inputY + spanY,
+    x: inputX + spanX - scrollLeft,
+    y: inputY + spanY - scrollTop,
     lineHeight: parseFloat(computed.lineHeight) || 24,
   }
 }
@@ -540,7 +549,7 @@ export function ComposeInput({
             "New Post"
 
   return (
-    <div className="space-y-3 relative">
+    <div className="space-y-3">
       <Card className="border-2 focus-within:border-primary transition-colors overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -619,10 +628,10 @@ export function ComposeInput({
 
           {showMentionSuggestions && cursorCoords && (
             <Card
-              className="fixed z-[9999] w-96 shadow-2xl border-primary/30 bg-background rounded-lg overflow-hidden"
+              className="fixed z-[9999] w-96 shadow-2xl border border-primary/30 bg-background rounded-lg overflow-hidden"
               style={{
                 left: `${cursorCoords.x}px`,
-                top: `${cursorCoords.y - 300}px`, // adjust -300 to move higher/lower
+                top: `${cursorCoords.y - 320}px`,
               }}
             >
               <CardContent className="p-2 max-h-72 overflow-y-auto">
@@ -662,10 +671,10 @@ export function ComposeInput({
 
           {showHashtagSuggestions && cursorCoords && (
             <Card
-              className="fixed z-[9999] w-96 shadow-2xl border-primary/30 bg-background rounded-lg overflow-hidden"
+              className="fixed z-[9999] w-96 shadow-2xl border border-primary/30 bg-background rounded-lg overflow-hidden"
               style={{
                 left: `${cursorCoords.x}px`,
-                top: `${cursorCoords.y - 300}px`, // same offset - adjust if needed
+                top: `${cursorCoords.y - 320}px`,
               }}
             >
               <CardContent className="p-2 max-h-72 overflow-y-auto">
@@ -698,7 +707,6 @@ export function ComposeInput({
         </div>
       </Card>
 
-      {/* Toolbar, media previews, link card, dialogs — all unchanged from your original */}
       <TooltipProvider>
         <div className="flex flex-wrap items-center gap-1 border rounded-lg p-2 bg-muted/30">
           {!isDM && (
