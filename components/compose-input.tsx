@@ -7,7 +7,6 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import { useBluesky } from "@/lib/bluesky-context"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -27,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text" // your working one
+import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -135,8 +134,7 @@ export function ComposeInput({
   const effectiveMaxChars = maxChars ?? (isDM ? Infinity : postType === "article" ? 2000 : 300)
   const { searchActors, searchActorsTypeahead } = useBluesky()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const highlighterRef = useRef<HTMLDivElement>(null)
+  const editableRef = useRef<HTMLDivElement>(null)
 
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
   const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
@@ -191,7 +189,6 @@ export function ComposeInput({
       cancelable: true,
       composed: true,
     })
-
     document.dispatchEvent(escEvent)
     document.body.dispatchEvent(escEvent)
     window.dispatchEvent(escEvent)
@@ -221,16 +218,9 @@ export function ComposeInput({
     setShowDiscardDialog(false)
   }, [forceClose])
 
-  const syncScroll = () => {
-    if (textareaRef.current && highlighterRef.current) {
-      highlighterRef.current.scrollTop = textareaRef.current.scrollTop
-      highlighterRef.current.scrollLeft = textareaRef.current.scrollLeft
-    }
-  }
-
   useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      setTimeout(() => textareaRef.current?.focus(), 100)
+    if (autoFocus && editableRef.current) {
+      setTimeout(() => editableRef.current?.focus(), 100)
     }
   }, [autoFocus])
 
@@ -303,7 +293,9 @@ export function ComposeInput({
     setHashtagSuggestions(matches)
   }, [])
 
-  const handleTextChange = (newText: string) => {
+  const handleTextInput = useCallback(() => {
+    if (!editableRef.current) return
+    const newText = editableRef.current.textContent || ''
     onTextChange(newText)
 
     const warningThreshold = effectiveMaxChars * 0.9
@@ -326,14 +318,17 @@ export function ComposeInput({
       }
     }, 800)
 
-    const cursorPos = textareaRef.current?.selectionStart || newText.length
-    const textBeforeCursor = newText.slice(0, cursorPos)
-
+    // Re-position suggestions if typing @ or #
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return
+    const range = sel.getRangeAt(0)
+    const container = range.commonAncestorContainer
+    if (container.nodeType !== Node.TEXT_NODE) return
+    const textBeforeCursor = container.textContent?.slice(0, range.startOffset) || ''
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
-      const triggerIndex = textBeforeCursor.lastIndexOf('@')
-      setAutocompletePosition(triggerIndex)
+      setAutocompletePosition(textBeforeCursor.lastIndexOf('@'))
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
@@ -344,8 +339,7 @@ export function ComposeInput({
     const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
       const matchText = hashtagMatch[1]
-      const triggerIndex = textBeforeCursor.lastIndexOf('#')
-      setAutocompletePosition(triggerIndex)
+      setAutocompletePosition(textBeforeCursor.lastIndexOf('#'))
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
@@ -359,28 +353,102 @@ export function ComposeInput({
 
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
-  }
+  }, [onTextChange, text, effectiveMaxChars, linkCardUrl, linkCardDismissed, isDM, playWarningSound, fetchLinkCard, onLinkCardChange, searchMentions, searchHashtags])
 
-  const insertSuggestion = (suggestion: string, type: 'mention' | 'hashtag') => {
+  const insertAtCursor = useCallback((toInsert: string) => {
+    const el = editableRef.current
+    if (!el) return
+
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) {
+      el.innerHTML += toInsert
+      onTextChange(el.textContent || '')
+      return
+    }
+
+    const range = sel.getRangeAt(0)
+    range.deleteContents()
+    range.insertNode(document.createTextNode(toInsert))
+    range.collapse(false)
+    sel.removeAllRanges()
+    sel.addRange(range)
+
+    onTextChange(el.textContent || '')
+  }, [onTextChange])
+
+  const insertSuggestion = useCallback((suggestion: string, type: 'mention' | 'hashtag') => {
     const prefix = type === 'mention' ? '@' : '#'
-    const beforeTrigger = text.slice(0, autocompletePosition)
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const afterCursor = text.slice(cursorPos)
-    const newText = beforeTrigger + prefix + suggestion + ' ' + afterCursor
-    onTextChange(newText)
+    insertAtCursor(prefix + suggestion + ' ')
     setShowMentionSuggestions(false)
     setShowHashtagSuggestions(false)
+  }, [insertAtCursor])
 
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newCursorPos = beforeTrigger.length + prefix.length + suggestion.length + 1
-        textareaRef.current.focus()
-        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
-      }
-    }, 0)
-  }
+  const insertEmoji = useCallback((emoji: string) => {
+    insertAtCursor(emoji)
+  }, [insertAtCursor])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const wrapSelection = useCallback((prefix: string, suffix: string) => {
+    const el = editableRef.current
+    if (!el) return
+
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) {
+      insertAtCursor(prefix + 'text' + suffix)
+      return
+    }
+
+    const range = sel.getRangeAt(0)
+    const selectedText = range.toString() || 'text'
+    range.deleteContents()
+
+    const fragment = document.createDocumentFragment()
+    fragment.appendChild(document.createTextNode(prefix))
+    fragment.appendChild(document.createTextNode(selectedText))
+    fragment.appendChild(document.createTextNode(suffix))
+
+    range.insertNode(fragment)
+    range.collapse(false)
+    sel.removeAllRanges()
+    sel.addRange(range)
+
+    onTextChange(el.textContent || '')
+  }, [insertAtCursor, onTextChange])
+
+  const insertAtLineStart = useCallback((prefix: string) => {
+    const el = editableRef.current
+    if (!el) return
+
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) {
+      insertAtCursor(prefix)
+      return
+    }
+
+    const range = sel.getRangeAt(0)
+    const container = range.commonAncestorContainer
+    if (container.nodeType !== Node.TEXT_NODE) return
+
+    const textNode = container as Text
+    const offset = range.startOffset
+    const text = textNode.textContent || ''
+    const lineStart = text.lastIndexOf('\n', offset - 1) + 1
+
+    const before = text.slice(0, lineStart)
+    const after = text.slice(lineStart)
+
+    textNode.textContent = before + prefix + after
+
+    // Move cursor after prefix
+    const newOffset = lineStart + prefix.length
+    range.setStart(textNode, newOffset)
+    range.setEnd(textNode, newOffset)
+    sel.removeAllRanges()
+    sel.addRange(range)
+
+    onTextChange(el.textContent || '')
+  }, [insertAtCursor, onTextChange])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.shiftKey && onSubmit && !isSubmitting) {
       e.preventDefault()
       if (text.trim()) {
@@ -412,7 +480,7 @@ export function ComposeInput({
         insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
       }
     }
-  }
+  }, [onSubmit, isSubmitting, text, handleCancelOrEscape, showMentionSuggestions, showHashtagSuggestions, suggestions, selectedSuggestionIndex, insertSuggestion])
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isDM) return
@@ -464,21 +532,6 @@ export function ComposeInput({
     setLinkCardDismissed(true)
   }
 
-  const insertEmoji = (emoji: string) => {
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
-    const newText = before + emoji + after
-    onTextChange(newText)
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newPos = cursorPos + emoji.length
-        textareaRef.current.focus()
-        textareaRef.current.setSelectionRange(newPos, newPos)
-      }
-    }, 0)
-  }
-
   const searchMentionsPicker = useCallback(async (query: string) => {
     if (!query.trim()) {
       setMentionPickerResults([])
@@ -503,30 +556,20 @@ export function ComposeInput({
 
   const insertSelectedMentions = () => {
     if (selectedMentions.size === 0) return
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
     const mentions = Array.from(selectedMentions).map(h => `@${h}`).join(' ')
-    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + mentions + ' ' + after
-    onTextChange(newText)
+    insertAtCursor((editableRef.current?.textContent?.endsWith(' ') ? '' : ' ') + mentions + ' ')
     setSelectedMentions(new Set())
     setMentionPickerOpen(false)
     setMentionSearch("")
-    setTimeout(() => textareaRef.current?.focus(), 100)
   }
 
   const insertSelectedHashtags = () => {
     if (selectedHashtags.size === 0) return
-    const cursorPos = textareaRef.current?.selectionStart || text.length
-    const before = text.slice(0, cursorPos)
-    const after = text.slice(cursorPos)
     const hashtags = Array.from(selectedHashtags).map(h => `#${h}`).join(' ')
-    const newText = before + (before.endsWith(' ') || before.length === 0 ? '' : ' ') + hashtags + ' ' + after
-    onTextChange(newText)
+    insertAtCursor((editableRef.current?.textContent?.endsWith(' ') ? '' : ' ') + hashtags + ' ')
     setSelectedHashtags(new Set())
     setHashtagPickerOpen(false)
     setHashtagSearch("")
-    setTimeout(() => textareaRef.current?.focus(), 100)
   }
 
   const filteredHashtags = hashtagSearch.trim() === ""
@@ -540,43 +583,6 @@ export function ComposeInput({
     }, 300)
     return () => clearTimeout(timer)
   }, [mentionSearch, mentionPickerOpen, searchMentionsPicker])
-
-  const wrapSelection = (prefix: string, suffix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = text.slice(start, end)
-    const before = text.slice(0, start)
-    const after = text.slice(end)
-    const wrapped = selectedText
-      ? `${before}${prefix}${selectedText}${suffix}${after}`
-      : `${before}${prefix}text${suffix}${after}`
-    onTextChange(wrapped)
-    setTimeout(() => {
-      textarea.focus()
-      if (selectedText) {
-        textarea.setSelectionRange(start + prefix.length, end + prefix.length)
-      } else {
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4)
-      }
-    }, 0)
-  }
-
-  const insertAtLineStart = (prefix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const start = textarea.selectionStart
-    const lineStart = text.lastIndexOf('\n', start - 1) + 1
-    const before = text.slice(0, lineStart)
-    const after = text.slice(lineStart)
-    const newText = `${before}${prefix}${after}`
-    onTextChange(newText)
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
-    }, 0)
-  }
 
   const formatActions = [
     { icon: Bold, label: "Bold", action: () => wrapSelection("**", "**") },
@@ -689,46 +695,37 @@ export function ComposeInput({
 
         <div className="relative">
           <div
-            ref={highlighterRef}
+            ref={editableRef}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={handleTextInput}
+            onKeyDown={handleKeyDown}
+            onPaste={(e) => {
+              e.preventDefault()
+              const pasted = (e.clipboardData || window.clipboardData).getData('text')
+              document.execCommand('insertText', false, pasted)
+            }}
             className={cn(
-              "absolute inset-0 pointer-events-none px-4 py-3 whitespace-pre-wrap break-words text-sm overflow-hidden select-none z-0 leading-[1.5]",
+              "px-4 py-3 text-sm leading-[1.5] tracking-normal outline-none min-h-[8rem] whitespace-pre-wrap break-words focus-visible:outline-none",
               minHeight
             )}
             style={{
               fontFamily: 'inherit',
               fontSize: '0.875rem',
-              lineHeight: '1.5',
-              letterSpacing: 'normal',
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-              hyphens: 'auto',
+              caretColor: 'var(--foreground)',
             }}
-            aria-hidden="true"
           >
             <BlueskyRichText record={getLiveRichText(text)} />
           </div>
 
-          <Textarea
-            ref={textareaRef}
-            placeholder={placeholder}
-            value={text}
-            onChange={(e) => handleTextChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onScroll={syncScroll}
-            className={cn(
-              "resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-3 bg-transparent relative z-10 caret-foreground leading-[1.5]",
-              minHeight
-            )}
-            style={{
-              color: 'transparent',
-              caretColor: 'var(--foreground)',
-              lineHeight: '1.5',
-              letterSpacing: 'normal',
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-              whiteSpace: 'pre-wrap',
-            }}
-          />
+          {!text && (
+            <div
+              className="absolute inset-0 pointer-events-none px-4 py-3 text-sm text-muted-foreground whitespace-pre-wrap break-words leading-[1.5]"
+              aria-hidden="true"
+            >
+              {placeholder}
+            </div>
+          )}
 
           {showMentionSuggestions && (mentionSuggestions.length > 0 || isSearchingMentions) && (
             <Card className="absolute left-4 w-80 sm:w-96 z-[100] mt-1 shadow-xl border-primary/20 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -955,7 +952,7 @@ export function ComposeInput({
                     onClick={onSubmit}
                     disabled={
                       isSubmitting ||
-                      !text.trim()
+                      (!text.trim())
                     }
                     size="sm"
                     className="h-7 px-4 text-xs font-bold"
