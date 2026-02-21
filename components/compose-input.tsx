@@ -2,14 +2,19 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { RichText } from '@atproto/api'
-
-// ─── ALL shadcn/ui imports ─────────────────────────────────────────────────
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic,
+  Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough,
+  Quote, SmilePlus, Send, PenSquare, Hash
+} from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
+import { VerifiedBadge } from "@/components/verified-badge"
+import { cn } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,63 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"   // ← explicitly added for emoji picker
-
-// ─── Icons ─────────────────────────────────────────────────────────────────
-import {
-  Loader2, ImagePlus, X, Video, ExternalLink, Bold, Italic,
-  Heading1, Heading2, List, ListOrdered, Code, Link2, Strikethrough,
-  Quote, SmilePlus, Send, PenSquare, Hash
-} from "lucide-react"
-
-// ─── Custom components ─────────────────────────────────────────────────────
-import { VerifiedBadge } from "@/components/verified-badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
-import { cn } from "@/lib/utils"
-
-// ─── Suggestion functions ──────────────────────────────────────────────────
 import { suggestHandles, suggestHashtags } from "@/hooks/bluesky/use-bluesky-suggestions"
-
-// ─── Cursor position helper ────────────────────────────────────────────────
-function getCursorXY(textarea: HTMLTextAreaElement, selectionStart: number) {
-  const { offsetLeft: inputX, offsetTop: inputY, scrollLeft, scrollTop } = textarea
-
-  const mirror = document.createElement('div')
-  const mirrorStyle = mirror.style
-  const computed = getComputedStyle(textarea)
-
-  mirrorStyle.position = 'absolute'
-  mirrorStyle.visibility = 'hidden'
-  mirrorStyle.whiteSpace = 'pre-wrap'
-  mirrorStyle.wordWrap = 'break-word'
-  mirrorStyle.overflow = 'hidden'
-  mirrorStyle.fontFamily = computed.fontFamily
-  mirrorStyle.fontSize = computed.fontSize
-  mirrorStyle.fontWeight = computed.fontWeight
-  mirrorStyle.letterSpacing = computed.letterSpacing
-  mirrorStyle.lineHeight = computed.lineHeight
-  mirrorStyle.padding = computed.padding
-  mirrorStyle.border = computed.border
-  mirrorStyle.width = `${textarea.clientWidth}px`
-  mirrorStyle.height = 'auto'
-
-  const textBefore = textarea.value.substring(0, selectionStart)
-  mirror.textContent = textBefore.replace(/\s/g, '\u00a0')
-
-  const cursorSpan = document.createElement('span')
-  cursorSpan.textContent = '\u200b'
-  mirror.appendChild(cursorSpan)
-
-  document.body.appendChild(mirror)
-  const { offsetLeft: spanX, offsetTop: spanY } = cursorSpan
-  document.body.removeChild(mirror)
-
-  return {
-    x: inputX + spanX - scrollLeft,
-    y: inputY + spanY - scrollTop,
-    lineHeight: parseFloat(computed.lineHeight) || 24,
-  }
-}
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -870,4 +821,44 @@ function getLiveRichText(text: string) {
   }
 
   return { text: rt.text, facets: deduped }
+}
+
+function getCursorXY(textarea: HTMLTextAreaElement, selectionStart: number) {
+  const { offsetLeft: inputX, offsetTop: inputY, scrollLeft, scrollTop } = textarea
+
+  const mirror = document.createElement('div')
+  const mirrorStyle = mirror.style
+  const computed = getComputedStyle(textarea)
+
+  mirrorStyle.position = 'absolute'
+  mirrorStyle.visibility = 'hidden'
+  mirrorStyle.whiteSpace = 'pre-wrap'
+  mirrorStyle.wordWrap = 'break-word'
+  mirrorStyle.overflow = 'hidden'
+  mirrorStyle.fontFamily = computed.fontFamily
+  mirrorStyle.fontSize = computed.fontSize
+  mirrorStyle.fontWeight = computed.fontWeight
+  mirrorStyle.letterSpacing = computed.letterSpacing
+  mirrorStyle.lineHeight = computed.lineHeight
+  mirrorStyle.padding = computed.padding
+  mirrorStyle.border = computed.border
+  mirrorStyle.width = `${textarea.clientWidth}px`
+  mirrorStyle.height = 'auto'
+
+  const textBefore = textarea.value.substring(0, selectionStart)
+  mirror.textContent = textBefore.replace(/\s/g, '\u00a0')
+
+  const cursorSpan = document.createElement('span')
+  cursorSpan.textContent = '\u200b'
+  mirror.appendChild(cursorSpan)
+
+  document.body.appendChild(mirror)
+  const { offsetLeft: spanX, offsetTop: spanY } = cursorSpan
+  document.body.removeChild(mirror)
+
+  return {
+    x: inputX + spanX - scrollLeft,
+    y: inputY + spanY - scrollTop,
+    lineHeight: parseFloat(computed.lineHeight) || 24,
+  }
 }
