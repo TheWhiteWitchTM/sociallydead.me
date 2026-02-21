@@ -140,7 +140,6 @@ export function ComposeInput({
   const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false)
   const [mentionSuggestions, setMentionSuggestions] = useState<MentionSuggestion[]>([])
   const [hashtagSuggestions, setHashtagSuggestions] = useState<string[]>([])
-  const [autocompletePosition, setAutocompletePosition] = useState(0)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [isSearchingMentions, setIsSearchingMentions] = useState(false)
 
@@ -189,6 +188,7 @@ export function ComposeInput({
       cancelable: true,
       composed: true,
     })
+
     document.dispatchEvent(escEvent)
     document.body.dispatchEvent(escEvent)
     window.dispatchEvent(escEvent)
@@ -318,17 +318,17 @@ export function ComposeInput({
       }
     }, 800)
 
-    // Re-position suggestions if typing @ or #
+    // Suggestion trigger
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return
     const range = sel.getRangeAt(0)
     const container = range.commonAncestorContainer
     if (container.nodeType !== Node.TEXT_NODE) return
-    const textBeforeCursor = container.textContent?.slice(0, range.startOffset) || ''
+    const textBeforeCursor = (container as Text).textContent?.slice(0, range.startOffset) || ''
+
     const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9.-]*)$/)
     if (mentionMatch) {
       const matchText = mentionMatch[1]
-      setAutocompletePosition(textBeforeCursor.lastIndexOf('@'))
       setShowMentionSuggestions(true)
       setShowHashtagSuggestions(false)
       setSelectedSuggestionIndex(0)
@@ -339,7 +339,6 @@ export function ComposeInput({
     const hashtagMatch = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/)
     if (hashtagMatch) {
       const matchText = hashtagMatch[1]
-      setAutocompletePosition(textBeforeCursor.lastIndexOf('#'))
       setShowHashtagSuggestions(true)
       setShowMentionSuggestions(false)
       setSelectedSuggestionIndex(0)
@@ -363,6 +362,7 @@ export function ComposeInput({
     if (!sel || sel.rangeCount === 0) {
       el.innerHTML += toInsert
       onTextChange(el.textContent || '')
+      el.focus()
       return
     }
 
@@ -374,6 +374,7 @@ export function ComposeInput({
     sel.addRange(range)
 
     onTextChange(el.textContent || '')
+    el.focus()
   }, [onTextChange])
 
   const insertSuggestion = useCallback((suggestion: string, type: 'mention' | 'hashtag') => {
@@ -412,6 +413,7 @@ export function ComposeInput({
     sel.addRange(range)
 
     onTextChange(el.textContent || '')
+    el.focus()
   }, [insertAtCursor, onTextChange])
 
   const insertAtLineStart = useCallback((prefix: string) => {
@@ -438,7 +440,6 @@ export function ComposeInput({
 
     textNode.textContent = before + prefix + after
 
-    // Move cursor after prefix
     const newOffset = lineStart + prefix.length
     range.setStart(textNode, newOffset)
     range.setEnd(textNode, newOffset)
@@ -446,6 +447,7 @@ export function ComposeInput({
     sel.addRange(range)
 
     onTextChange(el.textContent || '')
+    el.focus()
   }, [insertAtCursor, onTextChange])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -464,14 +466,15 @@ export function ComposeInput({
     }
 
     if (!showMentionSuggestions && !showHashtagSuggestions) return
+
     const suggestions = showMentionSuggestions ? mentionSuggestions : hashtagSuggestions
 
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0)
+      setSelectedSuggestionIndex(prev => (prev + 1) % suggestions.length)
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1)
+      setSelectedSuggestionIndex(prev => (prev - 1 + suggestions.length) % suggestions.length)
     } else if (e.key === 'Enter' && suggestions.length > 0) {
       e.preventDefault()
       if (showMentionSuggestions && mentionSuggestions[selectedSuggestionIndex]) {
@@ -480,7 +483,7 @@ export function ComposeInput({
         insertSuggestion(hashtagSuggestions[selectedSuggestionIndex], 'hashtag')
       }
     }
-  }, [onSubmit, isSubmitting, text, handleCancelOrEscape, showMentionSuggestions, showHashtagSuggestions, suggestions, selectedSuggestionIndex, insertSuggestion])
+  }, [onSubmit, isSubmitting, text, handleCancelOrEscape, showMentionSuggestions, showHashtagSuggestions, mentionSuggestions, hashtagSuggestions, selectedSuggestionIndex, insertSuggestion])
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isDM) return
@@ -554,23 +557,23 @@ export function ComposeInput({
     }
   }, [searchActors, searchActorsTypeahead])
 
-  const insertSelectedMentions = () => {
+  const insertSelectedMentions = useCallback(() => {
     if (selectedMentions.size === 0) return
     const mentions = Array.from(selectedMentions).map(h => `@${h}`).join(' ')
     insertAtCursor((editableRef.current?.textContent?.endsWith(' ') ? '' : ' ') + mentions + ' ')
     setSelectedMentions(new Set())
     setMentionPickerOpen(false)
     setMentionSearch("")
-  }
+  }, [insertAtCursor])
 
-  const insertSelectedHashtags = () => {
+  const insertSelectedHashtags = useCallback(() => {
     if (selectedHashtags.size === 0) return
     const hashtags = Array.from(selectedHashtags).map(h => `#${h}`).join(' ')
     insertAtCursor((editableRef.current?.textContent?.endsWith(' ') ? '' : ' ') + hashtags + ' ')
     setSelectedHashtags(new Set())
     setHashtagPickerOpen(false)
     setHashtagSearch("")
-  }
+  }, [insertAtCursor])
 
   const filteredHashtags = hashtagSearch.trim() === ""
     ? POPULAR_HASHTAGS
