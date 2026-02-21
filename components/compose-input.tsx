@@ -28,7 +28,6 @@ import {
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import Suggestion from '@tiptap/suggestion'
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -150,6 +149,28 @@ export function ComposeInput({
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("Smileys")
 
+  const [mentionPickerOpen, setMentionPickerOpen] = useState(false)
+  const [mentionSearch, setMentionSearch] = useState("")
+  const [mentionPickerResults, setMentionPickerResults] = useState<MentionSuggestion[]>([])
+  const [selectedMentions, setSelectedMentions] = useState<Set<string>>(new Set())
+  const [isSearchingPicker, setIsSearchingPicker] = useState(false)
+
+  const [hashtagPickerOpen, setHashtagPickerOpen] = useState(false)
+  const [hashtagSearch, setHashtagSearch] = useState("")
+  const [selectedHashtags, setSelectedHashtags] = useState<Set<string>>(new Set())
+
+  const hasVideo = mediaFiles.some(f => f.type === "video")
+  const hasImages = mediaFiles.some(f => f.type === "image")
+  const imageCount = mediaFiles.filter(f => f.type === "image").length
+  const canAddMedia = !isDM && !hasVideo && imageCount < MAX_IMAGES
+
+  const charCount = text.length
+  const isOverLimit = effectiveMaxChars !== Infinity && charCount > effectiveMaxChars
+
+  const progress = effectiveMaxChars !== Infinity ? Math.min((charCount / effectiveMaxChars) * 100, 100) : 0
+  const isNearLimit = progress >= 70
+  const isWarning = progress >= 90
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -167,71 +188,6 @@ export function ComposeInput({
       }),
       Placeholder.configure({
         placeholder,
-      }),
-      Suggestion.configure({
-        char: '@',
-        command: ({ editor, range, props }) => {
-          editor.chain().focus().deleteRange(range).insertContent(`@${props.handle} `).run()
-        },
-        items: ({ query }) => {
-          return mentionSuggestions
-            .filter((s) => s.handle.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 5)
-            .map((s) => ({
-              id: s.handle,
-              label: s.displayName || s.handle,
-              handle: s.handle,
-            }))
-        },
-        render: () => {
-          return {
-            onStart: (props) => {
-              setMentionSuggestions(props.items.map(item => ({
-                did: '',
-                handle: item.handle,
-                displayName: item.label,
-              })))
-              setShowMentionSuggestions(true)
-            },
-            onExit: () => setShowMentionSuggestions(false),
-            onUpdate: (props) => {
-              setMentionSuggestions(props.items.map(item => ({
-                did: '',
-                handle: item.handle,
-                displayName: item.label,
-              })))
-              setShowMentionSuggestions(true)
-            },
-          }
-        },
-      }),
-      Suggestion.configure({
-        char: '#',
-        command: ({ editor, range, props }) => {
-          editor.chain().focus().deleteRange(range).insertContent(`#${props.id} `).run()
-        },
-        items: ({ query }) => {
-          return POPULAR_HASHTAGS
-            .filter((tag) => tag.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 5)
-            .map((tag) => ({
-              id: tag,
-              label: tag,
-            }))
-        },
-        render: () => {
-          return {
-            onStart: (props) => {
-              setHashtagSuggestions(props.items.map(item => item.label))
-              setShowHashtagSuggestions(true)
-            },
-            onExit: () => setShowHashtagSuggestions(false),
-            onUpdate: (props) => {
-              setHashtagSuggestions(props.items.map(item => item.label))
-              setShowHashtagSuggestions(true)
-            },
-          }
-        },
       }),
     ],
     content: text,
