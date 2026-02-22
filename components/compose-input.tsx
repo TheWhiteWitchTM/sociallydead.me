@@ -202,7 +202,6 @@ export function ComposeInput({
       if (!cancelled) {
         setSuggestions(res)
         setSelectedIdx(0)
-        alert(`DEBUG: Got ${res.length} ${trigger === '@' ? 'mentions' : 'hashtags'}`)
       }
     }).catch(err => console.error(err))
 
