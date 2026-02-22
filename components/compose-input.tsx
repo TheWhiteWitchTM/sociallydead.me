@@ -178,7 +178,6 @@ export function ComposeInput({
       setTrigger(active)
       setPrefix(pref)
       setCursorLeft(startPos * 9.2)
-      alert(`DEBUG: Trigger → ${active}${pref}`)
     } else {
       setTrigger(null)
       setPrefix('')
