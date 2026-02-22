@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { BlueskyRichText } from "@/components/bluesky/bluesky-rich-text"
-import { useSuggestions } from "@/lib/bluesky/sugestion-context"
+import { useSuggestions } from "@/lib/bluesky/sugestion-context"   // note: probably typo → suggestion-context ?
 
 const EMOJI_CATEGORIES = {
   "Smileys": ["😀","😃","😄","😁","😆","😅","🤣","😂","🙂","😊","😇","🥰","😍","🤩","😘","😗","😚","😙","🥲","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🫢","🫣","🤫","🤔","🫡","🤐","🤨","😐","😑","😶","🫥","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","😵","🤯","🤠","🥳","🥸","😎","🤓","🧐"],
@@ -138,6 +138,11 @@ export function ComposeInput({
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [cursorLeft, setCursorLeft] = useState(0)
+
+  // ADD THESE THREE MISSING STATES – this fixes the error
+  const [linkCardLoading, setLinkCardLoading] = useState(false)
+  const [linkCardUrl, setLinkCardUrl] = useState<string | null>(null)
+  const [linkCardDismissed, setLinkCardDismissed] = useState(false)
 
   // Detect trigger
   useEffect(() => {
@@ -253,9 +258,6 @@ export function ComposeInput({
     setSuggestions([])
   }, [text, onTextChange, trigger, cursorLeft])
 
-  // ──────────────────────────────────────────────
-  // Original logic from here on – completely untouched
-
   const hasVideo = mediaFiles.some(f => f.type === "video")
   const hasImages = mediaFiles.some(f => f.type === "image")
   const imageCount = mediaFiles.filter(f => f.type === "image").length
@@ -320,8 +322,22 @@ export function ComposeInput({
   }, [])
 
   const fetchLinkCard = useCallback(async (url: string) => {
-    // your link card fetch logic – unchanged
-  }, [linkCardDismissed, onLinkCardChange])
+    if (linkCardDismissed || isDM) return
+    setLinkCardLoading(true)
+    try {
+      const res = await fetch(`/api/og?url=${encodeURIComponent(url)}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.title || data.description) {
+          onLinkCardChange?.(data)
+          setLinkCardUrl(url)
+        }
+      }
+    } catch {}
+    finally {
+      setLinkCardLoading(false)
+    }
+  }, [linkCardDismissed, onLinkCardChange, isDM])
 
   const handleTextChange = (newText: string) => {
     onTextChange(newText)
@@ -362,7 +378,8 @@ export function ComposeInput({
   }
 
   const dismissLinkCard = () => {
-    // your dismiss logic – unchanged
+    onLinkCardChange?.(null)
+    setLinkCardDismissed(true)
   }
 
   const insertEmoji = (emoji: string) => {
